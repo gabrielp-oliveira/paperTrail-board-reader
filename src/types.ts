@@ -96,10 +96,9 @@ export type GroupConnection = {
 }
 
 
-
 export type Chapter = {
-    width: number
-    height: number
+    width: number | 0
+    height: number| 0
     id: string,
     world_id: string,
     name: string,
@@ -107,13 +106,14 @@ export type Chapter = {
     created_at: string,
     paper_id: string,
     event_Id: string,
-    timeline_id: string | null,
+    timeline_id: string,
     storyline_id: string,
     range: number,
     order: number,
-    color: string,
-    selected: boolean,
-    focus: boolean
+    color?: string,
+    selected?: boolean,
+    focus?: boolean,
+    last_update?: any
 }
 
 export type ChapterTimeline =  {
@@ -180,10 +180,16 @@ export type StoryLine = {
     world_id: string,
     name: string,
     description: string,
-    Created_at: string,
-    order: number
+    created_at: string,
+    order: number,
 }
 
 
 
+
+
+
+export const BOARD_MARGIN_TOP = 80;
+export const TIMELINE_HEADER_HEIGHT = 45;
+export const TIMELINE_BODY_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT; // 125
 

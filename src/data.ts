@@ -1,80 +1,930 @@
-import { Timeline } from "./types.js";
+import { Chapter, StoryLine, Timeline } from "./types.js";
 
-const timelineData: Timeline[] =  [
+export const timelineData: Timeline[] = [
         {
-            id: "f2ae0333-7aa7-487e-893f-9207b22b018a",
-            name: "Origins and Nature of Religion",
-            description: "Explores the origins and nature of religion, the evolution of religious sentiment, and the universality of religion.",
-            world_id: "louisa-alcott-world",
-            order: 1,
-            range: 20
+            "id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "name": "A Vida em Família Durante a Guerra Civil",
+            "description": "Período em que as irmãs March vivem juntas em casa durante a Guerra Civil Americana, enfrentando desafios financeiros e emocionais enquanto seu pai está ausente.",
+            "world_id": "louisa-alcott-world",
+            "order": 1,
+            "range": 30
         },
         {
-            id: "bfec9174-6435-4948-906e-284eef988de5",
-            name: "Early Life on the Frontier",
-            description: "Covers Alexander Majors' early life and the challenges of settling in the frontier during the early 19th century.",
-            world_id: "louisa-alcott-world",
-            order: 2,
-            range: 25
+            "id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "name": "Os Desafios e Descobertas das Irmãs March",
+            "description": "As irmãs March enfrentam dificuldades e exploram novas experiências, incluindo bailes, amizades e conflitos pessoais.",
+            "world_id": "louisa-alcott-world",
+            "order": 2,
+            "range": 40
         },
         {
-            id: "820a817e-25f5-4006-a45d-d81d832474d8",
-            name: "The March Sisters' Adventures",
-            description: "Follows the lives of the March sisters, their struggles, and their acts of kindness during and after the holidays.",
-            world_id: "louisa-alcott-world",
-            order: 3,
-            range: 30
+            "id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "name": "A Crise Familiar",
+            "description": "Período de doença do Sr. March e Beth, onde a família March enfrenta desafios emocionais e financeiros, mostrando união e sacrifício.",
+            "world_id": "louisa-alcott-world",
+            "order": 3,
+            "range": 30
         },
         {
-            id: "45343b7a-6ca5-47e1-895d-1df907bc3087",
-            name: "Development of Religious Concepts",
-            description: "Explores the evolution of religious beliefs, including the nature of the soul, totemism, and the development of gods and myths.",
-            world_id: "louisa-alcott-world",
-            order: 4,
-            range: 25
+            "id": "32b5d76b-e9bd-453c-a3b2-ab341f002f39",
+            "name": "O Crescimento e a Independência de Jo",
+            "description": "Jo March sai de casa para buscar independência em Nova York, enfrentando desafios pessoais e profissionais enquanto desenvolve sua carreira de escritora.",
+            "world_id": "louisa-alcott-world",
+            "order": 4,
+            "range": 30
         },
         {
-            id: "c5577e98-6d4b-4ce0-8b75-38c83911d539",
-            name: "Business and Ethics on the Frontier",
-            description: "Follows the protagonist's venture into the freighting business and his adherence to a code of conduct based on religious beliefs.",
-            world_id: "louisa-alcott-world",
-            order: 5,
-            range: 20
+            "id": "f286e4bb-362c-4abe-8608-fd94f0c62567",
+            "name": "As Aventuras de Amy na Europa",
+            "description": "Amy March viaja pela Europa, explorando novas culturas e enfrentando dilemas pessoais enquanto amadurece e redefine suas ambições.",
+            "world_id": "louisa-alcott-world",
+            "order": 5,
+            "range": 25
         },
         {
-            id: "e92ebb47-df9f-4d0d-b92d-e3fc559b321e",
-            name: "Exploration and Settlement",
-            description: "Details the journeys and settlements of various groups, including the Mormons and their challenges.",
-            world_id: "louisa-alcott-world",
-            order: 6,
-            range: 25
+            "id": "01e9f00f-7613-4922-a9f7-66cac0f87360",
+            "name": "A Transformação de Laurie",
+            "description": "Laurie enfrenta seus sentimentos por Jo e amadurece, eventualmente encontrando amor e propósito ao lado de Amy.",
+            "world_id": "louisa-alcott-world",
+            "order": 6,
+            "range": 25
         },
         {
-            id: "07e3f4fd-0e4c-451a-a2ef-9191ea555e84",
-            name: "Magic, Divination, and Religion",
-            description: "Discusses the roles of magic and divination, their relationship with religion, and their impact on societies.",
-            world_id: "louisa-alcott-world",
-            order: 7,
-            range: 20
+            "id": "4ca4554d-9360-4aef-8053-f72acf2a4e92",
+            "name": "A Vida de Casados de Laurie e Amy",
+            "description": "Laurie e Amy constroem sua vida juntos, enfrentando desafios e planejando um futuro de apoio e generosidade.",
+            "world_id": "louisa-alcott-world",
+            "order": 7,
+            "range": 20
         },
         {
-            id: "b97eb49c-2e9c-4376-8e6b-d2d1a2e71175",
-            name: "Theological Developments",
-            description: "Explores the categorization of religions, the movement towards monotheism, and the development of religious concepts.",
-            world_id: "louisa-alcott-world",
-            order: 8,
-            range: 20
+            "id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "name": "A Vida Adulta das Irmãs March",
+            "description": "As irmãs March enfrentam as complexidades da vida adulta, incluindo casamento, maternidade e realização profissional.",
+            "world_id": "louisa-alcott-world",
+            "order": 8,
+            "range": 30
         },
         {
-            id: "0d39a6ed-0b3c-404e-93d4-cd8fe1350c06",
-            name: "Religion, Science, and Ethics",
-            description: "Analyzes the relationship between religion, science, and ethics, including conflicts and mutual influences.",
-            world_id: "louisa-alcott-world",
-            order: 9,
-            range: 20
+            "id": "41762281-7a07-48ab-81da-92ca8e456075",
+            "name": "Life at Plumfield with Jo's Boys",
+            "description": "Jo realiza seu sonho de abrir uma escola em Plumfield, encontrando satisfação em educar e cuidar de meninos em um ambiente familiar.",
+            "world_id": "louisa-alcott-world",
+            "order": 9,
+            "range": 30
         }
     ]
 
 
+export const StorylineData: StoryLine[] = [
+    {
+        "id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+        "name": "The Growth and Trials of the March Sisters",
+        "description": "This storyline follows the lives of the four March sisters—Meg, Jo, Beth, and Amy—as they navigate the challenges of growing up during the American Civil War. It covers their personal growth, family dynamics, and the trials they face, including financial difficulties, personal aspirations, and the bonds that hold them together.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 1
+    },
+    {
+        "id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+        "name": "Jo's Literary Journey",
+        "description": "Jo March's journey as an aspiring writer is chronicled, from her initial attempts at sensationalist stories to finding her true voice. Her experiences in New York, her relationship with Professor Bhaer, and her eventual success and fulfillment in writing are explored.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 2
+    },
+    {
+        "id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+        "name": "The Love and Trials of Laurie and Amy",
+        "description": "This storyline focuses on the evolving relationship between Laurie and Amy, from their initial interactions in Europe to their eventual marriage. It explores themes of personal growth, love, and the challenges they face as a couple.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 3
+    },
+    {
+        "id": "6df1f6b4-9565-421a-98a5-50896153337a",
+        "name": "Beth's Quiet Strength",
+        "description": "Beth March's storyline highlights her gentle nature, her struggles with illness, and the impact she has on her family. Her quiet strength and acceptance of her fate are central themes, as well as the love and support she receives from her sisters.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 4
+    },
+    {
+        "id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+        "name": "Meg's Domestic Life",
+        "description": "Meg March's transition from a young woman to a wife and mother is detailed in this storyline. It covers her marriage to John Brooke, the challenges of domestic life, and her growth in managing a household and raising children.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 5
+    },
+    {
+        "id": "ea6400e4-9cf0-41eb-b672-ef37ab078708",
+        "name": "Jo and the School at Plumfield",
+        "description": "After inheriting Plumfield, Jo March fulfills her dream of opening a school for boys. This storyline follows her journey as an educator, the challenges she faces, and the support she receives from her family and friends.",
+        "created_at": "0001-01-01T00:00:00Z",
+        "world_id": "",
+        "order": 6
+    }
+]
 
-export default timelineData
+export const chapterData: Chapter[] = [
+        {
+            "id": "fb7283d5-7607-44f0-a33a-2565354868f4",
+            "world_id": "louisa-alcott-world",
+            "name": "VI. Beth finds the Palace Beautiful.",
+            "description": "O trecho faz parte da história de \"Little Women\" (Mulherzinhas) e se passa na timeline da vida das irmãs March, especificamente no arco narrativo de Beth e sua relação com a música e o Sr. Laurence. Beth, uma das irmãs March, encontra dificuldades em se aproximar do Sr. Laurence e da casa luxuosa que ele e seu neto Laurie habitam, devido à sua timidez e à diferença de classe social. No entanto, com o tempo, a amizade entre as irmãs March e Laurie floresce, o que ajuda Beth a vencer suas inseguranças. Ela é especialmente atraída pelo piano do Sr. Laurence, mas inicialmente tem medo de tocá-lo. \n\nO Sr. Laurence, percebendo o amor de Beth pela música, a encoraja a usar o piano, o que a deixa extremamente feliz. Em gratidão, Beth decide confeccionar um par de chinelos para ele, gesto que é muito apreciado pelo Sr. Laurence. Em retribuição, ele presenteia Beth com um piano que pertenceu à sua falecida neta, gesto que toca profundamente Beth e a família March. Este presente não só representa a generosidade e a afeição do Sr. Laurence por Beth, mas também simboliza a superação de suas barreiras pessoais e o fortalecimento dos laços afetivos entre eles. Beth, vencendo sua timidez, agradece pessoalmente ao Sr. Laurence, selando uma amizade sincera e afetuosa.",
+            "created_at": "2025-05-22T00:49:45.198569Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+            "order": 6,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "38f2c1cf-5404-436d-ab23-81c962db3518",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXVII. New Impressions.",
+            "description": "O trecho apresenta um encontro entre Laurie e Amy na Promenade des Anglais, em Nice, durante o Natal. Laurie, que aparenta ser uma mistura de italiano, inglês e americano, encontra Amy, que está dirigindo um pequeno carro puxado por pôneis. Eles conversam sobre suas vidas recentes, com Laurie mencionando que esteve em Berlim e Paris com seu avô. Amy, por sua vez, compartilha que recebeu cartas de casa e que Beth está doente, mas que todos pedem para ela permanecer na Europa. Laurie parece ter mudado, aparentando estar mais sério e cansado do que Amy se lembrava.\n\nEles passam a tarde juntos, visitando o Castle Hill e alimentando pavões, enquanto discutem sobre suas experiências. À noite, Amy se prepara para um baile de Natal, onde deseja impressionar Laurie. Durante o baile, Laurie inicialmente não demonstra interesse em dançar, o que deixa Amy desapontada. No entanto, após algumas danças com outros cavalheiros, Laurie se aproxima novamente de Amy, e eles passam a noite juntos, compartilhando momentos agradáveis.\n\nO trecho explora temas de mudança, amadurecimento e a dinâmica de relações pessoais, mostrando como o tempo e a distância podem alterar percepções e sentimentos. A narrativa se passa durante a fase de amadurecimento de Laurie e Amy, enquanto eles descobrem novas facetas um do outro e de si mesmos.",
+            "created_at": "2025-05-22T00:57:58.509405Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "f286e4bb-362c-4abe-8608-fd94f0c62567",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 37,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "d6083ac5-a313-459c-90d2-b58546bd7c00",
+            "world_id": "louisa-alcott-world",
+            "name": "XLV. Daisy and Demi.",
+            "description": "O trecho apresentado é parte do livro \"Little Women\" de Louisa May Alcott e se concentra em Daisy e Demi, os gêmeos da família March. Daisy e Demi são crianças extraordinárias, que demonstram habilidades impressionantes desde cedo: Daisy se interessa por costura e culinária, enquanto Demi mostra um talento mecânico e filosófico, frequentemente fazendo perguntas complexas para seu avô. A relação entre os gêmeos é marcada por um afeto mútuo, apesar das diferenças de personalidade, com Demi frequentemente protegendo Daisy. A narrativa também aborda a dinâmica familiar e a influência de outros membros da família, como a tia Jo (Dodo), que é uma figura central na vida das crianças. A chegada do Professor Bhaer introduz uma nova figura de afeição para os gêmeos, especialmente Daisy, que rapidamente se apega a ele. O capítulo explora temas de infância, curiosidade intelectual e a importância das relações familiares na formação das crianças.",
+            "created_at": "2025-05-22T00:59:57.364419Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 45,
+            "range": 15,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "d7de32cf-03f3-4fe5-9602-31fdd0b2d542",
+            "world_id": "louisa-alcott-world",
+            "name": "XL. The Valley of the Shadow.",
+            "description": "O trecho apresentado faz parte da história de Beth, uma das irmãs March, no livro \"Little Women\" de Louisa May Alcott. Neste capítulo, intitulado \"The Valley of the Shadow\", a família March enfrenta a inevitável perda de Beth, que está gravemente doente. Após a fase inicial de amargura, a família se une para tornar os últimos dias de Beth os mais felizes possíveis. Eles preparam um quarto especial para ela, cercando-a com seus objetos e pessoas favoritas. Beth, mesmo fraca, continua a fazer pequenos gestos de bondade para os outros, como confeccionar presentes para as crianças da escola.\n\nConforme sua saúde declina, Beth encontra conforto na presença constante de Jo, sua irmã, que aprende valiosas lições de paciência e amor incondicional. Beth reflete sobre sua vida e encontra consolo ao perceber que, apesar de sentir que fez pouco, ela tocou profundamente a vida de Jo e de outros ao seu redor. Jo escreve um poema para Beth, expressando o impacto que sua irmã teve em sua vida e pedindo que as virtudes de Beth sejam passadas para ela.\n\nA narrativa culmina com a morte serena de Beth, que ocorre de forma natural e pacífica, cercada pela família. A cena final é de aceitação e gratidão, com a família encontrando conforto na ideia de que Beth está finalmente em paz. Este capítulo explora temas de amor, perda, aceitação e a importância das pequenas virtudes na vida cotidiana.",
+            "created_at": "2025-05-22T00:58:53.716727Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 40,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "a3a2d714-52c5-4ca4-a257-6f520f64780f",
+            "world_id": "louisa-alcott-world",
+            "name": "XIV. Secrets.",
+            "description": "O trecho apresentado faz parte da história \"Little Women\" de Louisa May Alcott, e se passa durante a timeline das irmãs March na Nova Inglaterra do século XIX. No capítulo \"Secrets\", Jo March está ocupada escrevendo histórias no sótão de sua casa, acompanhada por seu rato de estimação, Scrabble. Ela termina de escrever um manuscrito, amarra-o com uma fita vermelha e sai de casa discretamente para entregá-lo a um editor de jornal na cidade. Jo espera ansiosamente por uma resposta sobre a publicação de suas histórias.\n\nDurante sua ida à cidade, ela encontra Laurie, um amigo próximo, que a acompanha de volta para casa. Eles discutem sobre os hábitos de Laurie de frequentar salões de bilhar, algo que Jo desaprova, temendo que ele se torne como outros jovens desregrados. Laurie promete moderar suas atividades, e os dois trocam confidências. Jo revela que deixou dois de seus contos com um editor, enquanto Laurie compartilha um segredo sobre a luva de Meg, a irmã de Jo.\n\nMais tarde, Jo descobre que uma de suas histórias foi publicada, e a família March celebra seu sucesso. Jo está emocionada com a perspectiva de se tornar autossuficiente e ajudar suas irmãs financeiramente. Este capítulo destaca os temas de ambição, independência e os laços familiares, com Jo buscando reconhecimento como escritora e enfrentando as expectativas sociais de sua época.",
+            "created_at": "2025-05-22T00:51:49.201148Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 14,
+            "range": 15,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "27d639ff-b509-4036-b46a-b384b6a26156",
+            "world_id": "louisa-alcott-world",
+            "name": "XV. A Telegram.",
+            "description": "O trecho apresentado é parte do livro \"Little Women\" de Louisa May Alcott, e ocorre durante a timeline \"A Vida das Irmãs March\", especificamente no arco narrativo \"A Crise Familiar\". Neste capítulo, as irmãs March estão enfrentando a monotonia e os desafios do dia a dia quando recebem uma notícia devastadora: seu pai está gravemente doente em um hospital em Washington, e sua mãe, Mrs. March, deve ir imediatamente para lá. A notícia chega por meio de um telegrama, que causa grande comoção na família.\n\nAs irmãs, Jo, Meg, Beth e Amy, reagem de maneiras diferentes, mas todas se unem para apoiar sua mãe na preparação para a viagem. Jo, em um gesto de sacrifício e amor, corta e vende seu cabelo para ajudar financeiramente, demonstrando sua determinação em contribuir para o bem-estar da família. Mr. Laurence e Mr. Brooke oferecem apoio, com este último se propondo a acompanhar Mrs. March até Washington.\n\nO capítulo destaca temas de amor familiar, sacrifício e solidariedade em tempos de crise, mostrando como cada membro da família March lida com a adversidade e encontra maneiras de contribuir para a solução dos problemas que enfrentam. A união e o apoio mútuo são enfatizados como elementos centrais na narrativa.",
+            "created_at": "2025-05-22T00:51:53.471174Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 15,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "19c2ee97-7fef-4cfa-9806-fa5b9f045f96",
+            "world_id": "louisa-alcott-world",
+            "name": "III. The Laurence Boy.",
+            "description": "O trecho faz parte da timeline \"A Vida das Irmãs March\" e do arco narrativo \"Os Desafios e Descobertas das Irmãs March\". No capítulo, Meg e Jo March são convidadas para um baile de Ano Novo na casa da Sra. Gardiner. As irmãs estão animadas, mas enfrentam dificuldades com suas roupas, já que não têm muitas opções elegantes. Meg está preocupada com a aparência de seu vestido e Jo com o estado de suas luvas.\n\nDurante os preparativos, Jo acidentalmente queima o cabelo de Meg ao tentar fazer cachos, mas as irmãs conseguem improvisar para que Meg ainda possa ir ao baile. No evento, Meg rapidamente se enturma, enquanto Jo se sente deslocada até encontrar Laurie, o \"Laurence boy\", com quem estabelece uma amizade. Eles conversam sobre viagens e dançam escondidos no corredor.\n\nMeg acaba torcendo o tornozelo por causa de seus sapatos apertados. Jo tenta resolver a situação e, com a ajuda de Laurie, conseguem uma carruagem para voltar para casa. No caminho, Meg compartilha que foi convidada para passar uma semana com uma amiga, enquanto Jo relata suas aventuras no baile. Ao chegarem em casa, as irmãs mais novas, Beth e Amy, pedem detalhes sobre a festa, e Jo reflete que, apesar das dificuldades, elas se divertem tanto quanto as damas da alta sociedade.",
+            "created_at": "2025-05-22T00:48:54.977361Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 3,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "eb630af5-d1db-47e5-b4be-093b908fea22",
+            "world_id": "louisa-alcott-world",
+            "name": "XIII. Castles in the Air.",
+            "description": "O trecho pertence à timeline \"A Vida dos March\" e ao arco narrativo \"Castles in the Air\" do livro \"Little Women\" de Louisa May Alcott. Laurie, em um dia quente de setembro, reflete sobre seus desejos e frustrações enquanto observa as irmãs March, Meg, Jo, Beth e Amy, se dirigirem a um piquenique sem convidá-lo. Curioso, ele as segue até uma colina onde elas se reúnem para trabalhar em seus projetos pessoais e sonhar sobre o futuro. Durante a conversa, cada personagem compartilha seus \"castelos no ar\" ou sonhos: Laurie deseja ser um músico famoso, Meg sonha com uma vida confortável, Jo aspira a ser uma escritora renomada, Beth deseja apenas a felicidade familiar, e Amy quer ser uma artista de sucesso. Laurie enfrenta o dilema entre seguir os desejos de seu avô, que quer que ele se torne um comerciante, e seus próprios sonhos. A interação entre os personagens destaca temas de amizade, ambição e os desafios de equilibrar as expectativas familiares com os desejos pessoais. Ao final, Laurie decide sacrificar seus sonhos momentaneamente para apoiar seu avô, mostrando um amadurecimento e comprometimento com a família.",
+            "created_at": "2025-05-22T00:51:44.696479Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 13,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "744dfa2d-ed09-4837-8fe0-b501ece3dc9a",
+            "world_id": "louisa-alcott-world",
+            "name": "XX. Confidential.",
+            "description": "O trecho faz parte da história de \"Little Women\", durante a timeline \"A Jornada do Anel\", onde a família March enfrenta desafios emocionais e financeiros. Após um período de ansiedade devido à saúde do pai, a mãe das meninas, Sra. March, retorna para casa, trazendo alívio e felicidade para suas filhas. Beth, uma das irmãs, está se recuperando de uma doença grave, e sua melhora traz alegria à família. Amy, outra irmã, demonstra crescimento pessoal ao lidar com a generosidade da Tia March e reflete sobre não ser egoísta. Jo, a irmã mais velha, está preocupada com a possibilidade de Meg, sua irmã, se apaixonar por John Brooke, o tutor de Laurie. Jo teme que isso possa mudar a dinâmica familiar e expressa seu desejo de manter a família unida e livre de complicações românticas. A Sra. March, no entanto, está aberta à possibilidade de um relacionamento entre Meg e John, desde que aconteça no tempo certo. O trecho aborda temas de amor familiar, amadurecimento e as complexidades das relações românticas.",
+            "created_at": "2025-05-22T00:52:58.119463Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 20,
+            "range": 12,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "cdf639ac-2e83-4bb1-96a6-302a1f408f64",
+            "world_id": "louisa-alcott-world",
+            "name": "VIII. Jo Meets Apollyon.",
+            "description": "O trecho é parte do livro \"Little Women\" de Louisa May Alcott e se passa durante a timeline da vida das irmãs March. Neste capítulo, intitulado \"Jo Meets Apollyon\", o conflito central gira em torno de Jo e Amy March. Jo planeja ir ao teatro com Meg e Laurie, mas Amy, não convidada, fica chateada. Sentindo-se injustiçada, Amy queima um manuscrito de contos que Jo havia escrito, o que gera uma grande briga entre as irmãs. Jo, com seu temperamento explosivo, promete nunca perdoar Amy. No entanto, após um incidente no qual Amy quase se afoga enquanto patinava no gelo, Jo percebe o perigo de deixar a raiva dominar suas ações. A mãe delas, Mrs. March, aconselha Jo sobre a importância do autocontrole e do perdão, compartilhando suas próprias experiências com o temperamento. Ao final, Jo e Amy se reconciliam, aprendendo lições valiosas sobre amor fraternal e arrependimento. O capítulo destaca temas de família, perdão e crescimento pessoal.",
+            "created_at": "2025-05-22T00:49:57.912694Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 8,
+            "range": 15,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "e9048674-4ccb-40b7-b6a7-ebc621df6e5e",
+            "world_id": "louisa-alcott-world",
+            "name": "IX. Meg goes to Vanity Fair.",
+            "description": "O trecho é um capítulo do livro \"Little Women\" de Louisa May Alcott, intitulado \"Meg Goes to Vanity Fair\". A história se passa durante a timeline \"A Vida das Irmãs March\" e segue a storyline \"As Lições de Vida de Meg\".\n\nNeste capítulo, Meg March é convidada para passar duas semanas na casa da amiga Annie Moffat, onde ela terá a oportunidade de vivenciar o mundo da alta sociedade. Meg está animada com a perspectiva de se divertir e experimentar a vida de luxo, mas também sente uma certa insegurança devido à simplicidade de suas roupas e pertences em comparação com os das amigas mais ricas.\n\nDurante sua estadia, Meg se vê encantada pelo estilo de vida glamoroso e começa a imitar as maneiras e o comportamento das pessoas ao seu redor. No entanto, ela também se sente envergonhada e deslocada, especialmente quando percebe que suas amigas a olham com pena por causa de suas roupas modestas. A situação se agrava quando Meg ouve uma conversa que sugere que sua família e Laurie, seu amigo, têm planos de casá-la com alguém rico.\n\nMeg retorna para casa com sentimentos conflitantes sobre sua experiência. Ela confessa à sua mãe e à irmã Jo sobre as coisas que ouviu e como isso a fez sentir. A Sra. March, então, aproveita a oportunidade para ensinar a Meg e Jo sobre os valores que realmente importam na vida, como amor, respeito e felicidade, em vez de riqueza e status social. Ela enfatiza que o mais importante é que suas filhas sejam felizes e amadas, independentemente de sua situação financeira.",
+            "created_at": "2025-05-22T00:50:39.518366Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 9,
+            "range": 20,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "99da7d87-56bc-4d13-aa56-1a0c96bd9cfc",
+            "world_id": "louisa-alcott-world",
+            "name": "XIX. Amy's Will.",
+            "description": "O trecho apresentado faz parte do arco narrativo \"Amy's Will\" e se passa durante a timeline \"A Vida das Irmãs March\", do livro \"Little Women\". Amy March está morando temporariamente com sua tia March e enfrenta dificuldades de adaptação devido à rigidez e falta de afeto da tia. Apesar das tentativas da tia de ser gentil, Amy sente falta do carinho e liberdade de sua casa. Durante sua estadia, Amy realiza tarefas domésticas e segue uma rotina rigorosa, mas encontra algum consolo nas visitas diárias de Laurie, um amigo da família, e na companhia de Esther, a empregada francesa que lhe conta histórias e a ajuda a explorar a casa.\n\nAmy descobre um armário cheio de joias e objetos antigos da tia, o que a fascina. Ela se interessa particularmente por um rosário de ouro e é incentivada por Esther a criar um espaço de oração para buscar conforto espiritual. Sentindo-se solitária e percebendo a incerteza da vida, especialmente com a preocupação pela saúde de sua irmã Beth, Amy decide escrever um testamento. Nele, ela distribui seus pertences mais valiosos entre seus familiares e amigos, demonstrando sua afeição por eles.\n\nA narrativa destaca o crescimento pessoal de Amy, sua busca por consolo espiritual e a importância dos laços familiares e amizades em tempos difíceis. A preocupação com a saúde de Beth adiciona uma camada emocional à história, reforçando o tema da fragilidade da vida e a necessidade de valorizar os momentos presentes.",
+            "created_at": "2025-05-22T00:52:54.180839Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 19,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "73f457f9-2e98-4286-915f-604936620879",
+            "world_id": "louisa-alcott-world",
+            "name": "XXV. The First Wedding.",
+            "description": "O trecho descreve o casamento de Meg, uma das irmãs March, em um dia ensolarado de junho. A cerimônia é simples e íntima, refletindo o desejo de Meg de ter apenas seus entes queridos presentes. Meg faz seu próprio vestido de casamento e usa lírios do vale, as flores favoritas de seu noivo, John. As irmãs de Meg, Jo, Beth e Amy, ajudam nos preparativos e refletem sobre as mudanças em suas vidas ao longo dos três anos anteriores. Durante a cerimônia, Meg e John trocam votos sob um arco verde, cercados pela família. Após o casamento, há uma recepção modesta com bolo e frutas, sem bebidas alcoólicas, respeitando a decisão do pai de Meg de não servir vinho. Laurie, um amigo próximo da família, promete a Meg que não beberá, em um gesto que reforça a amizade e confiança entre eles. O casamento termina com uma dança alegre no jardim, e Meg e John começam sua vida de casados com uma caminhada tranquila até sua nova casa. O capítulo destaca temas de amor familiar, simplicidade e a transição para uma nova fase na vida de Meg.",
+            "created_at": "2025-05-22T00:54:01.690765Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 25,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "b4be3ee1-65fd-4858-952a-a7b8388f84fc",
+            "world_id": "louisa-alcott-world",
+            "name": "XII. Camp Laurence",
+            "description": "O trecho fornecido é parte do capítulo \"Camp Laurence\" do livro \"Little Women\" de Louisa May Alcott. A história se passa durante a Segunda Era, na storyline \"The March Sisters' Adventures\". Neste capítulo, as irmãs March recebem cartas e convites de Laurie para um piquenique com amigos ingleses. Beth, a responsável por distribuir o correio, entrega cartas e presentes às suas irmãs. Jo recebe uma carta encorajadora de sua mãe elogiando seus esforços para controlar seu temperamento.\n\nLaurie organiza um evento no campo, onde todos participam de jogos e atividades ao ar livre. Meg, Jo, Beth e Amy se juntam a Laurie e seus convidados, incluindo os irmãos Vaughn. Durante o piquenique, há jogos de croquet, onde Jo se desentende com Fred Vaughn por causa de uma trapaça, mas consegue manter a calma. Em um jogo de contar histórias, os personagens criam uma narrativa absurda e divertida em conjunto.\n\nMeg tem uma interação com Mr. Brooke, que sugere que ela aprenda alemão, e eles discutem sobre independência e trabalho. Mr. Brooke revela seu desejo de se alistar no exército, o que provoca uma resposta emocional de Meg. O capítulo termina com a partida dos Vaughns e um sentimento de camaradagem entre os personagens.\n\nOs temas centrais incluem amizade, crescimento pessoal e independência feminina, com destaque para o desenvolvimento de Jo e Meg em suas interações sociais e emocionais.",
+            "created_at": "2025-05-22T00:51:40.752692Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 12,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "c5e67973-393a-4494-8759-d8e45b1a4fc6",
+            "world_id": "louisa-alcott-world",
+            "name": "XVII. Little Faithful.",
+            "description": "O trecho é parte da história \"Little Women\", centrada na vida das irmãs March durante a Guerra Civil Americana. Neste capítulo, após um período de virtude e esforço para manter a casa em ordem na ausência da mãe, as irmãs começam a relaxar e retornar a antigos hábitos. Beth, a mais dedicada e altruísta, continua suas tarefas e cuida da família Hummel, vizinhos pobres. Durante uma visita, o bebê dos Hummels morre em seus braços, e Beth descobre que a família está com escarlatina. Ela mesma começa a apresentar sintomas da doença.\n\nPreocupadas, as irmãs decidem que Amy deve ser enviada para a casa da tia March para evitar o contágio. Laurie, amigo da família, ajuda a convencer Amy, prometendo visitas diárias. Enquanto isso, Jo e Meg, com a ajuda de Hannah, a empregada, cuidam de Beth. Dr. Bangs confirma que Beth tem sintomas leves da febre, e a família tenta lidar com a situação sem preocupar a mãe, que está cuidando do pai doente em Washington. O capítulo aborda temas como responsabilidade, culpa e a dinâmica familiar em tempos de crise.",
+            "created_at": "2025-05-22T00:52:44.667956Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 17,
+            "range": 12,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "5573b37a-e782-4d7c-b1c0-77c4ae58d10f",
+            "world_id": "louisa-alcott-world",
+            "name": "XXIV. Gossip.",
+            "description": "O trecho apresentado faz parte da obra \"Little Women\" de Louisa May Alcott, e se passa na timeline \"A Vida dos March Após a Guerra Civil\". O arco narrativo pode ser identificado como \"A Vida Doméstica das Irmãs March\". \n\nNeste capítulo, a narrativa foca no cotidiano da família March após a Guerra Civil, destacando o casamento iminente de Meg com John Brooke. A família March continua unida e amorosa, com o Sr. March sendo uma figura de sabedoria e apoio para todos. Meg, agora mais madura, está prestes a começar sua vida de casada em um modesto lar preparado por John, que, apesar de humilde, é cheio de amor e cuidado. Meg reflete sobre suas expectativas e aceita com alegria a simplicidade de sua nova vida, contrastando com a opulência de outras amigas.\n\nJo, por sua vez, está focada em sua carreira literária e no cuidado com Beth, que permanece frágil após uma doença. Laurie, o vizinho e amigo da família, é retratado como um jovem carismático e um pouco travesso, que está prestes a concluir seus estudos universitários. Ele mantém uma relação próxima com as irmãs March, especialmente com Jo, com quem compartilha confidências e brincadeiras. Amy, a mais jovem, está prosperando sob a tutela de uma tia e aproveita a atenção dos amigos de Laurie.\n\nO capítulo destaca temas como amor, família, simplicidade e a transição para a vida adulta, enquanto as irmãs March enfrentam novos desafios e oportunidades em suas vidas pessoais e profissionais.",
+            "created_at": "2025-05-22T00:53:57.457194Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 24,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "304b6542-8b3d-408f-8310-c853376a07a1",
+            "world_id": "louisa-alcott-world",
+            "name": "XXVII. Literary Lessons.",
+            "description": "O trecho pertence à timeline \"A Vida das Irmãs March\" e ao arco narrativo \"A Ascensão de Jo como Escritora\". No capítulo \"Literary Lessons\", Jo March, uma aspirante a escritora, encontra sucesso inesperado ao vender uma história sensacionalista para um jornal, recebendo um prêmio de cem dólares. Este evento traz grande alegria para Jo e sua família, permitindo que ela envie sua mãe e irmã Beth para uma temporada à beira-mar para melhorar a saúde de Beth. Motivada pelo sucesso, Jo continua a escrever e vender histórias, contribuindo para as finanças da família. No entanto, ao tentar publicar seu primeiro romance, Jo enfrenta críticas contraditórias que a deixam confusa sobre a qualidade de seu trabalho. Apesar disso, ela aprende a valorizar o feedback como parte de seu desenvolvimento como escritora e decide continuar a escrever, determinada a melhorar e alcançar reconhecimento. O capítulo destaca temas como perseverança, a busca por realização pessoal e o equilíbrio entre arte e comércio.",
+            "created_at": "2025-05-22T00:54:43.796568Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 27,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "cd76f907-a82d-4ad1-8bfd-e3ef3f737014",
+            "world_id": "louisa-alcott-world",
+            "name": "XXVIII. Domestic Experiences.",
+            "description": "O trecho apresentado é parte do livro \"Little Women\" e se concentra na vida doméstica de Meg após seu casamento com John Brooke. Meg começa sua vida de casada determinada a ser uma dona de casa exemplar, mas logo enfrenta desafios comuns, como a dificuldade de cozinhar e a administração do lar. Apesar de suas boas intenções, ela se vê sobrecarregada e, em um episódio específico, falha ao tentar fazer geleia, o que resulta em um jantar desastroso quando John traz um amigo para casa sem avisar. Isso leva a um desentendimento entre o casal, mas eles eventualmente se reconciliam, aprendendo a importância da paciência e da comunicação no casamento.\n\nMeg também enfrenta tentações financeiras, influenciada por sua amiga Sallie Moffat, o que a leva a gastar além de suas possibilidades. Isso causa um conflito interno, pois ela sabe que John confia nela para gerenciar as finanças da casa. Após um erro de julgamento ao comprar um vestido caro, Meg sente culpa e vergonha, mas eventualmente resolve a situação ao vender o vestido e priorizar o bem-estar financeiro da família.\n\nA narrativa também aborda a chegada dos filhos de Meg e John, gêmeos chamados Daisy e Demi, o que traz novas experiências e alegrias para o casal. O trecho destaca temas como as dificuldades e as alegrias da vida conjugal, a importância do apoio mútuo e a adaptação às responsabilidades familiares.",
+            "created_at": "2025-05-22T00:54:48.151452Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 28,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "05821b73-14d4-40e3-acc3-47cfd22d25ce",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXIII. Jo's Journal.",
+            "description": "O trecho apresentado é uma entrada do diário de Jo, uma das personagens de \"Little Women\" de Louisa May Alcott. Jo está em Nova York, onde trabalha como governanta na casa de Mrs. Kirke. Ela escreve para sua mãe, Marmee, e sua irmã Beth, relatando suas experiências e observações. Jo descreve como se sente acolhida por Mrs. Kirke e sua nova rotina ensinando e costurando para as crianças da casa. Ela menciona Professor Bhaer, um gentil e erudito alemão que dá aulas para se sustentar e cuidar de seus sobrinhos órfãos. Jo observa com interesse o comportamento do professor e descreve suas interações com ele, incluindo um momento em que ele a surpreende enquanto ela pratica alemão.\n\nJo também relata suas impressões sobre os outros moradores da casa e suas experiências sociais, incluindo um jantar onde ela se sente um pouco deslocada, mas faz amizade com Miss Norton, uma senhora rica e culta. Ela compartilha suas atividades diárias, que incluem ensinar, costurar e escrever, além de suas tentativas de aprender alemão com o professor. Jo descreve como ela e o professor começaram a ter lições de alemão de maneira informal, o que a diverte e a desafia.\n\nA narrativa se passa durante o período em que Jo está longe de casa, explorando sua independência e desenvolvendo novas relações, particularmente com o Professor Bhaer, que se torna uma figura importante em sua vida. A história é ambientada na timeline de \"A Vida em Nova York de Jo\", dentro do arco narrativo \"O Crescimento e a Independência de Jo\".",
+            "created_at": "2025-05-22T00:56:49.645286Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "32b5d76b-e9bd-453c-a3b2-ab341f002f39",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 33,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "6e419a57-82ee-4b24-bc2e-510f60a7c05e",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXV. Heartache.",
+            "description": "O trecho apresentado faz parte da história de Laurie e Jo, personagens do livro \"Little Women\", de Louisa May Alcott. Na timeline da narrativa, estamos na fase em que Laurie está prestes a se formar e enfrenta um conflito emocional significativo. Laurie se declara para Jo, expressando seu amor e desejo de se casar com ela. No entanto, Jo, apesar de gostar muito de Laurie como amigo, não sente o mesmo amor romântico por ele e recusa sua proposta. Ela tenta explicar que seus temperamentos fortes e vontades poderiam levar a um relacionamento infeliz, e insiste que eles seriam melhores como amigos. Laurie fica devastado com a rejeição e, em um momento de desespero, decide se afastar e viajar com seu avô, o Sr. Laurence, para tentar superar seus sentimentos por Jo. A história explora temas de amor não correspondido, amizade e a dificuldade de lidar com expectativas sociais e pessoais. Jo sente-se culpada por magoar Laurie, mas mantém sua decisão, acreditando que é o melhor para ambos. Laurie, por sua vez, luta para aceitar a rejeição e encontrar um novo caminho para si mesmo.",
+            "created_at": "2025-05-22T00:57:48.627569Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "01e9f00f-7613-4922-a9f7-66cac0f87360",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 35,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "c6201c8d-23cd-4562-828c-df05e8211111",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXIX. Lazy Laurence.",
+            "description": "O trecho fornecido é parte do livro \"Little Women\" de Louisa May Alcott, especificamente do capítulo \"Lazy Laurence\". A história se passa na timeline \"A Vida na Europa\", durante a estadia de Laurie em Nice. Laurie pretendia ficar apenas uma semana, mas acabou prolongando sua estadia para um mês. Ele se sente atraído pela presença familiar de Amy, que lhe traz um conforto que ele não encontra nos estranhos. Apesar de passarem muito tempo juntos, Amy começa a formar uma opinião negativa sobre Laurie, percebendo sua indolência e falta de propósito. Amy tenta motivá-lo a ser mais ativo e produtivo, criticando sua preguiça e comportamento apático. Laurie, por outro lado, está lidando com sentimentos não resolvidos por Jo, a irmã de Amy, o que o deixa em um estado de melancolia. Amy confronta Laurie sobre sua falta de direção e o incentiva a fazer algo significativo com sua vida, ao invés de desperdiçar seus talentos e oportunidades. No final, Laurie decide seguir o conselho de Amy e retorna para seu avô, deixando Amy com sentimentos mistos de aprovação e saudade. O arco narrativo principal aqui é \"A Transformação de Laurie\", onde ele começa a perceber a necessidade de mudar seu comportamento e buscar um propósito maior.",
+            "created_at": "2025-05-22T00:58:48.131241Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "01e9f00f-7613-4922-a9f7-66cac0f87360",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 39,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "c01fe887-4172-4630-bd94-47f1b599ef1c",
+            "world_id": "louisa-alcott-world",
+            "name": "XLIII. Surprises",
+            "description": "O trecho apresenta um momento de reflexão e surpresa para Jo, uma das personagens centrais da obra \"Little Women\" de Louisa May Alcott. A história se passa durante a timeline chamada \"Depois da Guerra Civil\", que aborda a vida das irmãs March após os eventos principais da guerra. No capítulo, Jo está sozinha e pensativa, refletindo sobre sua vida e o fato de estar envelhecendo sem ter realizado tudo o que desejava. Ela se vê como uma \"solteirona literária\", mas tenta encontrar consolo em sua independência e nas histórias que escreve.\n\nA narrativa toma um rumo inesperado quando Laurie, um amigo próximo e antigo interesse amoroso de Jo, aparece de surpresa e revela que se casou com Amy, irmã de Jo. A notícia é um choque, mas Jo reage com alegria e aceitação, mostrando que superou seus sentimentos passados por Laurie. O capítulo destaca a mudança nos relacionamentos e como os personagens estão amadurecendo e encontrando seus lugares no mundo.\n\nAlém disso, há a chegada de Professor Bhaer, um amigo de Jo, que é calorosamente recebido pela família March. A presença dele sugere um desenvolvimento futuro no relacionamento entre ele e Jo, insinuando uma possível nova fase na vida de Jo. O capítulo explora temas de amor, amizade, amadurecimento e a importância da família, enquanto retrata um momento de reunião e felicidade para os personagens.",
+            "created_at": "2025-05-22T00:59:50.897927Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 43,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "f2b3abf4-fec5-4f43-aa5c-46c29869d20c",
+            "world_id": "louisa-alcott-world",
+            "name": "XI. Experiments.",
+            "description": "O trecho apresentado é parte do livro \"Little Women\" de Louisa May Alcott e está situado na timeline da vida cotidiana das irmãs March. No capítulo intitulado \"Experiments\", as irmãs Meg, Jo, Beth e Amy decidem tirar uma semana de férias de suas responsabilidades diárias enquanto sua mãe, Mrs. March, e a empregada, Hannah, cuidam da casa. No entanto, a experiência de \"descanso e diversão\" rapidamente se transforma em caos e desorganização, com as irmãs se deparando com os desafios e frustrações de manter a casa sem ajuda.\n\nMeg, que planejava descansar e se divertir, descobre que o tempo livre não é tão satisfatório quanto imaginava. Jo tenta organizar um jantar para Laurie, mas enfrenta desastres culinários que culminam em um jantar cômico e desastroso. Beth, por sua vez, fica abalada pela morte de seu canário, Pip, devido à negligência durante a semana. Amy, entediada e insatisfeita com as atividades disponíveis, percebe a falta de propósito sem suas responsabilidades habituais.\n\nA mãe das meninas, Mrs. March, aproveita a situação para ensinar uma lição valiosa sobre a importância do trabalho e da colaboração. No final da semana, as irmãs reconhecem que ter tarefas e responsabilidades torna o tempo livre mais valioso e a vida em casa mais harmoniosa. Elas decidem retomar suas obrigações com uma nova apreciação pelo equilíbrio entre trabalho e lazer.",
+            "created_at": "2025-05-22T00:50:51.327847Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 11,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "c7be059a-7e40-4fbb-a06c-5c2240e992b7",
+            "world_id": "louisa-alcott-world",
+            "name": "X. The P. C. and P. O.",
+            "description": "O trecho apresenta um capítulo da história das irmãs March, centrando-se em suas atividades durante a primavera e na formação do clube secreto \"Pickwick Club\" (P.C.), inspirado por sua admiração por Charles Dickens. Cada irmã cuida de um jardim com plantas que refletem suas personalidades distintas: Meg com rosas e heliotrópios, Jo com girassóis, Beth com flores tradicionais e Amy com um caramanchão florido. As atividades ao ar livre incluem jardinagem e passeios, enquanto os dias chuvosos são preenchidos com diversões dentro de casa, como as reuniões do clube.\n\nO clube, composto por Meg, Jo, Beth e Amy, se reúne no sótão para compartilhar histórias e poesias no jornal semanal \"The Pickwick Portfolio\", editado por Jo. Cada membro assume um personagem do \"Pickwick Papers\" de Dickens. Durante uma reunião, Jo propõe a inclusão de Laurie (Theodore Laurence) como membro honorário, o que inicialmente gera resistência, mas é aceito após uma votação influenciada pela amizade e pelas contribuições de Laurie ao grupo.\n\nO clube também cria um \"correio\" no jardim, facilitando a troca de cartas e pequenos pacotes entre as irmãs e Laurie, promovendo um espírito de camaradagem e diversão. O capítulo destaca a importância da amizade, da criatividade e da colaboração entre as irmãs e Laurie, enquanto eles encontram formas de se divertir e apoiar uns aos outros.",
+            "created_at": "2025-05-22T00:50:45.935781Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 10,
+            "range": 25,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "ddc9576a-693a-4388-953d-08355cb49a0a",
+            "world_id": "louisa-alcott-world",
+            "name": "XLIV. My Lord and Lady.",
+            "description": "O trecho apresentado faz parte da timeline \"A Vida de Casados de Laurie e Amy\" e do arco narrativo \"A Convivência e os Planos do Casal\". Laurie e Amy, agora casados, estão se adaptando à vida em conjunto e discutindo seus planos futuros. Laurie expressa seu desejo de se dedicar aos negócios e provar seu valor ao avô, enquanto Amy planeja estabelecer um lar acolhedor e influente. O casal demonstra um carinho mútuo e discute a importância de não se casar por dinheiro, refletindo sobre suas próprias escolhas e valores. Eles também conversam sobre a possibilidade de Jo, irmã de Amy, casar-se com o Professor Bhaer, e Laurie tranquiliza Amy sobre qualquer ciúme que ela possa sentir. Juntos, eles compartilham o desejo de usar sua riqueza para ajudar outros, especialmente jovens talentosos e mulheres ambiciosas, destacando a importância de apoiar aqueles que enfrentam dificuldades financeiras. A narrativa destaca o amor e a parceria entre Laurie e Amy, bem como seu compromisso com o bem-estar dos outros.",
+            "created_at": "2025-05-22T00:59:54.254059Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "4ca4554d-9360-4aef-8053-f72acf2a4e92",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 44,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "d7bd4436-5c2d-4051-acec-c50ba8b42d4a",
+            "world_id": "louisa-alcott-world",
+            "name": "XVI. Letters.",
+            "description": "O trecho apresentado faz parte do livro \"Little Women\" de Louisa May Alcott, especificamente da timeline \"A Primeira Parte\", que aborda a vida das irmãs March durante a Guerra Civil Americana. O capítulo se concentra na partida da Sra. March, que viaja para cuidar do marido doente, deixando suas filhas sob os cuidados de Hannah e do Sr. Laurence. As irmãs March, Meg, Jo, Beth e Amy, tentam manter-se otimistas e ocupadas durante a ausência da mãe, enfrentando a saudade e o medo pela saúde do pai.\n\nMeg assume um papel mais maternal, cuidando das irmãs e da casa. Jo, com seu espírito indomável, tenta manter o ânimo da família, mas enfrenta um pequeno desentendimento com Laurie, que é rapidamente resolvido. Beth encontra consolo na música e nas pequenas tarefas diárias, enquanto Amy lida com suas preocupações infantis, mas tenta ser responsável. As cartas trocadas entre as irmãs e a mãe revelam o amor e o apoio mútuo, além de detalhes do cotidiano e das pequenas dificuldades que enfrentam.\n\nO tema central é a resiliência da família March e o apoio comunitário, com os vizinhos e amigos, como Laurie e o Sr. Laurence, desempenhando papéis importantes na manutenção do bem-estar da família durante tempos difíceis.",
+            "created_at": "2025-05-22T00:52:40.520922Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 16,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "e7bedd8b-1645-48f5-a17d-9b5f4d94d7c1",
+            "world_id": "louisa-alcott-world",
+            "name": "XXII. Pleasant Meadows.",
+            "description": "O trecho apresentado faz parte da timeline \"A Jornada do Retorno de Mr. March\" e do arco narrativo \"The Healing Christmas\". Após um período de doença e dificuldades, a família March experimenta semanas de paz e recuperação. Mr. March está prestes a retornar para casa, e Beth, embora ainda frágil, começa a se recuperar, cercada pelo carinho de suas irmãs. Com a proximidade do Natal, Jo e Laurie preparam surpresas extravagantes, incluindo uma figura de neve com presentes para Beth, simbolizando a alegria e união da família. O dia de Natal é especialmente feliz, pois Mr. March faz uma aparição surpresa, trazendo ainda mais alegria e contentamento para a família. Durante o jantar natalino, o Sr. March expressa seu orgulho e apreciação pelas mudanças e amadurecimento de suas filhas ao longo do ano. Ele observa o crescimento de cada uma, destacando suas qualidades e esforços. O capítulo termina com Beth cantando uma música que simboliza a humildade e contentamento, refletindo o espírito de gratidão e esperança que permeia a família March.",
+            "created_at": "2025-05-22T00:53:45.86629Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 22,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "0421930e-5e20-4944-b3fa-d89660fffb2b",
+            "world_id": "louisa-alcott-world",
+            "name": "XVIII. Dark Days.",
+            "description": "O trecho faz parte da história de \"Little Women\" e se passa durante a timeline da Guerra Civil Americana, no arco narrativo \"The Trials of the March Sisters\". A narrativa descreve um momento sombrio na vida das irmãs March, quando Beth adoece gravemente com febre. Hannah, a empregada da família, e o Dr. Bangs cuidam de Beth, enquanto Meg se encarrega da casa e Jo dedica-se a cuidar da irmã doente. Meg sente-se culpada por não informar à mãe sobre a doença de Beth, seguindo as instruções de Hannah para não preocupá-la desnecessariamente. Jo, por sua vez, está profundamente preocupada com a saúde de Beth e sente-se impotente diante da situação.\n\nAs irmãs enfrentam a ausência dos pais: o Sr. March está doente em Washington, e a Sra. March foi chamada para cuidar dele. Jo e Meg se sentem sobrecarregadas e desamparadas, mas encontram conforto na presença de Laurie, o vizinho e amigo próximo, que as apoia emocionalmente. Laurie toma a iniciativa de enviar um telegrama para a Sra. March, pedindo que ela volte para casa, o que traz alívio e esperança para as irmãs.\n\nO estado de Beth piora, mas, após uma longa vigília noturna, a febre finalmente começa a ceder, trazendo alívio e esperança de recuperação. A chegada iminente da Sra. March é anunciada, trazendo conforto aos corações das irmãs. A cena termina com a esperança renovada pela melhora de Beth e a expectativa da chegada da mãe, simbolizando a união e a força familiar em tempos de dificuldade.",
+            "created_at": "2025-05-22T00:52:49.48239Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 18,
+            "range": 14,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "ef04069c-9e98-472c-88c1-5dc70dfba524",
+            "world_id": "louisa-alcott-world",
+            "name": "II. A Merry Christmas.",
+            "description": "O trecho é parte do livro \"Little Women\" de Louisa May Alcott, e ocorre durante a timeline \"A Vida em Família Durante a Guerra Civil\", dentro do arco narrativo \"O Crescimento das Irmãs March\". A história segue as irmãs March: Jo, Meg, Beth e Amy, que acordam na manhã de Natal sem esperar presentes devido às dificuldades financeiras causadas pela guerra. Elas encontram livros sob seus travesseiros, presentes de sua mãe, que as incentivam a serem boas e a aprenderem com a leitura.\n\nA mãe das meninas, Sra. March, está fora ajudando uma família pobre. Quando ela retorna, pede às filhas que doem seu café da manhã para essa família necessitada, o que elas fazem prontamente, demonstrando generosidade e compaixão. Após a caridade matinal, as irmãs preparam uma peça de teatro caseira, onde Jo desempenha papéis masculinos, e todos se divertem com a apresentação.\n\nÀ noite, são surpreendidas por um banquete enviado pelo Sr. Laurence, vizinho que ouviu sobre sua generosidade. As meninas ficam encantadas e especulam sobre o neto do Sr. Laurence, que parece querer fazer amizade com elas. A história destaca temas de amor fraternal, generosidade e crescimento pessoal em meio a dificuldades.",
+            "created_at": "2025-05-22T00:48:49.14029Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 2,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "6001d152-4ddb-45d4-9049-bb148568c3d2",
+            "world_id": "louisa-alcott-world",
+            "name": "XXIII. Aunt March settles the Question.",
+            "description": "O trecho apresentado é parte do livro \"Little Women\" de Louisa May Alcott e ocorre durante a timeline \"The March Family's Trials and Triumphs\". No capítulo, a família March está reunida em casa após o retorno do Sr. March, que estava doente. A presença de Mr. Brooke, tutor de Laurie e interesse romântico de Meg, causa tensão entre as irmãs, especialmente Jo, que não aprova o relacionamento. Meg está dividida entre os sentimentos por Mr. Brooke e as expectativas de sua família, especialmente quando confrontada por sua tia March, que desaprova a ideia de Meg se casar com alguém sem dinheiro ou posição social.\n\nA trama se intensifica quando Mr. Brooke declara seu amor por Meg, que, apesar de ter planejado um discurso de rejeição, acaba não conseguindo seguir seu plano e admite seus sentimentos. A chegada de Aunt March interrompe o momento, mas não antes de Mr. Brooke perceber que Meg o defende, o que o encoraja. Aunt March tenta convencer Meg a não se casar com Mr. Brooke, ameaçando deserdá-la, mas Meg, impulsionada por amor e um espírito de oposição, decide que seguirá seu coração.\n\nJo, ao descobrir que Meg aceitou Mr. Brooke, fica chateada com a mudança na dinâmica familiar, mas Laurie tenta consolá-la, prometendo amizade e apoio. O capítulo termina com a família March reunida, cada membro imerso em seus próprios pensamentos e planos, enquanto Jo reflete sobre as mudanças e o futuro incerto. O tema central gira em torno do amor, das expectativas sociais e das escolhas pessoais.",
+            "created_at": "2025-05-22T00:53:51.096492Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 23,
+            "range": 15,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "bf3268af-98e4-4682-85dd-d20032c47ec1",
+            "world_id": "louisa-alcott-world",
+            "name": "XXX. Consequences.",
+            "description": "O trecho apresentado é parte da história de \"Little Women\", especificamente durante a timeline \"As Aventuras de Amy e Jo\", que se concentra nas experiências e conflitos das irmãs March. Neste capítulo, Amy é convidada para participar de uma feira organizada por Mrs. Chester, enquanto Jo não é incluída, o que é visto como uma sorte devido à natureza desajeitada de Jo na época. Amy, no entanto, enfrenta ciúmes e rivalidades, particularmente de May Chester, que está ressentida com Amy por várias razões, incluindo um rumor de que as irmãs March zombaram dela.\n\nAmy inicialmente é designada para a mesa de arte, mas devido à influência de May e a um mal-entendido, Mrs. Chester pede a Amy para ceder seu lugar para as filhas dela. Apesar de se sentir humilhada, Amy aceita a situação com graça e decide ajudar na mesa de flores, embora enfrente dificuldades e desânimo. Com o apoio da família e de Laurie, que mobiliza amigos para comprar as flores de Amy, a situação melhora, e Amy demonstra magnanimidade ao devolver suas contribuições à mesa de May, mostrando que virtude é sua própria recompensa.\n\nO capítulo também aborda a notícia de que Amy foi escolhida para acompanhar a tia Carrol em uma viagem ao exterior, o que causa decepção em Jo, que desejava a oportunidade. Apesar da frustração, Jo tenta apoiar Amy e lida com seus sentimentos de forma madura. A história explora temas de rivalidade, generosidade, amadurecimento e o desejo de alcançar sonhos pessoais, destacando o crescimento pessoal de Amy e Jo.",
+            "created_at": "2025-05-22T00:55:43.684369Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "f286e4bb-362c-4abe-8608-fd94f0c62567",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 30,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "c748335d-0927-44b9-b0c3-52f8d81e93ea",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXIV. A Friend.",
+            "description": "O trecho apresentado é parte da história de Jo March, uma jovem ambiciosa e determinada a ganhar dinheiro através da escrita, com o objetivo de ajudar sua família e proporcionar-lhes conforto. Ambientado durante o período em que Jo está vivendo longe de casa, o texto mostra sua tentativa de escrever histórias sensacionalistas para ganhar dinheiro rapidamente. Jo enfrenta desafios e dilemas éticos ao perceber que o conteúdo que está produzindo pode não ser moralmente correto ou algo de que se orgulhe. Ela se vê dividida entre o desejo de sucesso financeiro e a integridade pessoal.\n\nJo encontra apoio e orientação em Friedrich Bhaer, um professor que, apesar de suas imperfeições, é admirado por sua bondade e integridade. Ele a aconselha a buscar personagens verdadeiros e simples como inspiração, o que a leva a reavaliar suas escolhas e o tipo de literatura que deseja criar. A interação com Bhaer e suas reflexões sobre moralidade e sucesso a levam a abandonar a escrita sensacionalista e buscar um caminho mais honesto e satisfatório.\n\nO trecho também explora o desenvolvimento do relacionamento entre Jo e o Professor Bhaer, destacando o respeito crescente de Jo por ele, não apenas por sua inteligência, mas por suas qualidades humanas. A história se passa durante um inverno em que Jo está longe de casa, e culmina com sua decisão de retornar, levando consigo a amizade e os ensinamentos que adquiriu durante sua estadia.",
+            "created_at": "2025-05-22T00:57:44.659182Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "32b5d76b-e9bd-453c-a3b2-ab341f002f39",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 34,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "23d22d64-66ee-4a2e-bf5a-71f978fc95c5",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXVIII. On the Shelf.",
+            "description": "O trecho apresenta Meg, uma jovem mãe americana, que está completamente absorvida pelos cuidados com seus filhos gêmeos, Demi e Daisy, negligenciando, sem perceber, seu marido John. John, sentindo-se deixado de lado e sem o aconchego de seu lar, começa a passar tempo na casa dos vizinhos, os Scotts, onde encontra uma atmosfera mais leve e sociável. Meg, por sua vez, começa a sentir falta de John, mas não sabe como expressar seu desejo de tê-lo por perto sem parecer ciumenta. A situação chega a um ponto em que Meg desabafa com sua mãe, que a aconselha a equilibrar seu tempo entre os filhos e o marido, permitindo que John participe mais da criação das crianças e dividindo as responsabilidades domésticas. Meg decide seguir o conselho da mãe e tenta criar um ambiente mais acolhedor em casa, o que inclui se arrumar mais para as refeições e reservar tempo para atividades em casal. John, por sua vez, apoia a nova dinâmica e ambos começam a trabalhar juntos para trazer de volta a harmonia e a felicidade ao lar. O capítulo destaca temas como a importância do equilíbrio entre vida familiar e conjugal, a colaboração mútua e o entendimento entre cônjuges, e a felicidade encontrada na simplicidade e na união familiar. A timeline se passa após o casamento de Meg e John, no período em que eles estão lidando com os desafios da paternidade, e o arco narrativo poderia ser descrito como \"A Redescoberta do Lar\".",
+            "created_at": "2025-05-22T00:58:44.149942Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "cfd51116-04a6-486d-a0e4-a8f15e893e6e",
+
+            "order": 38,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "f6f98073-7e86-4047-970e-448d281b0591",
+            "world_id": "louisa-alcott-world",
+            "name": "XLII. All Alone.",
+            "description": "O trecho apresentado é parte de \"Little Women\" de Louisa May Alcott, especificamente de um capítulo que lida com a tristeza e o crescimento pessoal de Jo March após a morte de sua irmã Beth. A história se passa na linha do tempo da vida das irmãs March, após a morte de Beth, um evento que marca profundamente Jo. O arco narrativo foca na luta interna de Jo para cumprir suas promessas de ser uma filha e irmã dedicada, apesar de seu próprio sofrimento.\n\nJo sente-se perdida e desanimada com a perspectiva de uma vida rotineira e sem grandes aspirações, mas encontra consolo em sua mãe e em conversas profundas com seu pai, que a ajudam a encontrar um novo sentido e propósito. Ela também começa a apreciar as pequenas tarefas diárias que Beth costumava realizar, o que a ajuda a manter a memória da irmã viva e a tornar o lar mais acolhedor.\n\nAlém disso, Jo redescobre sua paixão pela escrita, incentivada por sua mãe, e consegue sucesso inesperado com uma história que toca os leitores pela sua sinceridade e verdade emocional. Ela também reflete sobre o noivado de sua irmã Amy com Laurie, aceitando a situação com maturidade e desejando-lhes felicidade.\n\nO capítulo explora temas de perda, amor familiar, resiliência e crescimento pessoal, mostrando como Jo lida com a solidão e a busca por um propósito maior em meio a suas responsabilidades familiares e aspirações pessoais. A narrativa sugere um despertar emocional em Jo, que se vê dividida entre a tristeza pela ausência de Beth e a esperança de um futuro mais pleno e significativo.",
+            "created_at": "2025-05-22T00:59:45.605241Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 42,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "1dd6ac5f-cd12-4c03-93df-47dfc95136d4",
+            "world_id": "louisa-alcott-world",
+            "name": "XXIX. Calls.",
+            "description": "O trecho é parte do capítulo XXIX de \"Little Women\" de Louisa May Alcott, e está inserido na timeline \"A Vida Cotidiana das Irmãs March\", dentro do arco narrativo \"As Experiências de Jo\". No início do capítulo, Amy lembra Jo de sua promessa de fazer visitas sociais, em troca de Amy terminar um desenho de Beth. Jo, que detesta essas formalidades, inicialmente reluta, mas acaba cedendo após ser convencida por Amy. Durante as visitas, Jo, que é conhecida por seu comportamento direto e um tanto rebelde, não consegue evitar causar alguma perturbação. Na casa dos Chester, ela se comporta de maneira excessivamente formal e distante, frustrando Amy. Já na casa dos Lamb, Jo exagera na animação, contando histórias embaraçosas sobre a família, o que deixa Amy ainda mais irritada. As irmãs discutem sobre a importância de se comportar de acordo com as normas sociais, com Amy defendendo a adaptação e Jo expressando seu desejo de ser autêntica. A visita termina com uma chamada à casa da Tia March, onde Jo faz comentários imprudentes que podem ter consequências futuras, enquanto Amy, mais diplomática, agrada as tias. O capítulo explora temas de conformidade social, autenticidade e as dificuldades de se equilibrar entre as expectativas externas e a própria personalidade.",
+            "created_at": "2025-05-22T00:54:52.48309Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 29,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "6fc28a9c-d73c-4088-bfcb-62c867427d18",
+            "world_id": "louisa-alcott-world",
+            "name": "XLI. Learning to Forget.",
+            "description": "O trecho apresentado faz parte de \"Little Women\" de Louisa May Alcott, e está situado na timeline dos eventos após o retorno de Laurie da Europa, parte da storyline \"The Growth and Maturity of Laurie\". Laurie, após receber uma dura repreensão de Amy, retorna ao seu avô e tenta se redimir e encontrar um propósito. Ele decide se dedicar à música e viaja para Viena, mas descobre que não tem o talento para compor um Requiem ou uma Ópera. Desiludido, ele percebe que não pode forçar o talento a se tornar gênio e começa a questionar seu caminho na vida. \n\nDurante esse tempo, Laurie também reflete sobre seus sentimentos por Jo, percebendo que sua paixão juvenil está se transformando em um afeto fraternal. Ele escreve a Jo, mas recebe uma resposta definitiva de que ela não mudará de ideia sobre não amá-lo romanticamente. Enquanto isso, Amy está na Europa, lidando com suas próprias questões de coração. Ela rejeita a proposta de Fred Vaughn, percebendo que deseja algo mais do que apenas dinheiro e posição.\n\nEventualmente, Laurie e Amy se encontram na Suíça, após Laurie receber a notícia da morte de Beth. Este encontro é marcado por um profundo entendimento e conexão emocional entre os dois, levando a uma confissão mútua de amor enquanto estão em um barco no lago. Laurie percebe que Amy é a única que pode preencher o vazio deixado por Jo, e eles decidem seguir juntos, simbolizando um novo começo para ambos.",
+            "created_at": "2025-05-22T00:58:59.935001Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "01e9f00f-7613-4922-a9f7-66cac0f87360",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 41,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "0ee3938a-41e7-4035-93af-ca40a5fd0e6c",
+            "world_id": "louisa-alcott-world",
+            "name": "I. Playing Pilgrims.",
+            "description": "O trecho apresentado é o início do livro \"Little Women\", de Louisa May Alcott, que se passa durante a Guerra Civil Americana. A história gira em torno das quatro irmãs March: Meg, Jo, Beth e Amy, que vivem com sua mãe enquanto o pai está longe, servindo como capelão no exército. As irmãs enfrentam desafios financeiros e emocionais, mas são unidas por um forte laço familiar e pelo desejo de serem boas e úteis.\n\nNo início do capítulo, as irmãs lamentam a falta de presentes de Natal devido à situação financeira da família, mas decidem usar seu dinheiro para comprar presentes para sua mãe, Marmee. Jo, que é a mais rebelde e sonha em ser escritora, expressa seu descontentamento por não poder participar da guerra como os homens. Meg, a mais velha, é vaidosa e deseja uma vida mais confortável. Beth, a mais tranquila, encontra alegria nas pequenas coisas, e Amy, a mais jovem, é preocupada com suas maneiras e aparência.\n\nO tema central do trecho é a luta das irmãs para aceitar suas circunstâncias e encontrar maneiras de contribuir para o bem-estar da família, enquanto lidam com suas próprias aspirações e desafios pessoais. A mãe delas, Marmee, é uma figura de apoio e encorajamento, incentivando-as a serem \"pequenas mulheres\" responsáveis e bondosas. O capítulo termina com as irmãs planejando surpreender a mãe no Natal e refletindo sobre a importância de serem boas e trabalharem juntas enquanto aguardam o retorno do pai.",
+            "created_at": "2025-05-22T00:48:44.518805Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 1,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "9b50a68a-aaba-4cb0-ac94-961f85af7406",
+            "world_id": "louisa-alcott-world",
+            "name": "IV. Burdens.",
+            "description": "O trecho apresentado faz parte da história das irmãs March, que enfrentam os desafios da vida cotidiana com otimismo e resiliência. A narrativa se passa durante a época da Guerra Civil Americana, um período de dificuldades financeiras para a família. Meg, a mais velha, trabalha como governanta e sente o peso da pobreza, lembrando-se dos tempos de conforto. Jo, a segunda irmã, trabalha para a tia March e sonha em fazer algo grandioso, enquanto lida com sua natureza impulsiva. Beth, tímida e dedicada, cuida da casa e sonha em ter aulas de música, enquanto Amy, a mais nova, lida com sua vaidade e desejo por beleza e arte. A história destaca a importância da gratidão e do contentamento, conforme as irmãs aprendem a valorizar suas bênçãos e a encontrar alegria nas pequenas coisas, incentivadas por sua mãe, a Sra. March. Este capítulo específico aborda o tema dos \"fardos\" que cada uma carrega, tanto no sentido literal quanto emocional, e como elas se apoiam mutuamente para superá-los.",
+            "created_at": "2025-05-22T00:48:58.875437Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 4,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "a8cd2aa1-daf9-40bb-8ca0-fac6ec095fe3",
+            "world_id": "louisa-alcott-world",
+            "name": "V. Being Neighborly.",
+            "description": "O trecho faz parte da timeline \"Pequenas Mulheres\" e do arco narrativo \"Being Neighborly\". A história se passa durante um inverno rigoroso, onde Jo March, uma das irmãs March, decide ser aventureira e fazer amizade com Laurie, o jovem vizinho que mora na casa ao lado. Laurie, que vive com seu avô, o Sr. Laurence, está doente e isolado, sentindo falta de companhia e diversão. Jo, com seu espírito ousado e amigável, começa a interagir com Laurie, jogando uma bola de neve em sua janela para chamar sua atenção. Laurie, encantado com a atenção, convida Jo para visitá-lo, e ela aceita, trazendo consigo a hospitalidade de sua família.\n\nDurante a visita, Jo e Laurie discutem sobre livros, música e a vida em geral, criando um vínculo de amizade. Jo descobre que Laurie é solitário e que seu avô, embora pareça severo, é bastante gentil. O Sr. Laurence, ao conhecer Jo, aprecia sua sinceridade e boa vontade em alegrar seu neto. A história também revela que o avô de Laurie tem reservas quanto ao interesse do neto pela música, devido a experiências passadas com o pai de Laurie, que se casou com uma musicista italiana, o que o desagradou.\n\nNo final do trecho, Jo retorna para casa e compartilha suas aventuras com sua família, que fica animada com a perspectiva de se aproximar dos vizinhos Laurence. A narrativa destaca temas de amizade, empatia e o desejo de superar a solidão através de conexões genuínas.",
+            "created_at": "2025-05-22T00:49:40.184292Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 5,
+            "range": 15,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "658b45f2-c041-448b-8c54-4b262079ea08",
+            "world_id": "louisa-alcott-world",
+            "name": "XXVI. Artistic Attempts.",
+            "description": "O trecho apresenta um capítulo da história das irmãs March, focando em Amy e suas tentativas artísticas, que refletem sua busca por reconhecimento e refinamento. Amy experimenta várias formas de arte, desde desenhos a carvão até pintura a óleo, com resultados muitas vezes cômicos e desastrosos, mas sempre com entusiasmo e perseverança. O capítulo se passa durante a timeline da vida das irmãs March, onde elas enfrentam desafios pessoais e sociais para se tornarem mulheres realizadas. Amy, em particular, deseja se inserir na \"melhor sociedade\" e organiza um evento artístico para suas colegas de classe, apesar de sua família não ter muitos recursos. O evento, no entanto, não sai como planejado, culminando em uma série de contratempos e apenas uma convidada comparece. Apesar do fracasso, Amy mantém seu espírito otimista e aprende com a experiência, mostrando sua determinação em se destacar e ser aceita socialmente. O arco narrativo centra-se na busca de Amy por identidade e aceitação social, destacando temas como ambição, classe social e a diferença entre aparência e essência.",
+            "created_at": "2025-05-22T00:54:40.572651Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 26,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "413a9ec1-3381-42f1-b584-3656e5d6e69b",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXVI. Beth's Secret.",
+            "description": "O trecho apresentado faz parte do arco narrativo \"Beth's Secret\" e se passa na timeline \"A Vida das Irmãs March\". Jo retorna para casa na primavera e percebe uma mudança significativa em sua irmã Beth, que parece estar ficando mais frágil. Embora ninguém na família pareça notar, Jo sente que Beth está lentamente se afastando da vida. Ao longo do tempo, Jo tenta ignorar suas preocupações, mas a ansiedade sobre a saúde de Beth retorna quando Laurie vai embora.\n\nJo propõe uma viagem às montanhas para Beth, que prefere um passeio mais modesto à beira-mar. Durante esse período, as irmãs se tornam ainda mais próximas, e Jo percebe que Beth está ciente de sua condição, embora não fale sobre isso. Eventualmente, Beth revela a Jo que está ciente de que sua saúde está declinando e que aceitou seu destino. Jo, devastada, promete lutar contra a doença da irmã, mas Beth, com serenidade, aceita a situação e tenta confortar Jo.\n\nBeth expressa que nunca se imaginou vivendo uma vida longa ou fazendo planos para o futuro, ao contrário de suas irmãs. Ela se resigna ao fato de que não viverá muito, mas deseja aproveitar o tempo que resta ao lado de Jo. A conversa entre as duas irmãs é carregada de amor e aceitação, e Beth demonstra uma paz interior que contrasta com o desespero de Jo. Quando retornam para casa, os pais percebem a condição de Beth sem que Jo precise contar, e a família se prepara para enfrentar a realidade iminente.",
+            "created_at": "2025-05-22T00:57:53.299363Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "23f32ffa-b9ae-42a9-b0df-e8defe69b638",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 36,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "58fbe47f-bfd8-42ce-85cb-d6bb316da3b6",
+            "world_id": "louisa-alcott-world",
+            "name": "XLVII. Harvest Time.",
+            "description": "O trecho apresentado é parte do capítulo \"Harvest Time\" de \"Little Women\" de Louisa May Alcott. Nesta seção, Jo March e seu marido, o Professor Bhaer, estão vivendo um período de realizações e desafios. Após a morte repentina de Tia March, Jo herda Plumfield, uma grande propriedade, e decide não vendê-la. Em vez disso, ela planeja realizar um sonho antigo: abrir uma escola para meninos, onde eles possam receber educação e cuidado em um ambiente familiar e feliz. Jo está determinada a criar um espaço onde meninos de diferentes origens possam prosperar, e o Professor Bhaer a apoia nessa empreitada.\n\nA narrativa destaca a união e o apoio da família March, com Laurie, Meg, Amy e outros personagens centrais participando ativamente dos planos de Jo. A escola em Plumfield se torna um sucesso, apesar dos desafios iniciais, e Jo encontra grande satisfação em seu papel de educadora e cuidadora. O capítulo também reflete sobre temas de família, realização pessoal e o valor do trabalho comunitário e educacional.\n\nAo final, há uma cena de colheita de maçãs que reúne toda a família e amigos, simbolizando a colheita não apenas de frutos, mas também de realizações e felicidade compartilhada. Jo, agora mãe de dois meninos, expressa sua gratidão pela vida que construiu, mesmo que diferente dos sonhos de juventude. A história se passa na timeline \"Life at Plumfield with Jo's Boys\" e no arco narrativo \"The Fulfillment of Jo's Dream\".",
+            "created_at": "2025-05-22T01:00:47.55641Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "41762281-7a07-48ab-81da-92ca8e456075",
+            "storyline_id": "ea6400e4-9cf0-41eb-b672-ef37ab078708",
+
+            "order": 47,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "90f1d985-6ccc-42df-9f5c-574366edddf8",
+            "world_id": "louisa-alcott-world",
+            "name": "XLVI. Under the Umbrella.",
+            "description": "O trecho é parte do romance \"Little Women\" de Louisa May Alcott, e se passa durante a timeline \"A Vida Adulta das Irmãs March\". No arco narrativo \"O Romance de Jo\", acompanhamos Jo March e o Professor Friedrich Bhaer enquanto eles desenvolvem um relacionamento romântico. Laurie e Amy estão desfrutando de sua nova vida de casados, enquanto Jo e o Professor Bhaer começam a se encontrar regularmente durante caminhadas. Jo, inicialmente resistente a perder sua independência, começa a se apaixonar pelo Professor, embora tente esconder seus sentimentos por medo de ser ridicularizada, especialmente por Laurie.\n\nO Professor Bhaer, que também nutre sentimentos por Jo, acaba ficando ausente por alguns dias, o que deixa Jo ansiosa e irritada. Quando eles se reencontram, o Professor revela que conseguiu um emprego em uma faculdade no Oeste, o que significa que eles não se verão com frequência. Durante uma caminhada na chuva, eles acabam confessando seus sentimentos um pelo outro. O Professor Bhaer propõe um futuro juntos, apesar das dificuldades financeiras, e Jo aceita, mostrando que o amor e a esperança podem superar as adversidades. O capítulo termina com Jo levando o Professor para casa, simbolizando o início de uma nova fase em suas vidas.",
+            "created_at": "2025-05-22T01:00:02.160693Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "b81f462d-8304-489e-8626-10c9a0f75e35",
+
+            "order": 46,
+            "range": 25,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "71b45da2-1e79-4eda-a029-023e7e4b4bc3",
+            "world_id": "louisa-alcott-world",
+            "name": "VII. Amy's Valley of Humiliation.",
+            "description": "O trecho faz parte da história das irmãs March, em \"Little Women\", durante a timeline \"A Vida das Irmãs March\", mais especificamente no arco narrativo \"As Lições de Vida de Amy\". Neste capítulo, Amy March enfrenta um dilema escolar ao entrar em dívida com suas colegas por causa de limes, que são a moda entre as meninas. Ela espera ansiosamente por dinheiro para pagar suas \"dívidas de honra\". Quando finalmente consegue comprar os limes, um incidente na escola leva seu professor, o Sr. Davis, a puni-la publicamente por ter limes em sua mesa, o que era contra as regras. Amy é humilhada ao ser forçada a jogar os limes pela janela e a receber uma punição física, algo que a marca profundamente. Ao voltar para casa, ela encontra consolo em sua família, que discute a situação. A mãe delas, Mrs. March, desaprova a punição física e decide tirar Amy da escola, enquanto ensina uma lição sobre humildade e modéstia. Laurie, o vizinho e amigo das irmãs, é mencionado como um jovem talentoso e modesto, destacando a importância de não ser vaidoso com suas habilidades. O capítulo reflete temas de orgulho, punição e aprendizado através de experiências difíceis.",
+            "created_at": "2025-05-22T00:49:53.700904Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "eff39c34-a8d0-4809-a834-1e5b4b50bdaa",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 7,
+            "range": 10,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "771851f8-ba5d-469d-9d89-33d29880a7aa",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXI. Our Foreign Correspondent.",
+            "description": "O trecho apresenta cartas escritas por Amy March durante suas viagens pela Europa, parte da narrativa de \"Little Women\" de Louisa May Alcott. Amy escreve para sua família, relatando suas experiências e impressões de lugares como Londres, Paris, Heidelberg e outros. Ela descreve suas visitas a museus, parques e pontos turísticos, além de compartilhar encontros sociais e aventuras com amigos e conhecidos, incluindo Fred Vaughn, com quem desenvolve uma relação próxima. Amy reflete sobre suas ambições, sentimentos e o desejo de casar-se bem para garantir segurança financeira à sua família. A narrativa destaca o contraste entre o desejo de Amy por estabilidade e sua natureza romântica e aventureira. A história se passa durante a \"Era Vitoriana\", com foco no arco narrativo \"As Aventuras de Amy na Europa\".",
+            "created_at": "2025-05-22T00:55:47.887404Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "f286e4bb-362c-4abe-8608-fd94f0c62567",
+            "storyline_id": "20635662-62f8-4b99-9c6b-3626b25f4fa1",
+
+            "order": 31,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "4168df31-e0fe-4952-bfdc-6ef32f9735f9",
+            "world_id": "louisa-alcott-world",
+            "name": "XXI. Laurie makes Mischief, and Jo makes Peace.",
+            "description": "O trecho é parte da história de \"Little Women\" de Louisa May Alcott, durante a timeline \"A Vida das Irmãs March\". No capítulo, Jo March está guardando um segredo que a faz agir de maneira misteriosa, o que irrita sua irmã Meg. Laurie, um amigo da família, percebe que há um mistério e tenta descobrir o que Jo está escondendo. Ele descobre que o segredo envolve Meg e o Sr. Brooke, tutor de Laurie, e decide pregar uma peça. Laurie escreve uma carta de amor falsa para Meg, fingindo ser de John Brooke, o que causa grande confusão e vergonha para Meg. Quando a verdade vem à tona, Meg fica furiosa com Jo e Laurie por causa da brincadeira. Jo tenta resolver a situação, enquanto Laurie enfrenta a ira de seu avô, Sr. Laurence, por seu comportamento. Jo intervém, ajuda a resolver o mal-entendido e convence o Sr. Laurence a se desculpar com Laurie. Apesar do incidente ser aparentemente resolvido, Meg continua a pensar em John Brooke, mostrando que o episódio teve um impacto duradouro. O capítulo explora temas de mal-entendidos, travessuras juvenis e os primeiros sentimentos de amor e vergonha.",
+            "created_at": "2025-05-22T00:53:42.095836Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "209541e8-7934-4d0d-8719-2481b14f23c9",
+            "storyline_id": "aba112d7-a541-4de7-8fee-29aca88d3e17",
+
+            "order": 21,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        },
+        {
+            "id": "7cb448bb-2394-49c1-977b-a93f9e3a5542",
+            "world_id": "louisa-alcott-world",
+            "name": "XXXII. Tender Troubles.",
+            "description": "O trecho apresentado é parte de \"Little Women\" de Louisa May Alcott, especificamente durante a timeline \"A Vida das Irmãs March\" e no arco narrativo \"Os Desafios de Crescer\". Neste capítulo, \"Tender Troubles\", a Sra. March expressa preocupação com o estado emocional de Beth, que parece estar mais introspectiva e melancólica. Jo, sua irmã, é encarregada de descobrir o que a está perturbando. Jo observa Beth e começa a suspeitar que Beth tem sentimentos por Laurie, o amigo da família. Jo também percebe que Laurie pode estar começando a nutrir sentimentos por ela mesma, o que a deixa desconfortável, pois ela não sente o mesmo por ele. Para evitar complicações amorosas e encontrar novos horizontes, Jo decide ir para Nova York trabalhar como professora e escritora na casa de uma amiga da família, a Sra. Kirke. Antes de partir, Jo conversa com sua mãe sobre suas preocupações e desejos, e a família concorda com sua decisão. Laurie reage de forma tranquila à notícia da partida de Jo, o que a surpreende. O capítulo explora temas como o amadurecimento, o amor não correspondido e as complexidades das relações familiares e de amizade.",
+            "created_at": "2025-05-22T00:56:42.177072Z",
+            "paper_id": "37106",
+            "event_Id": "92b312bb-e6d8-4c57-bcf8-6350f27813f1",
+            "timeline_id": "a5b373fd-19ba-433d-af06-52bb54f42fad",
+            "storyline_id": "6df1f6b4-9565-421a-98a5-50896153337a",
+
+            "order": 32,
+            "range": 5,
+            "last_update": null,
+            width: 0,
+            height: 0
+        }
+    ]
+

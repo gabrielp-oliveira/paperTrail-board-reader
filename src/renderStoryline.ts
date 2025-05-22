@@ -1,59 +1,105 @@
 declare const d3: typeof import("d3");
+import { Chapter, StoryLine, Timeline } from "./types.js";
 
-interface StorylineSlice {
-  storylineId: string;
-  storylineName: string;
-  order: number; // posição vertical da storyline
-  timelineId: string;
-  startRange: number;
-  endRange: number;
-}
-
-interface TimelineXMap {
-  [timelineId: string]: number; // posição X da timeline no SVG
-}
-
-const RANGE_GAP = 20;
-const ROW_HEIGHT = 40;
+const PIXELS_PER_RANGE = 20;
+const STORYLINE_HEIGHT = 6;
+const BOARD_MARGIN_TOP = 80;
+const TIMELINE_HEADER_HEIGHT = 45;
+const BASE_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT;
+const ROW_GAP = 40;
+const MIN_STORYLINE_WIDTH = 120;
+const SIDE_MARGIN = 60;
 
 export function renderStorylines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  slices: StorylineSlice[],
-  timelineXMap: TimelineXMap
-) {
-  const LABEL_FONT_FAMILY_DEFAULT = "Arial";
-  const LABEL_FONT_SIZE_DEFAULT = "12px";
+  storylines: StoryLine[],
+  timelines: Timeline[],
+  chapters: Chapter[]
+): Chapter[] {
+  const timelineOrderMap = new Map<string, number>();
+  timelines.forEach(t => timelineOrderMap.set(t.id, t.order));
 
-  const group = svg
-    .selectAll("g.storyline-slice")
-    .data(slices, (d: any) => `${d.storylineId}-${d.timelineId}`)
-    .join("g")
-    .attr("class", "storyline-slice");
+  const sortedTimelines = timelines.slice().sort((a, b) => a.order - b.order);
+  const cumulativeRanges: number[] = [];
+  let total = 0;
+  for (const t of sortedTimelines) {
+    cumulativeRanges[t.order] = total;
+    total += t.range;
+  }
 
-  group.each(function (slice: StorylineSlice) {
-    const g = d3.select(this);
+  const boardWidth = total * PIXELS_PER_RANGE;
 
-    const startX = (timelineXMap[slice.timelineId] || 0) + slice.startRange * RANGE_GAP;
-    const endX = (timelineXMap[slice.timelineId] || 0) + slice.endRange * RANGE_GAP;
-    const y = 60 + slice.order * ROW_HEIGHT;
+  const grouped = d3.groups(chapters, ch => ch.storyline_id);
 
-    // Linha da storyline
-    g.append("line")
-      .attr("x1", startX)
-      .attr("x2", endX)
+  grouped.forEach(([storylineId, group]) => {
+    const storyline = storylines.find(s => s.id === storylineId);
+    if (!storyline || group.length === 0) return;
+
+    const positions = group.map(ch => {
+      const timelineOrder = timelineOrderMap.get(ch.timeline_id || "") ?? 0;
+      const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
+      const x = (timelineOffset + ch.range) * PIXELS_PER_RANGE;
+
+      return {
+        ...ch,
+        x,
+        timeline_order: timelineOrder,
+      };
+    });
+
+    const startX = d3.min(positions, d => d.x) ?? 0;
+    const endX = d3.max(positions, d => d.x) ?? 0;
+
+    const startsOnFirstTimeline = positions.some(d => d.timeline_order === 1 && d.x / PIXELS_PER_RANGE <= 3);
+    const leftMargin = startsOnFirstTimeline ? 0 : SIDE_MARGIN;
+
+    let xStart = startX - leftMargin;
+    let xEnd = endX + SIDE_MARGIN;
+
+    // Largura mínima
+    if ((xEnd - xStart) < MIN_STORYLINE_WIDTH) {
+      const center = (xStart + xEnd) / 2;
+      xStart = center - MIN_STORYLINE_WIDTH / 2;
+      xEnd = center + MIN_STORYLINE_WIDTH / 2;
+    }
+
+    // Restrições de borda
+    xStart = Math.max(xStart, 0);
+    xEnd = Math.min(xEnd, boardWidth);
+
+    const y = BASE_Y + storyline.order * ROW_GAP;
+
+    svg.append("line")
+      .attr("x1", xStart)
+      .attr("x2", xEnd)
       .attr("y1", y)
       .attr("y2", y)
-      .attr("stroke", "#227799")
-      .attr("stroke-width", 3);
+      .attr("stroke", "#555")
+      .attr("stroke-width", STORYLINE_HEIGHT)
+      .attr("stroke-linecap", "round")
+      .attr("opacity", 0.7);
 
-    // Nome da storyline no início do trecho
-    g.append("text")
-      .attr("x", startX - 5)
-      .attr("y", y - 5)
-      .attr("text-anchor", "end")
-      .attr("font-family", LABEL_FONT_FAMILY_DEFAULT)
-      .attr("font-size", LABEL_FONT_SIZE_DEFAULT)
-      .attr("fill", "#003366")
-      .text(slice.storylineName);
+    svg.append("text")
+      .attr("x", xStart)
+      .attr("y", y + 16)
+      .attr("text-anchor", "start")
+      .attr("font-size", "12px")
+      .attr("fill", "#333")
+      .text(storyline.name);
+  });
+
+  // Atualiza os chapters com width = x, height = y (posição)
+  return chapters.map(ch => {
+    const timelineOrder = timelineOrderMap.get(ch.timeline_id || "") ?? 0;
+    const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
+    const x = (timelineOffset + ch.range) * PIXELS_PER_RANGE;
+    const storyline = storylines.find(s => s.id === ch.storyline_id);
+    const y = BASE_Y + (storyline?.order ?? 0) * ROW_GAP;
+
+    return {
+      ...ch,
+      width: x,
+      height: y
+    };
   });
 }
