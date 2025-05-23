@@ -1,9 +1,8 @@
-// renderTimelines.ts – Renderiza as timelines da esquerda para a direita
-
 declare const d3: typeof import("d3");
 import { Timeline } from "./types.js";
 
 const RANGE_GAP = 20;
+const LABEL_WIDTH = 150; // ← espaço reservado para nomes das storylines
 
 export function renderTimelines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -13,7 +12,7 @@ export function renderTimelines(
   const LABEL_FONT_FAMILY_DEFAULT = "Arial";
   const LABEL_FONT_SIZE_DEFAULT = "14px";
 
-  let currentX = 50;
+  let currentX = LABEL_WIDTH; // ← alinhado com início do board após os nomes das storylines
 
   const el = svg
     .selectAll("g.timeline-group")
@@ -27,14 +26,14 @@ export function renderTimelines(
     const width = tl.range * RANGE_GAP;
 
     // Corpo da timeline (sem borda)
-    group.append("rect")
-      .attr("class", "timeline-body")
-      .attr("x", currentX)
-      .attr("y", 60)
-      .attr("width", width)
-      .attr("height", gridHeight)
-      .style("fill", "rgba(100, 10, 0, 0.05)")
-      .style("stroke", "none");
+    // group.append("rect")
+    //   .attr("class", "timeline-body")
+    //   .attr("x", currentX)
+    //   .attr("y", 60)
+    //   .attr("width", width)
+    //   .attr("height", gridHeight)
+    //   .style("fill", "rgba(100, 10, 0, 0.05)")
+    //   .style("stroke", "none");
 
     // Linha pontilhada à direita do corpo
     group.append("line")

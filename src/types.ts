@@ -101,9 +101,10 @@ export type Chapter = {
     height: number| 0
     id: string,
     world_id: string,
-    name: string,
+    title: string,
     description: string,
     created_at: string,
+    group?: string
     paper_id: string,
     event_Id: string,
     timeline_id: string,
@@ -182,6 +183,7 @@ export type StoryLine = {
     description: string,
     created_at: string,
     order: number,
+    height?: number
 }
 
 

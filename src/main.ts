@@ -2,60 +2,84 @@ declare const d3: typeof import("d3");
 import { renderTimelines } from "./renderTimelines.js";
 import { renderChapters } from "./renderChapter.js";
 import { renderStorylines } from "./renderStoryline.js";
-import { Timeline } from "./types.js";
 import { timelineData, StorylineData, chapterData } from "./data.js";
 
 const RANGE_GAP = 20;
-const height = 600;
-const width = timelineData.reduce((sum, t) => sum + t.range * RANGE_GAP, 0);
+const LABEL_WIDTH = 150;
 
-let zoomLevel: number = 1;
-let tiltX: number = 1;
-let tiltY: number = 1;
+const timelineWidth = timelineData.reduce((sum, t) => sum + t.range * RANGE_GAP, 0);
+const width = LABEL_WIDTH + timelineWidth;
 
-const svg = initSvg("board", width, height);
+// Cria SVG base (sem zoom ainda)
+const svgBase = d3.select("#board")
+  .append("svg")
+  .attr("width", "100%")
+  .style("overflow", "hidden")
+  .style("display", "block"); // garante que svg ocupe a largura total
 
-// Teste visual: retângulo vermelho para garantir que o SVG aparece
-svg.append("rect")
-  .attr("x", 0)
-  .attr("y", 0)
-  .attr("width", 100)
-  .attr("height", 100)
-  .attr("fill", "red");
+const g = svgBase.append("g");
 
-renderTimelines(svg, timelineData, 600);
-const chapters = renderStorylines(svg, StorylineData, timelineData, chapterData);
-renderChapters(svg, chapters)
+// Renderiza elementos
+const { chapters, height } = renderStorylines(g, StorylineData, timelineData, chapterData);
+renderTimelines(g, timelineData, height);
+renderChapters(g, chapters);
 
-function initSvg(id: string, width: number, height: number): d3.Selection<SVGGElement, unknown, HTMLElement, any> {
-  const svg = d3.select(`#${id}`)
-    .append("svg")
-    .attr("width", "100%")
-    .attr("height", height)
-    .attr("viewBox", `0 0 ${width} ${height}`)
-    .call(zoomAndPan);
+// Define altura real e aplica zoom/pan
+svgBase
+  .attr("height", height)
+  .attr("viewBox", `0 0 ${width} ${height}`)
+  .call((svg) => zoomAndPan(svg, width, height));
 
-  return svg.append("g");
-}
 
-function zoomAndPan(svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>) {
+
+function zoomAndPan(
+  svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>,
+  width: number,
+  height: number
+) {
+  const initialScale = 1.5;
+  const maxTranslateX = width * 2;
+  const maxTranslateY = height + 400;
+
   const zoom = d3.zoom<SVGSVGElement, unknown>()
-    .filter((event) => event.type === "wheel" || event.type === "mousedown")
-    .scaleExtent([0.5, 3])
-    .translateExtent([[0, 0], [width + 200, height]])
+    .filter((event) =>
+      event.type === "wheel" ||
+      event.type === "mousedown" ||
+      event.type === "touchstart"
+    )
+    .scaleExtent([initialScale, 10])
+    .translateExtent([
+      [-100, -100],
+      [maxTranslateX, maxTranslateY]
+    ])
     .on("zoom", (event) => {
-      const transform = event.transform;
-      const restrictedTransform = d3.zoomIdentity
-        .translate(transform.x, 0) // bloqueia Y
-        .scale(transform.k);
+      const k = Math.max(initialScale, event.transform.k);
 
-      svg.select("g")
-        .attr("transform", restrictedTransform.toString());
+      // Força translateX e translateY mínimos (0)
+      const tx = Math.min(0, event.transform.x);
+      const ty = Math.min(0, event.transform.y);
 
-      zoomLevel = transform.k;
-      tiltX = transform.x;
-      tiltY = 0;
+      const transform = d3.zoomIdentity
+        .translate(tx, ty)
+        .scale(k);
+
+      const hiddenLeft = transform.x < -LABEL_WIDTH + 10;
+
+
+      if (hiddenLeft) {
+
+      }
+
+
+      svg.select("g").attr("transform", transform.toString());
     });
 
   svg.call(zoom);
+
+  // aplica o zoom inicial com k = 1.5 e translate (0, 0)
+  svg.transition().duration(0).call(
+    zoom.transform,
+    d3.zoomIdentity.translate(0, 0).scale(initialScale)
+  );
 }
+
