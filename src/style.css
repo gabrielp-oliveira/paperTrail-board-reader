@@ -1,4 +1,3 @@
-/* Zera margens/padding do documento */
 body, html {
   margin: 0;
   padding: 0;
@@ -9,20 +8,17 @@ body, html {
   background-color: #f0f2f5;
 }
 
-/* Container principal do board */
 #board {
   display: block;
   position: relative;
   width: 100%;
   height: 100%;
-  /* max-height: 600px; */
-  overflow: hidden; /* ← evita scroll nativo */
+  overflow: hidden;
   margin: 0;
   padding: 0;
-  border: 1px solid red;
+  border: 1px solid transparent;
 }
 
-/* SVG gerado pelo D3 */
 #board svg {
   display: block;
   margin: 0;
@@ -30,5 +26,77 @@ body, html {
   background-color: #ffffff;
   border-radius: 12px;
   border: 1px solid #ddd;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ===========================================
+   GRUPO DE CAPÍTULOS (COLAPSADO E EXPANDIDO)
+   =========================================== */
+.chapter-group {
+  outline: none; /* Remove foco de tab padrão */
+  transition: all 0.3s ease;
+}
+
+/* Caixa colapsada (pequena) */
+.chapter-group[aria-expanded="false"] rect {
+  fill: #cce5f4;
+  stroke: #1565c0;
+  stroke-width: 1.5;
+  rx: 8;
+  ry: 8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Caixa expandida (adesivo maior) */
+.chapter-group[aria-expanded="true"] rect {
+  fill: #cce5f4 !important;
+  stroke: #1565c0;
+  stroke-width: 1.5;
+  rx: 12;
+  ry: 12;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+}
+
+/* Título do grupo */
+.chapter-group text.group-label {
+  fill: #003366;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+/* Linha divisória */
+.chapter-group line.separator {
+  stroke: rgba(0, 0, 0, 0.15);
+  stroke-width: 1.2;
+}
+
+/* Títulos dos capítulos (no grupo expandido) */
+.chapter-group text.chapter-title {
+  fill: #003366;
+  font-weight: 500;
+  font-size: 12px;
+}
+
+/* Bullet (marcador ao lado do capítulo) */
+.chapter-group rect.chapter-bullet {
+  fill: #4fc3f7;
+  rx: 2;
+  ry: 2;
+}
+
+/* ===========================================
+   CAPÍTULOS SOLO (sem grupo)
+   =========================================== */
+.chapter-solo rect {
+  fill: #c8e6c9;
+  stroke: #2e7d32;
+  stroke-width: 1.5;
+  rx: 8;
+  ry: 8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+.chapter-solo text {
+  fill: #000;
+  font-size: 11px;
 }

@@ -2,6 +2,7 @@ declare const d3: typeof import("d3");
 import { renderTimelines } from "./renderTimelines.js";
 import { renderChapters } from "./renderChapter.js";
 import { renderStorylines } from "./renderStoryline.js";
+import { setupGroupInteraction } from "./expandChapterGroup.js";
 import { timelineData, StorylineData, chapterData } from "./data.js";
 
 const RANGE_GAP = 20;
@@ -20,9 +21,10 @@ const svgBase = d3.select("#board")
 const g = svgBase.append("g");
 
 // Renderiza elementos
+
 const { chapters, height } = renderStorylines(g, StorylineData, timelineData, chapterData);
 renderTimelines(g, timelineData, height);
-renderChapters(g, chapters);
+renderChapters(g, chapters, setupGroupInteraction);
 
 // Define altura real e aplica zoom/pan
 svgBase

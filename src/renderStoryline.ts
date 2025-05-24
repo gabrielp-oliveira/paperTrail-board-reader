@@ -1,5 +1,3 @@
-// renderStoryline.ts
-
 declare const d3: typeof import("d3");
 import { Chapter, StoryLine, Timeline } from "./types.js";
 
@@ -8,9 +6,12 @@ const BOARD_MARGIN_TOP = 70;
 const TIMELINE_HEADER_HEIGHT = 0;
 const BASE_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT;
 const DEFAULT_ROW_HEIGHT = 50;
-const MAX_LAYER_HEIGHT = 20;
 const STORYLINE_GAP = 8;
 const LABEL_WIDTH = 150;
+const MAX_TITLE_CHARS = 30;
+const CHAR_WIDTH = 6.5;
+const CHAPTER_VERTICAL_MARGIN = 6;
+const CHAPTER_MIN_GAP = 5;
 
 export function renderStorylines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -18,19 +19,6 @@ export function renderStorylines(
   timelines: Timeline[],
   chapters: Chapter[]
 ): { chapters: Chapter[], height: number } {
-  const PIXELS_PER_RANGE = 20;
-  const BOARD_MARGIN_TOP = 70;
-  const TIMELINE_HEADER_HEIGHT = 0;
-  const BASE_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT;
-  const DEFAULT_ROW_HEIGHT = 50;
-  const MAX_LAYER_HEIGHT = 20;
-  const STORYLINE_GAP = 8;
-  const LABEL_WIDTH = 150;
-  const MAX_TITLE_CHARS = 30;
-  const CHAR_WIDTH = 6.5;
-  const CHAPTER_VERTICAL_MARGIN = 6;
-  const CHAPTER_MIN_GAP = 5; // mínimo espaçamento entre capítulos lado a lado
-
   let height = 0;
 
   const estimateWidth = (title: string): number => {
@@ -136,6 +124,7 @@ export function renderStorylines(
       .style("text-align", "center")
       .text(storyline.name);
 
+    // Atualiza os capítulos com posição e agrupamento
     updatedChapters.push(
       ...group.map(ch => {
         const timelineOrder = timelineOrderMap.get(ch.timeline_id || '') ?? 0;
@@ -151,12 +140,11 @@ export function renderStorylines(
           ? `group-${storylineId}-${ch.timeline_id}-${ch.range}`
           : `__solo__${ch.id}`;
 
-        ch.group = groupKey;
-
         return {
           ...ch,
           width: x,
-          height: chapterHeights[ch.id]
+          height: chapterHeights[ch.id],
+          group: groupKey
         };
       })
     );
@@ -167,4 +155,3 @@ export function renderStorylines(
     height: BASE_Y + cumulativeHeight - 65
   };
 }
-
