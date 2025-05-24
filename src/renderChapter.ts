@@ -34,45 +34,49 @@ export function renderChapters(
     });
   });
 
-  // Renderiza capítulos solo
-  soloChapters.forEach(ch => {
-    const g = svg.append("g").attr("class", "chapter-solo");
+  // Renderiza capítulos solo com associação de dados
+  svg.selectAll("g.chapter-solo")
+    .data(soloChapters, (d: any) => d.id)
+    .join("g")
+    .attr("class", "chapter-solo")
+    .each(function (ch) {
+      const g = d3.select(this);
 
-    const x = ch.width!;
-    const baseY = ch.height!;
-    const layer = soloLayers[ch.id] ?? 0;
-    const y = baseY + layer * verticalSpacing;
+      const x = ch.width!;
+      const baseY = ch.height!;
+      const layer = soloLayers[ch.id] ?? 0;
+      const y = baseY + layer * verticalSpacing;
 
-    const padding = 6;
-    const displayTitle = ch.title.length > MAX_TITLE_CHARS
-      ? ch.title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
-      : ch.title;
-    const textWidth = displayTitle.length * 6.5;
-    const boxWidth = Math.max(100, textWidth + padding * 2);
-    const boxHeight = 20;
+      const padding = 6;
+      const displayTitle = ch.title.length > MAX_TITLE_CHARS
+        ? ch.title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
+        : ch.title;
+      const textWidth = displayTitle.length * 6.5;
+      const boxWidth = Math.max(100, textWidth + padding * 2);
+      const boxHeight = 20;
 
-    g.append("rect")
-      .attr("x", x - boxWidth / 2)
-      .attr("y", y)
-      .attr("width", boxWidth)
-      .attr("height", boxHeight)
-      .attr("rx", 6)
-      .attr("ry", 6)
-      .attr("fill", "#d0f0d0")
-      .attr("stroke", "#333");
+      g.append("rect")
+        .attr("x", x - boxWidth / 2)
+        .attr("y", y)
+        .attr("width", boxWidth)
+        .attr("height", boxHeight)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        .attr("fill", "#d0f0d0")
+        .attr("stroke", "#333");
 
-    g.append("text")
-      .attr("x", x)
-      .attr("y", y + boxHeight / 2)
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", "11px")
-      .attr("font-family", "Arial")
-      .attr("fill", "#000")
-      .text(displayTitle);
+      g.append("text")
+        .attr("x", x)
+        .attr("y", y + boxHeight / 2)
+        .attr("text-anchor", "middle")
+        .attr("alignment-baseline", "middle")
+        .attr("font-size", "11px")
+        .attr("font-family", "Arial")
+        .attr("fill", "#000")
+        .text(displayTitle);
 
-    g.append("title").text(ch.title);
-  });
+      g.append("title").text(ch.title);
+    });
 
   // Renderiza grupos de capítulos
   for (const [groupKeyRaw, groupChapters] of groupedChapters) {
@@ -120,6 +124,6 @@ export function renderChapters(
     g.append("title").text(groupChapters.map(ch => ch.title).join("\n"));
   }
 
-  // Ativa a interação nos grupos
+  // Ativa a interação nos grupos e solo
   func(svg);
 }

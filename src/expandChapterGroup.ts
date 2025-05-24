@@ -47,10 +47,11 @@ export function setupGroupInteraction(svg: Selection<SVGGElement, unknown, HTMLE
 
   // Clique em capítulo solo (verde)
   svg.selectAll("g.chapter-solo")
-    .on("click.menu", function (event) {
-      const element = d3.select(this);
-      const title = element.select("title").text() || element.text();
-      showChapterMenu(event, title);
+    .on("click.menu", function (event, e) {
+
+      const chapter = (this as any).__data__; // já está salvo via D3
+      console.log(chapter, e, event)
+      showChapterMenu(event, chapter.id);
     });
 }
 
@@ -143,6 +144,7 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
   group.selectAll("text.chapter-title")
     .style("cursor", "pointer")
     .on("click", function (event) {
+      console.log(event)
       const title = d3.select(this).text();
       showChapterMenu(event, title);
       event.stopPropagation();
@@ -188,14 +190,9 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
     .text(label);
 }
 
-function showChapterMenu(event: MouseEvent, title: string) {
+function showChapterMenu(event: MouseEvent, chapterId: string) {
   event.preventDefault();
   event.stopPropagation();
 
-  showContextMenu(event.clientX, event.clientY, [
-    "Ver detalhes",
-    "Mover capítulo",
-    "Excluir",
-    "Fechar"
-  ]);
+  showContextMenu(event.clientX, event.clientY, ["details", "Read"], chapterId);
 }
