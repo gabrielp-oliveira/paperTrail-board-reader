@@ -1,43 +1,74 @@
 declare const d3: typeof import("d3");
+import { showContextMenu } from "./ui/contextMenu.js";
+import { Selection } from "d3-selection";
 
 let expandedGroupId: string | null = null;
+let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
 
-export function setupGroupInteraction(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>) {
+export function setupGroupInteraction(svg: Selection<SVGGElement, unknown, HTMLElement, any>) {
+  svgSelection = svg;
+
+  // Interação com grupo (expansão)
   svg.selectAll<SVGGElement, unknown>("g.chapter-group")
     .attr("tabindex", "0")
     .attr("role", "button")
     .attr("aria-expanded", "false")
     .style("cursor", "pointer")
-    .on("click", function () {
+    .on("click", function (event) {
+      event.stopPropagation(); // evita fechar logo após abrir
       const group = d3.select(this);
       const groupId = group.attr("data-group-id") ?? "";
-      toggleExclusiveGroup(svg, groupId);
+      toggleExclusiveGroup(groupId);
     })
     .on("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         const group = d3.select(this);
         const groupId = group.attr("data-group-id") ?? "";
-        toggleExclusiveGroup(svg, groupId);
+        toggleExclusiveGroup(groupId);
       }
+    });
+
+  // Fecha grupo ao clicar fora
+  document.addEventListener("click", (e) => {
+    const target = e.target as HTMLElement;
+
+    if (
+      expandedGroupId &&
+      !target.closest(`g.chapter-group[data-group-id="${expandedGroupId}"]`) &&
+      !target.closest(".context-menu") &&
+      !target.closest(".chapter-title") &&
+      !target.closest(".chapter-bullet")
+    ) {
+      collapseGroup(svgSelection, expandedGroupId);
+      expandedGroupId = null;
+    }
+  });
+
+  // Clique em capítulo solo (verde)
+  svg.selectAll("g.chapter-solo")
+    .on("click.menu", function (event) {
+      const element = d3.select(this);
+      const title = element.select("title").text() || element.text();
+      showChapterMenu(event, title);
     });
 }
 
-function toggleExclusiveGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
+function toggleExclusiveGroup(groupId: string) {
   if (expandedGroupId && expandedGroupId !== groupId) {
-    collapseGroup(svg, expandedGroupId);
+    collapseGroup(svgSelection, expandedGroupId);
   }
 
   if (expandedGroupId === groupId) {
-    collapseGroup(svg, groupId);
+    collapseGroup(svgSelection, groupId);
     expandedGroupId = null;
   } else {
-    expandGroup(svg, groupId);
+    expandGroup(svgSelection, groupId);
     expandedGroupId = groupId;
   }
 }
 
-function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
+function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
   group.attr("aria-expanded", "true");
 
@@ -45,13 +76,13 @@ function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, 
   const y = +group.attr("data-y");
   const titles = (group.attr("data-chapters") ?? "").split("||");
 
+  const MAX_TITLE_CHARS = 40;
   const boxWidth = 240;
   const headerHeight = 28;
   const chapterHeight = 24;
   const padding = 12;
   const totalHeight = headerHeight + titles.length * chapterHeight + padding * 2;
 
-  // Atualiza retângulo principal
   group.select("rect")
     .attr("x", x - boxWidth / 2)
     .attr("y", y)
@@ -60,14 +91,14 @@ function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, 
     .attr("rx", 12)
     .attr("ry", 12)
     .attr("fill", "#cce5f4")
-    .style("filter", "drop-shadow(0 2px 6px rgba(0,0,0,0.1))");
+    .attr("stroke", "#1565c0")
+    .attr("stroke-width", 1.5)
+    .style("filter", "drop-shadow(0 4px 10px rgba(0,0,0,0.15))");
 
-  // Remove elementos anteriores
   group.selectAll("text").remove();
   group.selectAll("line").remove();
   group.selectAll("rect.chapter-bullet").remove();
 
-  // Título
   group.append("text")
     .attr("class", "group-label")
     .attr("x", x)
@@ -75,7 +106,6 @@ function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, 
     .attr("text-anchor", "middle")
     .text(`${titles.length} CAPÍTULOS`);
 
-  // Linha separadora
   group.append("line")
     .attr("class", "separator")
     .attr("x1", x - boxWidth / 2 + 10)
@@ -83,8 +113,11 @@ function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, 
     .attr("y1", y + padding + 20)
     .attr("y2", y + padding + 20);
 
-  // Capítulos com marcador (bullet)
   titles.forEach((title, i) => {
+    const truncated = title.length > MAX_TITLE_CHARS
+      ? title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
+      : title;
+
     const yOffset = y + padding + 40 + i * chapterHeight;
 
     group.append("rect")
@@ -101,11 +134,25 @@ function expandGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, 
       .attr("x", x - boxWidth / 2 + 30)
       .attr("y", yOffset)
       .attr("text-anchor", "start")
+      .text(truncated)
+      .append("title")
       .text(title);
   });
+
+  // Clique em capítulos internos (após render)
+  group.selectAll("text.chapter-title")
+    .style("cursor", "pointer")
+    .on("click", function (event) {
+      const title = d3.select(this).text();
+      showChapterMenu(event, title);
+      event.stopPropagation();
+    });
+
+    group.raise();
+
 }
 
-function collapseGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
+function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
   group.attr("aria-expanded", "false");
 
@@ -125,7 +172,10 @@ function collapseGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>
     .attr("height", 28)
     .attr("rx", 8)
     .attr("ry", 8)
-    .attr("fill", "#cce5f4");
+    .attr("fill", "#cce5f4")
+    .attr("stroke", "#1565c0")
+    .attr("stroke-width", 1.5)
+    .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.1))");
 
   group.append("text")
     .attr("x", x)
@@ -136,4 +186,16 @@ function collapseGroup(svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>
     .attr("font-family", "Arial")
     .attr("fill", "#000")
     .text(label);
+}
+
+function showChapterMenu(event: MouseEvent, title: string) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  showContextMenu(event.clientX, event.clientY, [
+    "Ver detalhes",
+    "Mover capítulo",
+    "Excluir",
+    "Fechar"
+  ]);
 }

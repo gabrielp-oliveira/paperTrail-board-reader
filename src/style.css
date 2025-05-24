@@ -29,25 +29,12 @@ body, html {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 
-/* ===========================================
-   GRUPO DE CAPÍTULOS (COLAPSADO E EXPANDIDO)
-   =========================================== */
+/* Grupos */
 .chapter-group {
-  outline: none; /* Remove foco de tab padrão */
+  outline: none;
   transition: all 0.3s ease;
 }
 
-/* Caixa colapsada (pequena) */
-.chapter-group[aria-expanded="false"] rect {
-  fill: #cce5f4;
-  stroke: #1565c0;
-  stroke-width: 1.5;
-  rx: 8;
-  ry: 8;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-/* Caixa expandida (adesivo maior) */
 .chapter-group[aria-expanded="true"] rect {
   fill: #cce5f4 !important;
   stroke: #1565c0;
@@ -57,36 +44,40 @@ body, html {
   filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
 }
 
-/* Título do grupo */
+.chapter-group[aria-expanded="false"] rect {
+  fill: #cce5f4;
+  stroke: #1565c0;
+  stroke-width: 1.5;
+  rx: 8;
+  ry: 8;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+/* Textos */
 .chapter-group text.group-label {
   fill: #003366;
   font-weight: 600;
   font-size: 13px;
 }
 
-/* Linha divisória */
-.chapter-group line.separator {
-  stroke: rgba(0, 0, 0, 0.15);
-  stroke-width: 1.2;
-}
-
-/* Títulos dos capítulos (no grupo expandido) */
 .chapter-group text.chapter-title {
   fill: #003366;
   font-weight: 500;
   font-size: 12px;
 }
 
-/* Bullet (marcador ao lado do capítulo) */
+.chapter-group line.separator {
+  stroke: rgba(0, 0, 0, 0.15);
+  stroke-width: 1.2;
+}
+
 .chapter-group rect.chapter-bullet {
   fill: #4fc3f7;
   rx: 2;
   ry: 2;
 }
 
-/* ===========================================
-   CAPÍTULOS SOLO (sem grupo)
-   =========================================== */
+/* Solo */
 .chapter-solo rect {
   fill: #c8e6c9;
   stroke: #2e7d32;
@@ -99,4 +90,21 @@ body, html {
 .chapter-solo text {
   fill: #000;
   font-size: 11px;
+}
+
+/* Animação */
+.chapter-group text,
+.chapter-group line,
+.chapter-group rect.chapter-bullet {
+  opacity: 0;
+  transform: translateY(-5px);
+  animation: fadeSlideIn 0.25s ease-out forwards;
+  animation-delay: 0.1s;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

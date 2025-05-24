@@ -69,7 +69,7 @@ function zoomAndPan(
 
 
       if (hiddenLeft) {
-
+        console.log('..')
       }
 
 
