@@ -18,7 +18,24 @@ export function renderStorylines(
   timelines: Timeline[],
   chapters: Chapter[]
 ): { chapters: Chapter[], height: number } {
+  const PIXELS_PER_RANGE = 20;
+  const BOARD_MARGIN_TOP = 70;
+  const TIMELINE_HEADER_HEIGHT = 0;
+  const BASE_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT;
+  const DEFAULT_ROW_HEIGHT = 50;
+  const MAX_LAYER_HEIGHT = 20;
+  const STORYLINE_GAP = 8;
+  const LABEL_WIDTH = 150;
+  const MAX_TITLE_CHARS = 30;
+  const CHAR_WIDTH = 6.5;
+  const CHAPTER_VERTICAL_MARGIN = 6;
+  const CHAPTER_MIN_GAP = 5; // mínimo espaçamento entre capítulos lado a lado
+
   let height = 0;
+
+  const estimateWidth = (title: string): number => {
+    return Math.min(title.length, MAX_TITLE_CHARS) * CHAR_WIDTH;
+  };
 
   const timelineOrderMap = new Map<string, number>();
   timelines.forEach(t => timelineOrderMap.set(t.id, t.order));
@@ -50,37 +67,34 @@ export function renderStorylines(
     const storyline = storylines.find(s => s.id === storylineId);
     if (!storyline || group.length === 0) return;
 
-    const byTimeline = d3.groups(group, ch => ch.timeline_id);
-    let maxLayers = 1;
-    const chapterLayers: Record<string, number> = {};
-
-    byTimeline.forEach(([timelineId, list]) => {
-      const sortedByRange = list.slice().sort((a, b) => a.range - b.range);
-      let currentLayer = 0;
-      for (let i = 0; i < sortedByRange.length; i++) {
-        const ch = sortedByRange[i];
-        currentLayer = 0;
-        for (let j = 0; j < i; j++) {
-          const other = sortedByRange[j];
-          const closeRange = Math.abs(other.range - ch.range) <= 3;
-          if (other.timeline_id === ch.timeline_id && closeRange && chapterLayers[other.id] === currentLayer) {
-            currentLayer++;
-          }
-        }
-        chapterLayers[ch.id] = currentLayer;
-        if (currentLayer + 1 > maxLayers) maxLayers = currentLayer + 1;
-      }
-    });
-
-    const rowHeight = group.length === 1
-      ? DEFAULT_ROW_HEIGHT
-      : DEFAULT_ROW_HEIGHT + (maxLayers - 1) * MAX_LAYER_HEIGHT;
-
     const y = BASE_Y + cumulativeHeight;
-    cumulativeHeight += rowHeight + STORYLINE_GAP;
     const xStart = LABEL_WIDTH;
     const xEnd = boardWidth + LABEL_WIDTH;
 
+    const placedRects: { x1: number, x2: number, layer: number }[] = [];
+    const chapterHeights: Record<string, number> = {};
+
+    group.forEach(ch => {
+      const timelineOrder = timelineOrderMap.get(ch.timeline_id || '') ?? 0;
+      const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
+      const x = LABEL_WIDTH + (timelineOffset + ch.range) * PIXELS_PER_RANGE;
+      const w = estimateWidth(ch.title);
+      const halfW = w / 2;
+      const x1 = x - halfW - CHAPTER_MIN_GAP;
+      const x2 = x + halfW + CHAPTER_MIN_GAP;
+
+      let layer = 0;
+      while (placedRects.some(r => !(r.x2 < x1 || r.x1 > x2) && r.layer === layer)) {
+        layer++;
+      }
+
+      placedRects.push({ x1, x2, layer });
+      chapterHeights[ch.id] = y + layer * (20 + CHAPTER_VERTICAL_MARGIN) + 10;
+    });
+
+    const maxLayer = placedRects.reduce((max, r) => Math.max(max, r.layer), 0) + 1;
+    const rowHeight = DEFAULT_ROW_HEIGHT + (maxLayer - 1) * (20 + CHAPTER_VERTICAL_MARGIN);
+    cumulativeHeight += rowHeight + STORYLINE_GAP;
     height += rowHeight;
 
     svg.append("rect")
@@ -94,8 +108,7 @@ export function renderStorylines(
       .attr("stroke-width", 1)
       .attr("rx", 4)
       .attr("ry", 4)
-      .attr("opacity", 0.3)
-      .style("cursor", "pointer");
+      .attr("opacity", 0.3);
 
     svg.append("rect")
       .attr("x", 0)
@@ -104,9 +117,7 @@ export function renderStorylines(
       .attr("height", rowHeight)
       .attr("fill", "#fafafa")
       .attr("stroke", "#ccc")
-      .attr("stroke-dasharray", "4,4")
-            .style("cursor", "pointer");
-
+      .attr("stroke-dasharray", "4,4");
 
     svg.append("foreignObject")
       .attr("x", 0)
@@ -125,35 +136,30 @@ export function renderStorylines(
       .style("text-align", "center")
       .text(storyline.name);
 
+    updatedChapters.push(
+      ...group.map(ch => {
+        const timelineOrder = timelineOrderMap.get(ch.timeline_id || '') ?? 0;
+        const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
+        const x = LABEL_WIDTH + (timelineOffset + ch.range) * PIXELS_PER_RANGE;
 
-      updatedChapters.push(
-  ...group.map(ch => {
-    const timelineOrder = timelineOrderMap.get(ch.timeline_id || "") ?? 0;
-    const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
-    const x = LABEL_WIDTH + (timelineOffset + ch.range) * PIXELS_PER_RANGE;
-    const layer = chapterLayers[ch.id] ?? 0;
-    const height = y + 10 + layer * MAX_LAYER_HEIGHT;
+        const groupKeyCandidates = group.filter(other =>
+          other.timeline_id === ch.timeline_id &&
+          other.range === ch.range
+        );
 
-    const groupKeyCandidates = group.filter(other =>
-      other.timeline_id === ch.timeline_id &&
-      other.range === ch.range
+        const groupKey = groupKeyCandidates.length > 1
+          ? `group-${storylineId}-${ch.timeline_id}-${ch.range}`
+          : `__solo__${ch.id}`;
+
+        ch.group = groupKey;
+
+        return {
+          ...ch,
+          width: x,
+          height: chapterHeights[ch.id]
+        };
+      })
     );
-
-    const groupKey = groupKeyCandidates.length > 1
-      ? `${ch.timeline_id}-${x}-${groupKeyCandidates.length}`
-      : "";
-
-    ch.group = groupKey;
-
-    return {
-      ...ch,
-      width: x,
-      height: height
-    };
-  })
-);
-
-
   });
 
   return {
@@ -161,3 +167,4 @@ export function renderStorylines(
     height: BASE_Y + cumulativeHeight - 65
   };
 }
+
