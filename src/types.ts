@@ -111,7 +111,7 @@ export type Chapter = {
     storyline_id: string,
     range: number,
     order: number,
-    color?: string,
+    color: string,
     selected?: boolean,
     focus?: boolean,
     last_update?: any
@@ -185,7 +185,6 @@ export type StoryLine = {
     order: number,
     height?: number
 }
-
 
 
 

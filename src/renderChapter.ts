@@ -1,7 +1,7 @@
 declare const d3: typeof import("d3");
 import { Chapter } from "./types";
 
-const MAX_TITLE_CHARS = 30;
+const MAX_TITLE_CHARS = 20;
 
 export function renderChapters(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -11,12 +11,10 @@ export function renderChapters(
   console.log("🔄 Iniciando renderização de capítulos...");
   svg.selectAll("g.chapter-solo, g.chapter-group, g.chapter-expanded-item").remove();
 
-  // Capítulos individuais
   const soloChapters = chapters.filter(
     ch => ch.width != null && ch.height != null && (!ch.group || ch.group.startsWith("__solo__"))
   );
 
-  // Grupos de capítulos
   const groupedChapters = d3.group(
     chapters.filter(
       ch => ch.width != null && ch.height != null && ch.group && !ch.group.startsWith("__solo__")
@@ -24,7 +22,6 @@ export function renderChapters(
     ch => ch.group ?? `group-${ch.timeline_id}-${ch.range}`
   );
 
-  // Empilhamento vertical dos solos
   const soloBuckets = d3.groups(soloChapters, ch => `${ch.timeline_id}-${ch.width}`);
   const verticalSpacing = 20;
   const soloLayers: Record<string, number> = {};
@@ -34,12 +31,18 @@ export function renderChapters(
     });
   });
 
-  // Renderiza capítulos solo com associação de dados
   svg.selectAll("g.chapter-solo")
     .data(soloChapters, (d: any) => d.id)
     .join("g")
     .attr("class", "chapter-solo")
     .each(function (ch) {
+      console.log('...')
+      const baseColor = d3.color(ch.color)!;
+
+      const luminance = d3.lab(baseColor).l;
+      const textColor = luminance > 0.5 ? "black" : "white"; // claro ou escuro
+
+      console.log(luminance, ch.color, textColor, textColor)
       const g = d3.select(this);
 
       const x = ch.width!;
@@ -53,32 +56,66 @@ export function renderChapters(
         : ch.title;
       const textWidth = displayTitle.length * 6.5;
       const boxWidth = Math.max(100, textWidth + padding * 2);
-      const boxHeight = 20;
+      const boxHeight = 25;
 
-      g.append("rect")
+
+      const rect = g.append("rect")
+      rect.classed("chapter-rect", true)
+        .classed("focused", ch.focus === true)
+        .attr("data-chapter-id", ch.id) // <- aqui
         .attr("x", x - boxWidth / 2)
         .attr("y", y)
         .attr("width", boxWidth)
         .attr("height", boxHeight)
         .attr("rx", 6)
         .attr("ry", 6)
-        .attr("fill", "#d0f0d0")
-        .attr("stroke", "#333");
+        .attr("fill", baseColor.toString())
+        .attr("stroke", baseColor.darker(1).toString())
+        .attr("stroke-width", 1)
+        .attr("cursor", "pointer");
 
       g.append("text")
         .attr("x", x)
         .attr("y", y + boxHeight / 2)
         .attr("text-anchor", "middle")
         .attr("alignment-baseline", "middle")
-        .attr("font-size", "11px")
-        .attr("font-family", "Arial")
-        .attr("fill", "#000")
+        .attr("font-size", "13px")
+        .attr("font-family", "Georgia, 'Times New Roman', serif")
+        .attr("fill", textColor)  // ✅ aqui é o correto
+        .attr("cursor", "pointer")
         .text(displayTitle);
 
+
       g.append("title").text(ch.title);
+
+      g.on("mouseenter", function () {
+        ch.focus = true;
+        g.classed("hovered", true);
+
+        window.parent.postMessage(
+          {
+            type: "chapter-focus",
+            id: ch.id,
+            focus: true
+          },
+          "*"
+        );
+      });
+
+
+      g.on("mouseleave", function () {
+        window.parent.postMessage(
+          {
+            type: "chapter-focus",
+            id: ch.id,
+            focus: false
+          },
+          "*"
+        );
+        g.classed("hovered", false);
+      });
     });
 
-  // Renderiza grupos de capítulos
   for (const [groupKeyRaw, groupChapters] of groupedChapters) {
     const base = groupChapters[0];
     if (base.width == null || base.height == null) continue;
@@ -98,7 +135,7 @@ export function renderChapters(
       .attr("data-group-id", groupKey)
       .attr("data-x", x)
       .attr("data-y", y)
-      .attr("data-chapters", groupChapters.map(ch => ch.title).join("||"))
+      .attr("data-chapters", groupChapters.map(ch => ch.title + "-" + ch.id).join("||"))
       .style("cursor", "pointer");
 
     g.append("rect")
@@ -124,6 +161,5 @@ export function renderChapters(
     g.append("title").text(groupChapters.map(ch => ch.title).join("\n"));
   }
 
-  // Ativa a interação nos grupos e solo
   func(svg);
 }

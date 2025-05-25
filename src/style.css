@@ -79,18 +79,12 @@ body, html {
 
 /* Solo */
 .chapter-solo rect {
-  fill: #c8e6c9;
-  stroke: #2e7d32;
   stroke-width: 1.5;
   rx: 8;
   ry: 8;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-.chapter-solo text {
-  fill: #000;
-  font-size: 11px;
-}
+
 
 /* Animação */
 .chapter-group text,
@@ -144,4 +138,52 @@ body, html {
   text-align: right;
   margin-top: 15px;
 }
+
+
+#context-menu {
+  position: absolute;
+  background: white;
+  border: 1px solid #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: 4px 0;
+  font-family: "Segoe UI", sans-serif;
+  z-index: 10000;
+  transform-origin: top left;
+}
+
+.context-menu-item {
+  padding: 6px 16px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.context-menu-item:hover {
+  background-color: #000000;
+}
+
+
+.chapter-rect {
+  transition: all 0.3s ease;
+  filter: drop-shadow(3px 3px 3px rgb(0, 0, 0, 0.5));
+  box-shadow: 5px 5px 5px black;
+  stroke-width: 1;
+  padding: 20px;
+}
+
+.chapter-solo.hovered .chapter-rect {
+  filter: drop-shadow(5px 5px 5px rgb(0, 0, 0, 0.4));
+  stroke-width: 2;
+  /* opcional: brilho na cor de fundo */
+  fill-opacity: 0.95;
+}
+
+
+.chapter-solo.focused .chapter-rect {
+  stroke: #f39c12;
+  stroke-width: 2;
+  filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.3));
+}
+
+
 

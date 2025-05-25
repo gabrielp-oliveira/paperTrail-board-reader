@@ -1,13 +1,16 @@
 {
   "compilerOptions": {
-    "target": "ES6",
-    "module": "ES6",
-    "rootDir": "./src",
-    "outDir": "./dist",
+    "target": "ESNext",                 // para melhor suporte de recursos modernos
+    "module": "ESNext",                 // para que Vite resolva ESM
+    "moduleResolution": "Node",        // compatível com import/export de bibliotecas
     "strict": true,
     "esModuleInterop": true,
-    "types": []         // <-- impede a inclusão automática de @types/node
+        "outDir": "./dist",
+
+    "skipLibCheck": true,              // evita erros com @types externos
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": "./src",                // opcional: para usar paths relativos mais fáceis
+    "types": []                        // ✅ OK se não usa Node no runtime
   },
   "include": ["./src/**/*"],
-
 }

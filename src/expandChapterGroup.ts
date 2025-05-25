@@ -50,8 +50,7 @@ export function setupGroupInteraction(svg: Selection<SVGGElement, unknown, HTMLE
     .on("click.menu", function (event, e) {
 
       const chapter = (this as any).__data__; // já está salvo via D3
-      console.log(chapter, e, event)
-      showChapterMenu(event, chapter.id);
+      showChapterMenu(event, chapter.id, svg);
     });
 }
 
@@ -75,14 +74,14 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
 
   const x = +group.attr("data-x");
   const y = +group.attr("data-y");
-  const titles = (group.attr("data-chapters") ?? "").split("||");
+  const titlesIds = (group.attr("data-chapters") ?? "").split("||");
 
   const MAX_TITLE_CHARS = 40;
   const boxWidth = 240;
   const headerHeight = 28;
   const chapterHeight = 24;
   const padding = 12;
-  const totalHeight = headerHeight + titles.length * chapterHeight + padding * 2;
+  const totalHeight = headerHeight + titlesIds.length * chapterHeight + padding * 2;
 
   group.select("rect")
     .attr("x", x - boxWidth / 2)
@@ -105,7 +104,7 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     .attr("x", x)
     .attr("y", y + padding + 10)
     .attr("text-anchor", "middle")
-    .text(`${titles.length} CAPÍTULOS`);
+    .text(`${titlesIds.length}`);
 
   group.append("line")
     .attr("class", "separator")
@@ -114,7 +113,9 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     .attr("y1", y + padding + 20)
     .attr("y2", y + padding + 20);
 
-  titles.forEach((title, i) => {
+  titlesIds.forEach((titleId, i) => {
+    const title = titleId.split("-")[0]
+    const id = titleId.split("-")[1]
     const truncated = title.length > MAX_TITLE_CHARS
       ? title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
       : title;
@@ -128,7 +129,29 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("width", 10)
       .attr("height", 10)
       .attr("rx", 2)
-      .attr("ry", 2);
+      .attr("ry", 2)
+      .on("mouseenter", function () {
+        window.parent.postMessage(
+          {
+            type: "chapter-focus",
+            id: id,
+            focus: true
+          },
+          "*"
+        );
+      })
+      .on("mouseleave", function () {
+        window.parent.postMessage(
+          {
+            type: "chapter-focus",
+            id: id,
+            focus: false
+          },
+          "*"
+        );
+      });
+    // evento aqui. dispat
+
 
     group.append("text")
       .attr("class", "chapter-title")
@@ -144,13 +167,12 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
   group.selectAll("text.chapter-title")
     .style("cursor", "pointer")
     .on("click", function (event) {
-      console.log(event)
       const title = d3.select(this).text();
-      showChapterMenu(event, title);
+      showChapterMenu(event, title, svg);
       event.stopPropagation();
     });
 
-    group.raise();
+  group.raise();
 
 }
 
@@ -160,8 +182,9 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
 
   const x = +group.attr("data-x");
   const y = +group.attr("data-y");
-  const titles = (group.attr("data-chapters") ?? "").split("||");
-  const label = titles.length === 1 ? "1 capítulo" : `${titles.length} capítulos`;
+  const titlesIds = (group.attr("data-chapters") ?? "").split("||");
+
+  const label = titlesIds.length === 1 ? "1 capítulo" : `${titlesIds.length} capítulos`;
   const textWidth = label.length * 6.5;
   const boxWidth = Math.max(80, textWidth + 20);
 
@@ -187,12 +210,14 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
     .attr("font-size", "11px")
     .attr("font-family", "Arial")
     .attr("fill", "#000")
-    .text(label);
+    .text(titlesIds.length);
 }
 
-function showChapterMenu(event: MouseEvent, chapterId: string) {
+function showChapterMenu(event: MouseEvent, chapterId: string, svg: Selection<SVGGElement, unknown, HTMLElement, any>) {
   event.preventDefault();
   event.stopPropagation();
+  const transform = d3.zoomTransform(svg.node()!);
+  const k = transform.k;
 
-  showContextMenu(event.clientX, event.clientY, ["details", "Read"], chapterId);
+  showContextMenu(event.clientX, event.clientY, ["details", "Read"], chapterId, k);
 }

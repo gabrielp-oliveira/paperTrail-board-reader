@@ -141,6 +141,7 @@ export const chapterData: Chapter[] = [
             "order": 6,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -158,6 +159,7 @@ export const chapterData: Chapter[] = [
             "order": 37,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -175,6 +177,7 @@ export const chapterData: Chapter[] = [
             "order": 45,
             "range": 15,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -192,6 +195,7 @@ export const chapterData: Chapter[] = [
             "order": 40,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -209,6 +213,7 @@ export const chapterData: Chapter[] = [
             "order": 14,
             "range": 15,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -226,6 +231,7 @@ export const chapterData: Chapter[] = [
             "order": 15,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -243,6 +249,7 @@ export const chapterData: Chapter[] = [
             "order": 3,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -260,6 +267,7 @@ export const chapterData: Chapter[] = [
             "order": 13,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -277,6 +285,7 @@ export const chapterData: Chapter[] = [
             "order": 20,
             "range": 12,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -294,6 +303,7 @@ export const chapterData: Chapter[] = [
             "order": 8,
             "range": 15,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -311,6 +321,7 @@ export const chapterData: Chapter[] = [
             "order": 9,
             "range": 20,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -328,6 +339,7 @@ export const chapterData: Chapter[] = [
             "order": 19,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -345,6 +357,7 @@ export const chapterData: Chapter[] = [
             "order": 25,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -362,6 +375,7 @@ export const chapterData: Chapter[] = [
             "order": 12,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -379,6 +393,7 @@ export const chapterData: Chapter[] = [
             "order": 17,
             "range": 12,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -396,6 +411,7 @@ export const chapterData: Chapter[] = [
             "order": 24,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -413,6 +429,7 @@ export const chapterData: Chapter[] = [
             "order": 27,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -430,6 +447,7 @@ export const chapterData: Chapter[] = [
             "order": 28,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -447,6 +465,7 @@ export const chapterData: Chapter[] = [
             "order": 33,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -464,6 +483,7 @@ export const chapterData: Chapter[] = [
             "order": 35,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -481,6 +501,7 @@ export const chapterData: Chapter[] = [
             "order": 39,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -498,6 +519,7 @@ export const chapterData: Chapter[] = [
             "order": 43,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -515,6 +537,7 @@ export const chapterData: Chapter[] = [
             "order": 11,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -532,6 +555,7 @@ export const chapterData: Chapter[] = [
             "order": 10,
             "range": 25,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -549,6 +573,7 @@ export const chapterData: Chapter[] = [
             "order": 44,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -566,6 +591,7 @@ export const chapterData: Chapter[] = [
             "order": 16,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -583,6 +609,7 @@ export const chapterData: Chapter[] = [
             "order": 22,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -600,6 +627,7 @@ export const chapterData: Chapter[] = [
             "order": 18,
             "range": 14,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -617,6 +645,7 @@ export const chapterData: Chapter[] = [
             "order": 2,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -634,6 +663,7 @@ export const chapterData: Chapter[] = [
             "order": 23,
             "range": 15,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -651,6 +681,7 @@ export const chapterData: Chapter[] = [
             "order": 30,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -668,6 +699,7 @@ export const chapterData: Chapter[] = [
             "order": 34,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -685,6 +717,7 @@ export const chapterData: Chapter[] = [
             "order": 38,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -702,6 +735,7 @@ export const chapterData: Chapter[] = [
             "order": 42,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -719,6 +753,7 @@ export const chapterData: Chapter[] = [
             "order": 29,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -736,6 +771,7 @@ export const chapterData: Chapter[] = [
             "order": 41,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -753,6 +789,7 @@ export const chapterData: Chapter[] = [
             "order": 1,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -770,6 +807,7 @@ export const chapterData: Chapter[] = [
             "order": 4,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -787,6 +825,7 @@ export const chapterData: Chapter[] = [
             "order": 5,
             "range": 15,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -804,6 +843,7 @@ export const chapterData: Chapter[] = [
             "order": 26,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -821,6 +861,7 @@ export const chapterData: Chapter[] = [
             "order": 36,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -838,6 +879,7 @@ export const chapterData: Chapter[] = [
             "order": 47,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -855,6 +897,7 @@ export const chapterData: Chapter[] = [
             "order": 46,
             "range": 25,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -872,6 +915,7 @@ export const chapterData: Chapter[] = [
             "order": 7,
             "range": 10,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -889,6 +933,7 @@ export const chapterData: Chapter[] = [
             "order": 31,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -906,6 +951,7 @@ export const chapterData: Chapter[] = [
             "order": 21,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         },
@@ -923,6 +969,7 @@ export const chapterData: Chapter[] = [
             "order": 32,
             "range": 5,
             "last_update": null,
+           "color": "rgb(65, 190, 121)",
             width: 0,
             height: 0
         }
