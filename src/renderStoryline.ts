@@ -1,10 +1,10 @@
-declare const d3: typeof import("d3");
+import * as d3 from "d3";
 import { Chapter, StoryLine, Timeline } from "./types.js";
+import { hideGroup } from "expandChapterGroup.js";
+import { hideContextMenu } from "ui/contextMenu.js";
 
 const PIXELS_PER_RANGE = 20;
-const BOARD_MARGIN_TOP = 70;
-const TIMELINE_HEADER_HEIGHT = 0;
-const BASE_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT;
+const BASE_Y = 0;
 const DEFAULT_ROW_HEIGHT = 50;
 const STORYLINE_GAP = 8;
 const LABEL_WIDTH = 150;
@@ -98,6 +98,7 @@ export function renderStorylines(
       .attr("ry", 4)
       .attr("opacity", 0.3);
 
+
     svg.append("rect")
       .attr("x", 0)
       .attr("y", y)
@@ -119,7 +120,8 @@ export function renderStorylines(
       .style("justify-content", "center")
       .style("height", `${rowHeight}px`)
       .style("width", `${LABEL_WIDTH}px`)
-      .style("font-size", "11px")
+      .style("font-size", "13px")
+      .style("font-weight", "700")
       .style("color", "#333")
       .style("text-align", "center")
       .text(storyline.name);
@@ -152,6 +154,6 @@ export function renderStorylines(
 
   return {
     chapters: updatedChapters,
-    height: BASE_Y + cumulativeHeight - 65
+    height: cumulativeHeight
   };
 }

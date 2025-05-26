@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>App Pai com Iframe</title>
+  <style>
+    iframe {
+      width: 100%;
+      height: 80vh;
+      border: 2px solid red;
+    }
+  </style>
+</head>
+<body>
+  <h1>Testando o Iframe do Board</h1>
+
+  <iframe id="board-frame" src="./dist/index.html"></iframe>
+
+  <script type="module">
+    import { timelines, storylines, chapters } from './data.mjs';
+
+    const iframe = document.getElementById("board-frame");
+
+    iframe.addEventListener("load", () => {
+
+      // Envia dados
+      iframe.contentWindow.postMessage({
+        type: "set-data",
+        data: {
+          timelines,
+          storylines,
+          chapters
+        }
+      }, "*");
+
+      iframe.contentWindow.postMessage({
+        type: "set-light",
+        data: {
+          
+          light: true
+        }
+      }, "*");
+
+
+    });
+
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "chapter-option-selected") {
+        console.log("🟢 Usuário clicou:", event.data);
+      }
+    });
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "chapter-focus") {
+        console.log("🟢 Usuário focou ->:", event.data);
+      }
+    });
+    window.addEventListener("message", (event) => {
+      if (event.data?.type === "board-transform-update") {
+        console.log("🟢 Usuário focou ->:", event.data);
+      }
+    });
+  </script>
+</body>
+</html>

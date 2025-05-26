@@ -1,15 +1,12 @@
-// board/vite.config.ts
-import { defineConfig } from "vite";
-import { resolve } from "path";
+import { defineConfig } from 'vite';
 
 export default defineConfig({
+  base: "./",
   build: {
-    outDir: resolve(__dirname, "../dist"),
-    emptyOutDir: false,
+    outDir: "dist",
+    emptyOutDir: true,
     rollupOptions: {
-      input: {
-        iframe: resolve(__dirname, "iframe.html")
-      }
+      input: "./index.html"
     }
   }
 });

@@ -19,8 +19,6 @@ export function showContextMenu(
 
     // Clique em uma das opções
     item.onclick = async () => {
-      console.log("🔘 Opção selecionada:", option);
-
       // Envia para o app pai
       window.parent.postMessage(
         {
@@ -60,5 +58,4 @@ export function hideContextMenu() {
   }
 }
 
-// Fecha ao clicar fora
-document.addEventListener("click", () => hideContextMenu());
+

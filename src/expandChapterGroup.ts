@@ -1,4 +1,4 @@
-declare const d3: typeof import("d3");
+import * as d3 from "d3";
 import { showContextMenu } from "./ui/contextMenu.js";
 import { Selection } from "d3-selection";
 
@@ -130,28 +130,12 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("height", 10)
       .attr("rx", 2)
       .attr("ry", 2)
-      .on("mouseenter", function () {
-        window.parent.postMessage(
-          {
-            type: "chapter-focus",
-            id: id,
-            focus: true
-          },
-          "*"
-        );
+      .on("mouseenter", () => {
+        window.parent.postMessage({ type: "chapter-focus", id, focus: true }, "*");
       })
-      .on("mouseleave", function () {
-        window.parent.postMessage(
-          {
-            type: "chapter-focus",
-            id: id,
-            focus: false
-          },
-          "*"
-        );
+      .on("mouseleave", () => {
+        window.parent.postMessage({ type: "chapter-focus", id, focus: false }, "*");
       });
-    // evento aqui. dispat
-
 
     group.append("text")
       .attr("class", "chapter-title")
@@ -163,7 +147,7 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .text(title);
   });
 
-  // Clique em capítulos internos (após render)
+  // Clique em capítulos internos
   group.selectAll("text.chapter-title")
     .style("cursor", "pointer")
     .on("click", function (event) {
@@ -173,7 +157,6 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     });
 
   group.raise();
-
 }
 
 function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
@@ -184,7 +167,7 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
   const y = +group.attr("data-y");
   const titlesIds = (group.attr("data-chapters") ?? "").split("||");
 
-  const label = titlesIds.length === 1 ? "1 capítulo" : `${titlesIds.length} capítulos`;
+  const label = titlesIds.length === 1 ? "1" : `${titlesIds.length}`;
   const textWidth = label.length * 6.5;
   const boxWidth = Math.max(80, textWidth + 20);
 
@@ -220,4 +203,11 @@ function showChapterMenu(event: MouseEvent, chapterId: string, svg: Selection<SV
   const k = transform.k;
 
   showContextMenu(event.clientX, event.clientY, ["details", "Read"], chapterId, k);
+}
+
+export function hideGroup() {
+  if (expandedGroupId) {
+    collapseGroup(svgSelection, expandedGroupId);
+    expandedGroupId = null;
+  }
 }

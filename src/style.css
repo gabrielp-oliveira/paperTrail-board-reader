@@ -5,14 +5,13 @@ body, html {
   height: 100%;
   overflow: hidden;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f0f2f5;
+  display: flex;
 }
 
 #board {
   display: block;
   position: relative;
   width: 100%;
-  height: 100%;
   overflow: hidden;
   margin: 0;
   padding: 0;
@@ -23,10 +22,10 @@ body, html {
   display: block;
   margin: 0;
   padding: 0;
-  background-color: #ffffff;
+  /* background-color: #ffffff; */
   border-radius: 12px;
-  border: 1px solid #ddd;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  /* border: 1px solid #ddd; */
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); */
 }
 
 /* Grupos */
@@ -104,40 +103,7 @@ body, html {
 }
 
 
-.dialog.hidden {
-  display: none;
-}
 
-.dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.dialog-box {
-  background: white;
-  padding: 20px;
-  border-radius: 8px;
-  min-width: 300px;
-  max-width: 500px;
-}
-
-.dialog-title {
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.dialog-actions {
-  text-align: right;
-  margin-top: 15px;
-}
 
 
 #context-menu {
@@ -187,3 +153,63 @@ body, html {
 
 
 
+/* ===== MODO CLARO ===== */
+body.light-mode {
+  background-color: #ffffff;
+}
+
+body.light-mode .timeline-rect {
+  fill: #ffffff;
+  stroke: #d0d0d0;
+}
+
+body.light-mode .timeline-header {
+  fill: #ffffff;
+}
+body.light-mode .timeline-txt {
+  fill: #222222; /* texto escuro visível no fundo branco */
+}
+
+
+/* ===== MODO ESCURO ===== */
+body.dark-mode {
+  background-color: #2a2a2a;
+}
+
+body.dark-mode .timeline-rect {
+  fill: #3b3b3b;
+  stroke: #666666;
+}
+
+body.dark-mode .timeline-header {
+    fill: #3b3b3b; /* texto claro visível no fundo escuro */
+
+}
+body.dark-mode .timeline-txt {
+  fill: #f0f0f0; /* texto claro visível no fundo escuro */
+}
+
+
+
+rect.chapter-bullet {
+  transition: fill 0.2s ease;
+  cursor: pointer;
+}
+
+/* LIGHT MODE */
+body.light-mode rect.chapter-bullet {
+  fill: #8ccbe7;
+}
+
+body.light-mode rect.chapter-bullet:hover {
+  fill: #4aa9d8; /* cor mais escura no hover */
+}
+
+/* DARK MODE */
+body.dark-mode rect.chapter-bullet {
+  fill: #6ca4c8;
+}
+
+body.dark-mode rect.chapter-bullet:hover {
+  fill: #4593c4; /* cor mais clara ou vibrante no hover */
+}

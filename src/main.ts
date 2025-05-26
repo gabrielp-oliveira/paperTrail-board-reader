@@ -1,10 +1,9 @@
-declare const d3: typeof import("d3");
+import * as d3 from "d3";
 import { renderTimelines } from "./renderTimelines.js";
 import { renderChapters } from "./renderChapter.js";
 import { renderStorylines } from "./renderStoryline.js";
-import { setupGroupInteraction } from "./expandChapterGroup.js";
-import { timelineData, StorylineData, chapterData } from "./data.js";
-import * as api from "./api.js";
+import { hideGroup, setupGroupInteraction } from "./expandChapterGroup.js";
+import { hideContextMenu } from "./ui/contextMenu.js";
 
 const RANGE_GAP = 20;
 const LABEL_WIDTH = 150;
@@ -14,48 +13,49 @@ let boardHasBeenRendered = false;
 // Cria SVG base
 const svgBase = d3.select("#board")
   .append("svg")
-  .attr("width", "100%")
-  .style("overflow", "hidden")
-  .style("display", "block");
+  .style("width", "100%")
+  .style("height", "100%")
+  .style("margin", "0")
+  .style("padding", "0")
+  .style("display", "block")
+
 
 const g = svgBase.append("g");
 
-// Carrega o template do diálogo externo
-async function loadDialogTemplate() {
-  const res = await fetch("src/dialog/dialog.html");
-  const html = await res.text();
-  const container = document.createElement("div");
-  container.innerHTML = html;
-  document.body.appendChild(container);
-}
-
-// Aplica zoom/pan no SVG
+// Aplica zoom/pan
 function zoomAndPan(
   svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>,
   width: number,
   height: number
 ) {
+
   const initialScale = 1.5;
-  const maxTranslateX = width * 2;
-  const maxTranslateY = height + 400;
 
   const zoom = d3.zoom<SVGSVGElement, unknown>()
-    .filter((event) =>
+    .filter(event =>
       event.type === "wheel" ||
       event.type === "mousedown" ||
       event.type === "touchstart"
     )
-    .scaleExtent([initialScale, 10])
+    .scaleExtent([initialScale, 5])
     .translateExtent([
-      [-100, -100],
-      [maxTranslateX, maxTranslateY],
+      [0, -height],
+      [width + 200, height + 100]
     ])
-    .on("zoom", (event) => {
-      const k = Math.max(initialScale, event.transform.k);
-      const tx = Math.min(0, event.transform.x);
-      const ty = Math.min(0, event.transform.y);
-      const transform = d3.zoomIdentity.translate(tx, ty).scale(k);
-      svg.select("g").attr("transform", transform.toString());
+    .on("zoom", event => {
+      const transform = event.transform;
+      const tx = Math.min(0, transform.x);
+      const ty = Math.min(0, transform.y);
+
+      svg.select("g")
+        .attr("transform", d3.zoomIdentity.translate(tx, ty).scale(transform.k).toString());
+    })
+    .on("end", event => {
+      const { x, y, k } = event.transform;
+      window.parent.postMessage({
+        type: "board-transform-update",
+        transform: { x, y, k }
+      }, "*");
     });
 
   svg.call(zoom);
@@ -65,42 +65,49 @@ function zoomAndPan(
   );
 }
 
-// Recebe token do app pai e inicializa board (apenas uma vez)
+// Recebe dados do app pai
 window.addEventListener("message", async (event) => {
-  const { type, token } = event.data || {};
+  const { type, data } = event.data || {};
 
-  if (type === "set-token" && token) {
-    if (boardHasBeenRendered) {
-      console.log("🔁 Token ignorado (já renderizado).");
-      return;
-    }
+  if (type === "set-light" && data) {
+    // Remove classe anterior e aplica nova
+    document.body.classList.remove("light-mode", "dark-mode");
+    document.body.classList.add(data.light ? "dark-mode" : "light-mode");
+    console.log(data.light ? "🌙 " : "☀️");
+  }
 
+  if (type === "set-data" && data && !boardHasBeenRendered) {
+    const { timelines, storylines, chapters } = data;
     boardHasBeenRendered = true;
-    console.log("🔐 Token recebido no iframe.");
-    api.setJwtToken(token);
-
-    await loadDialogTemplate();
 
     try {
-      const timelineWidth = timelineData.reduce((sum: number, t: any) => sum + t.range * RANGE_GAP, 0);
+      const timelineWidth = timelines.reduce(
+        (sum: number, t: any) => sum + t.range * RANGE_GAP,
+        0
+      );
       const totalWidth = LABEL_WIDTH + timelineWidth;
 
-      const { chapters: renderedChapters, height } = renderStorylines(g, StorylineData, timelineData, chapterData);
-      renderTimelines(g, timelineData, height);
+      const { chapters: renderedChapters, height } = renderStorylines(
+        g,
+        storylines,
+        timelines,
+        chapters
+      );
+
+      renderTimelines(g, timelines, height);
       renderChapters(g, renderedChapters, setupGroupInteraction);
 
       svgBase
-        .attr("height", height)
         .attr("viewBox", `0 0 ${totalWidth} ${height}`)
         .call((svg) => zoomAndPan(svg, totalWidth, height));
-
     } catch (e) {
-      console.error("❌ Erro ao carregar dados:", e);
+      console.error("❌ Erro ao renderizar board:", e);
     }
   }
 });
 
-// Opcional: reseta flag se recarregar com Vite HMR
+
+// Suporte Vite HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     boardHasBeenRendered = false;

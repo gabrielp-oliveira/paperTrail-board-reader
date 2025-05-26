@@ -1,4 +1,4 @@
-declare const d3: typeof import("d3");
+import * as d3 from "d3";
 import { Chapter } from "./types";
 
 const MAX_TITLE_CHARS = 20;
@@ -36,13 +36,10 @@ export function renderChapters(
     .join("g")
     .attr("class", "chapter-solo")
     .each(function (ch) {
-      console.log('...')
       const baseColor = d3.color(ch.color)!;
 
       const luminance = d3.lab(baseColor).l;
       const textColor = luminance > 0.5 ? "black" : "white"; // claro ou escuro
-
-      console.log(luminance, ch.color, textColor, textColor)
       const g = d3.select(this);
 
       const x = ch.width!;
@@ -125,7 +122,7 @@ export function renderChapters(
     const y = base.height;
 
     const count = groupChapters.length;
-    const label = count === 1 ? "1 capítulo" : `${count} capítulos`;
+    const label = count === 1 ? "1" : `${count}`;
     const textWidth = label.length * 6.5;
     const boxWidth = Math.max(80, textWidth + 20);
     const boxHeight = 28;

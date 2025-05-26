@@ -46,16 +46,7 @@ export type paper = {
     focus: boolean,
     color: string
 }
-export interface createWorld extends infoDialog {
-     "world": world,
-}
 
-export type infoDialog = {
-    status: 'warning'|'error'|'success',
-    header: string,
-    message: string,
-    action:String
-}
 export type ChapterDetails = {
 	chapter: Chapter,
 	timeline:Timeline,
@@ -189,8 +180,4 @@ export type StoryLine = {
 
 
 
-
-export const BOARD_MARGIN_TOP = 80;
-export const TIMELINE_HEADER_HEIGHT = 45;
-export const TIMELINE_BODY_Y = BOARD_MARGIN_TOP + TIMELINE_HEADER_HEIGHT; // 125
 
