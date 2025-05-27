@@ -1,113 +1,10 @@
-
-export const timelines = [
-        {
-            "id": "fc889e16-00c5-4d6b-ba9f-ed55733fe53c",
-            "name": "The March Sisters' Beginnings",
-            "description": "Introduction to the March sisters and their life during the backdrop of a distant war, highlighting their individual dreams and family bonds.",
-            "world_id": "louisa-alcott-world",
-            "order": 1,
-            "range": 20
-        },
-        {
-            "id": "47a28dae-732a-4c67-b8f0-d63d65631519",
-            "name": "New Friendships and Old Bonds",
-            "description": "The March sisters' interactions with Laurie and the Laurence family, exploring the development of friendships and the breaking of social barriers.",
-            "world_id": "louisa-alcott-world",
-            "order": 2,
-            "range": 20
-        },
-        {
-            "id": "2da6a305-272d-4452-b6a7-cb3eb92ce949",
-            "name": "Trials and Triumphs",
-            "description": "The sisters navigate personal challenges, societal expectations, and the growth of their artistic and personal ambitions.",
-            "world_id": "louisa-alcott-world",
-            "order": 3,
-            "range": 30
-        },
-        {
-            "id": "e135805b-1926-4ce9-9ea9-86d115f99fd5",
-            "name": "Love and Loss",
-            "description": "The March family faces the heartache of unrequited love, Beth's illness, and the shifting dynamics of relationships.",
-            "world_id": "louisa-alcott-world",
-            "order": 4,
-            "range": 30
-        },
-        {
-            "id": "826df630-7f0d-401b-9f2f-dcec56f57fcd",
-            "name": "Artistic and Personal Journeys",
-            "description": "Exploration of the artistic and personal journeys of characters like Laurie, Amy, Jo, and their families, highlighting the interplay of art, family, and personal growth.",
-            "world_id": "louisa-alcott-world",
-            "order": 5,
-            "range": 40
-        },
-        {
-            "id": "68768046-cbc4-4731-93e2-e11c9430821b",
-            "name": "Life at Plumfield",
-            "description": "The daily life and adventures of the boys and girls at Plumfield, guided by the nurturing care of Mr. and Mrs. Bhaer. This includes the transformations, friendships, and personal growth of characters like Dan, Emil, Nat, and others as they navigate life's challenges and triumphs.",
-            "world_id": "louisa-alcott-world",
-            "order": 6,
-            "range": 60
-        },
-        {
-            "id": "20d9347c-c285-452f-9f51-80351c97a5b5",
-            "name": "Trials, Redemption, and New Beginnings",
-            "description": "The characters face trials, seek redemption, and embrace new beginnings. This includes Dan's journey towards redemption, Nat's self-discovery, and the evolving relationships at Plumfield.",
-            "world_id": "louisa-alcott-world",
-            "order": 7,
-            "range": 50
-        }
-    ]
-export const storylines  = [
-        {
-            "id": "10a4c1ef-a06a-4abc-86a0-25bc26d11849",
-            "name": "The March Sisters' Growth",
-            "description": "The journey of the March sisters as they navigate love, loss, and personal growth, from childhood to adulthood.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 1
-        },
-        {
-            "id": "3a079a28-3ff0-4f29-8ca1-aa896516f011",
-            "name": "Jo's Literary Journey",
-            "description": "Jo March's pursuit of her writing dreams, her struggles with societal expectations, and her eventual success as an author.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 2
-        },
-        {
-            "id": "411f8495-74f5-460b-8112-657cf242fde1",
-            "name": "Laurie's Transformation",
-            "description": "Laurie's journey from unrequited love for Jo to finding happiness with Amy, and his personal growth along the way.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 3
-        },
-        {
-            "id": "af8c4e82-5b15-4bf0-a211-673ca7c3b123",
-            "name": "Beth's Quiet Strength",
-            "description": "Beth March's gentle influence on her family and her serene acceptance of her fate, leaving a legacy of love.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 4
-        },
-        {
-            "id": "9f815fb4-9ba9-46f0-ab23-b5866324d69f",
-            "name": "Jo and Friedrich's Love",
-            "description": "The evolving relationship between Jo March and Professor Friedrich Bhaer, culminating in their shared future.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 5
-        },
-        {
-            "id": "09b43580-8a43-45b3-bcc2-add13ee0b1a1",
-            "name": "Plumfield's Promise",
-            "description": "Jo and Fritz's establishment of Plumfield as a school for boys, fulfilling Jo's dream of nurturing the next generation.",
-            "created_at": "0001-01-01T00:00:00Z",
-            "world_id": "",
-            "order": 6
-        }
-    ]
-export const chapters  =   [
+{
+    "id": "louisa-alcott-world",
+    "name": "O Mundo das Irmãs March",
+    "created_at": "2025-05-17T00:36:02.460885Z",
+    "user_id": "",
+    "description": "Um universo literário que acompanha a vida, os desafios e os amadurecimentos das irmãs March, explorando temas como família, ambição, amor e crescimento pessoal.",
+    "chapters": [
         {
             "id": "06e30a3a-ac93-40f3-8714-73e2b001d879",
             "world_id": "louisa-alcott-world",
@@ -1818,4 +1715,160 @@ export const chapters  =   [
             "range": 10,
             "last_update": null
         }
-    ]
+    ],
+    "events": [],
+    "connections": [],
+    "timelines": [
+        {
+            "id": "fc889e16-00c5-4d6b-ba9f-ed55733fe53c",
+            "name": "The March Sisters' Beginnings",
+            "description": "Introduction to the March sisters and their life during the backdrop of a distant war, highlighting their individual dreams and family bonds.",
+            "world_id": "louisa-alcott-world",
+            "order": 1,
+            "range": 20
+        },
+        {
+            "id": "47a28dae-732a-4c67-b8f0-d63d65631519",
+            "name": "New Friendships and Old Bonds",
+            "description": "The March sisters' interactions with Laurie and the Laurence family, exploring the development of friendships and the breaking of social barriers.",
+            "world_id": "louisa-alcott-world",
+            "order": 2,
+            "range": 20
+        },
+        {
+            "id": "2da6a305-272d-4452-b6a7-cb3eb92ce949",
+            "name": "Trials and Triumphs",
+            "description": "The sisters navigate personal challenges, societal expectations, and the growth of their artistic and personal ambitions.",
+            "world_id": "louisa-alcott-world",
+            "order": 3,
+            "range": 30
+        },
+        {
+            "id": "e135805b-1926-4ce9-9ea9-86d115f99fd5",
+            "name": "Love and Loss",
+            "description": "The March family faces the heartache of unrequited love, Beth's illness, and the shifting dynamics of relationships.",
+            "world_id": "louisa-alcott-world",
+            "order": 4,
+            "range": 30
+        },
+        {
+            "id": "826df630-7f0d-401b-9f2f-dcec56f57fcd",
+            "name": "Artistic and Personal Journeys",
+            "description": "Exploration of the artistic and personal journeys of characters like Laurie, Amy, Jo, and their families, highlighting the interplay of art, family, and personal growth.",
+            "world_id": "louisa-alcott-world",
+            "order": 5,
+            "range": 40
+        },
+        {
+            "id": "68768046-cbc4-4731-93e2-e11c9430821b",
+            "name": "Life at Plumfield",
+            "description": "The daily life and adventures of the boys and girls at Plumfield, guided by the nurturing care of Mr. and Mrs. Bhaer. This includes the transformations, friendships, and personal growth of characters like Dan, Emil, Nat, and others as they navigate life's challenges and triumphs.",
+            "world_id": "louisa-alcott-world",
+            "order": 6,
+            "range": 60
+        },
+        {
+            "id": "20d9347c-c285-452f-9f51-80351c97a5b5",
+            "name": "Trials, Redemption, and New Beginnings",
+            "description": "The characters face trials, seek redemption, and embrace new beginnings. This includes Dan's journey towards redemption, Nat's self-discovery, and the evolving relationships at Plumfield.",
+            "world_id": "louisa-alcott-world",
+            "order": 7,
+            "range": 50
+        }
+    ],
+    "papers": [
+        {
+            "id": "37106",
+            "name": "Little Women; Or, Meg, Jo, Beth, and Amy",
+            "description": "application/zip",
+            "path": "",
+            "created_at": "2025-05-26T05:32:25.815012Z",
+            "world_id": "",
+            "color": "#51E0C1",
+            "order": 1
+        },
+        {
+            "id": "2788",
+            "name": "Little Men: Life at Plumfield With Jo's Boys",
+            "description": "application/zip",
+            "path": "",
+            "created_at": "2025-05-26T05:46:30.510682Z",
+            "world_id": "",
+            "color": "#5199E0",
+            "order": 2
+        },
+        {
+            "id": "3499",
+            "name": "Jo's Boys",
+            "description": "application/zip",
+            "path": "",
+            "created_at": "2025-05-26T05:53:53.091052Z",
+            "world_id": "",
+            "color": "#DBE051",
+            "order": 3
+        }
+    ],
+    "storyLines": [
+        {
+            "id": "10a4c1ef-a06a-4abc-86a0-25bc26d11849",
+            "name": "The March Sisters' Growth",
+            "description": "The journey of the March sisters as they navigate love, loss, and personal growth, from childhood to adulthood.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 1
+        },
+        {
+            "id": "3a079a28-3ff0-4f29-8ca1-aa896516f011",
+            "name": "Jo's Literary Journey",
+            "description": "Jo March's pursuit of her writing dreams, her struggles with societal expectations, and her eventual success as an author.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 2
+        },
+        {
+            "id": "411f8495-74f5-460b-8112-657cf242fde1",
+            "name": "Laurie's Transformation",
+            "description": "Laurie's journey from unrequited love for Jo to finding happiness with Amy, and his personal growth along the way.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 3
+        },
+        {
+            "id": "af8c4e82-5b15-4bf0-a211-673ca7c3b123",
+            "name": "Beth's Quiet Strength",
+            "description": "Beth March's gentle influence on her family and her serene acceptance of her fate, leaving a legacy of love.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 4
+        },
+        {
+            "id": "9f815fb4-9ba9-46f0-ab23-b5866324d69f",
+            "name": "Jo and Friedrich's Love",
+            "description": "The evolving relationship between Jo March and Professor Friedrich Bhaer, culminating in their shared future.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 5
+        },
+        {
+            "id": "09b43580-8a43-45b3-bcc2-add13ee0b1a1",
+            "name": "Plumfield's Promise",
+            "description": "Jo and Fritz's establishment of Plumfield as a school for boys, fulfilling Jo's dream of nurturing the next generation.",
+            "created_at": "0001-01-01T00:00:00Z",
+            "world_id": "",
+            "order": 6
+        }
+    ],
+    "groupConnections": [],
+    "subway_settings": {
+        "id": "81df7260-8ba8-4d1b-b715-e734daac92e5",
+        "chapter_names": false,
+        "display_table_chapters": false,
+        "timeline_update_chapter": false,
+        "storyline_update_chapter": false,
+        "zoom": 1,
+        "x": 1,
+        "y": 1,
+        "world_id": "",
+        "group_connection_update_chapter": false
+    }
+}

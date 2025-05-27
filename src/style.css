@@ -22,21 +22,18 @@ body, html {
   display: block;
   margin: 0;
   padding: 0;
-  /* background-color: #ffffff; */
   border-radius: 12px;
-  /* border: 1px solid #ddd; */
-  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); */
 }
 
-/* Grupos */
+/* ==== GRUPOS ==== */
 .chapter-group {
   outline: none;
   transition: all 0.3s ease;
 }
 
 .chapter-group[aria-expanded="true"] rect {
-  fill: #cce5f4 !important;
-  stroke: #1565c0;
+  /* fill: #ffffff !important; */
+  stroke: #999;
   stroke-width: 1.5;
   rx: 12;
   ry: 12;
@@ -44,15 +41,15 @@ body, html {
 }
 
 .chapter-group[aria-expanded="false"] rect {
-  fill: #cce5f4;
-  stroke: #1565c0;
+  fill: #ffffff;
+  stroke: #999;
   stroke-width: 1.5;
   rx: 8;
   ry: 8;
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
 }
 
-/* Textos */
+/* ==== TEXTOS ==== */
 .chapter-group text.group-label {
   fill: #003366;
   font-weight: 600;
@@ -70,22 +67,47 @@ body, html {
   stroke-width: 1.2;
 }
 
-.chapter-group rect.chapter-bullet {
-  fill: #4fc3f7;
+/* ==== BULLET COLORIDA ==== */
+rect.chapter-bullet {
   rx: 2;
   ry: 2;
+  transition: fill 0.2s ease;
+  cursor: pointer;
 }
 
-/* Solo */
+/* Hover bullet */
+g.chapter-item:hover rect.chapter-bullet {
+  filter: brightness(0.9);
+}
+
+/* ==== SOLO ==== */
 .chapter-solo rect {
   stroke-width: 1.5;
   rx: 8;
   ry: 8;
 }
 
+.chapter-solo.hovered .chapter-rect {
+  filter: drop-shadow(5px 5px 5px rgb(0, 0, 0, 0.4));
+  stroke-width: 2;
+  fill-opacity: 0.95;
+}
 
+.chapter-solo.focused .chapter-rect {
+  stroke: #f39c12;
+  stroke-width: 2;
+  filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.3));
+}
 
-/* Animação */
+.chapter-rect {
+  transition: all 0.3s ease;
+  filter: drop-shadow(3px 3px 3px rgba(0, 0, 0, 0.5));
+  box-shadow: 5px 5px 5px black;
+  stroke-width: 1;
+  padding: 20px;
+}
+
+/* ==== ANIMAÇÃO DE ENTRADA ==== */
 .chapter-group text,
 .chapter-group line,
 .chapter-group rect.chapter-bullet {
@@ -102,10 +124,7 @@ body, html {
   }
 }
 
-
-
-
-
+/* ==== CONTEXT MENU ==== */
 #context-menu {
   position: absolute;
   background: white;
@@ -126,32 +145,8 @@ body, html {
 
 .context-menu-item:hover {
   background-color: #000000;
+  color: #ffffff;
 }
-
-
-.chapter-rect {
-  transition: all 0.3s ease;
-  filter: drop-shadow(3px 3px 3px rgb(0, 0, 0, 0.5));
-  box-shadow: 5px 5px 5px black;
-  stroke-width: 1;
-  padding: 20px;
-}
-
-.chapter-solo.hovered .chapter-rect {
-  filter: drop-shadow(5px 5px 5px rgb(0, 0, 0, 0.4));
-  stroke-width: 2;
-  /* opcional: brilho na cor de fundo */
-  fill-opacity: 0.95;
-}
-
-
-.chapter-solo.focused .chapter-rect {
-  stroke: #f39c12;
-  stroke-width: 2;
-  filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.3));
-}
-
-
 
 /* ===== MODO CLARO ===== */
 body.light-mode {
@@ -164,12 +159,20 @@ body.light-mode .timeline-rect {
 }
 
 body.light-mode .timeline-header {
-  fill: #ffffff;
-}
-body.light-mode .timeline-txt {
-  fill: #222222; /* texto escuro visível no fundo branco */
+  fill: #fcdec2;
 }
 
+body.light-mode .timeline-txt {
+  fill: #222222;
+}
+
+/* body.light-mode rect.chapter-bullet {
+  fill: #8ccbe7;
+}
+
+body.light-mode rect.chapter-bullet:hover {
+  fill: #4aa9d8;
+} */
 
 /* ===== MODO ESCURO ===== */
 body.dark-mode {
@@ -182,34 +185,17 @@ body.dark-mode .timeline-rect {
 }
 
 body.dark-mode .timeline-header {
-    fill: #3b3b3b; /* texto claro visível no fundo escuro */
-
+  fill: #3b3b3b;
 }
+
 body.dark-mode .timeline-txt {
-  fill: #f0f0f0; /* texto claro visível no fundo escuro */
+  fill: #f0f0f0;
 }
 
-
-
-rect.chapter-bullet {
-  transition: fill 0.2s ease;
-  cursor: pointer;
-}
-
-/* LIGHT MODE */
-body.light-mode rect.chapter-bullet {
-  fill: #8ccbe7;
-}
-
-body.light-mode rect.chapter-bullet:hover {
-  fill: #4aa9d8; /* cor mais escura no hover */
-}
-
-/* DARK MODE */
-body.dark-mode rect.chapter-bullet {
+/* body.dark-mode rect.chapter-bullet {
   fill: #6ca4c8;
-}
+} */
 
-body.dark-mode rect.chapter-bullet:hover {
-  fill: #4593c4; /* cor mais clara ou vibrante no hover */
-}
+/* body.dark-mode rect.chapter-bullet:hover {
+  fill: #4593c4;
+} */

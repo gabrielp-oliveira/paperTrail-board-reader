@@ -15,11 +15,11 @@ export function renderChapters(
     ch => ch.width != null && ch.height != null && (!ch.group || ch.group.startsWith("__solo__"))
   );
 
-  const groupedChapters = d3.group(
-    chapters.filter(
+  const grupedChp =  chapters.filter(
       ch => ch.width != null && ch.height != null && ch.group && !ch.group.startsWith("__solo__")
-    ),
-    ch => ch.group ?? `group-${ch.timeline_id}-${ch.range}`
+    )
+  const groupedChapters = d3.group( grupedChp,
+    ch => ch.group ?? `group-${ch.timeline_id}-${ch.range}-${ch.color}`
   );
 
   const soloBuckets = d3.groups(soloChapters, ch => `${ch.timeline_id}-${ch.width}`);
@@ -113,50 +113,61 @@ export function renderChapters(
       });
     });
 
-  for (const [groupKeyRaw, groupChapters] of groupedChapters) {
-    const base = groupChapters[0];
-    if (base.width == null || base.height == null) continue;
+for (const [groupKeyRaw, groupChapters] of groupedChapters) {
+  const base = groupChapters[0];
+  if (base.width == null || base.height == null) continue;
 
-    const groupKey = groupKeyRaw ?? `group-${base.timeline_id}-${base.range}`;
-    const x = base.width;
-    const y = base.height;
+  const groupKey = groupKeyRaw ?? `group-${base.timeline_id}-${base.range}`;
+  const x = base.width;
+  const y = base.height;
 
-    const count = groupChapters.length;
-    const label = count === 1 ? "1" : `${count}`;
-    const textWidth = label.length * 6.5;
-    const boxWidth = Math.max(80, textWidth + 20);
-    const boxHeight = 28;
+  const count = groupChapters.length;
+  const label = count === 1 ? "1" : `${count}`;
+  const textWidth = label.length * 6.5;
+  const boxWidth = Math.max(80, textWidth + 20);
+  const boxHeight = 28;
 
-    const g = svg.append("g")
-      .attr("class", "chapter-group")
-      .attr("data-group-id", groupKey)
-      .attr("data-x", x)
-      .attr("data-y", y)
-      .attr("data-chapters", groupChapters.map(ch => ch.title + "-" + ch.id).join("||"))
-      .style("cursor", "pointer");
+  // ✅ Construção segura do atributo data-chapters
+const dataChapters = groupChapters.map(ch => {
+  const title = ch.title || "NO_TITLE";
+  const id = ch.id || "NO_ID";
+  const color = ch.color || "#999";
+  return `${title}|||${id}|||${color}`;
+}).join("🟰");
 
-    g.append("rect")
-      .attr("x", x - boxWidth / 2)
-      .attr("y", y)
-      .attr("width", boxWidth)
-      .attr("height", boxHeight)
-      .attr("rx", 8)
-      .attr("ry", 8)
-      .attr("fill", "#add8e6")
-      .attr("stroke", "#333");
+  console.log("📦 Final data-chapters for group:", dataChapters);
 
-    g.append("text")
-      .attr("x", x)
-      .attr("y", y + boxHeight / 2)
-      .attr("text-anchor", "middle")
-      .attr("alignment-baseline", "middle")
-      .attr("font-size", "11px")
-      .attr("font-family", "Arial")
-      .attr("fill", "#000")
-      .text(label);
+  const g = svg.append("g")
+    .attr("class", "chapter-group")
+    .attr("data-group-id", groupKey)
+    .attr("data-x", x)
+    .attr("data-y", y)
+    .attr("data-chapters", dataChapters)
+    .style("cursor", "pointer");
 
-    g.append("title").text(groupChapters.map(ch => ch.title).join("\n"));
-  }
+  g.append("rect")
+    .attr("x", x - boxWidth / 2)
+    .attr("y", y)
+    .attr("width", boxWidth)
+    .attr("height", boxHeight)
+    .attr("rx", 8)
+    .attr("ry", 8)
+    .attr("fill", "#ffffff") // branco
+    .attr("stroke", "#999"); // cinza claro
 
-  func(svg);
+  g.append("text")
+    .attr("x", x)
+    .attr("y", y + boxHeight / 2)
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "middle")
+    .attr("font-size", "11px")
+    .attr("font-family", "Arial")
+    .attr("fill", "#000")
+    .text(label);
+
+  g.append("title").text(groupChapters.map(ch => ch.title).join("\n"));
+}
+
+
+  func(svg, chapters);
 }

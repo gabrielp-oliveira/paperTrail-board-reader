@@ -15,7 +15,7 @@ export function setupGroupInteraction(svg: Selection<SVGGElement, unknown, HTMLE
     .attr("aria-expanded", "false")
     .style("cursor", "pointer")
     .on("click", function (event) {
-      event.stopPropagation(); // evita fechar logo após abrir
+      event.stopPropagation();
       const group = d3.select(this);
       const groupId = group.attr("data-group-id") ?? "";
       toggleExclusiveGroup(groupId);
@@ -45,11 +45,10 @@ export function setupGroupInteraction(svg: Selection<SVGGElement, unknown, HTMLE
     }
   });
 
-  // Clique em capítulo solo (verde)
+  // Clique em capítulo solo
   svg.selectAll("g.chapter-solo")
-    .on("click.menu", function (event, e) {
-
-      const chapter = (this as any).__data__; // já está salvo via D3
+    .on("click.menu", function (event) {
+      const chapter = (this as any).__data__;
       showChapterMenu(event, chapter.id, svg);
     });
 }
@@ -68,13 +67,18 @@ function toggleExclusiveGroup(groupId: string) {
   }
 }
 
+
 function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
   group.attr("aria-expanded", "true");
 
   const x = +group.attr("data-x");
   const y = +group.attr("data-y");
-  const titlesIds = (group.attr("data-chapters") ?? "").split("||");
+
+  // 📌 use delimitador alternativo entre capítulos
+  const titlesIds = (group.attr("data-chapters") ?? "").split("🟰");
+
+  console.log("📋 titlesIds raw array:", titlesIds);
 
   const MAX_TITLE_CHARS = 40;
   const boxWidth = 240;
@@ -90,14 +94,15 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     .attr("height", totalHeight)
     .attr("rx", 12)
     .attr("ry", 12)
-    .attr("fill", "#cce5f4")
-    .attr("stroke", "#1565c0")
+    .attr("fill", "#ffffff")
+    .attr("stroke", "#999")
     .attr("stroke-width", 1.5)
     .style("filter", "drop-shadow(0 4px 10px rgba(0,0,0,0.15))");
 
   group.selectAll("text").remove();
   group.selectAll("line").remove();
   group.selectAll("rect.chapter-bullet").remove();
+  group.selectAll("g.chapter-item").remove();
 
   group.append("text")
     .attr("class", "group-label")
@@ -114,15 +119,36 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     .attr("y2", y + padding + 20);
 
   titlesIds.forEach((titleId, i) => {
-    const title = titleId.split("-")[0]
-    const id = titleId.split("-")[1]
+    const parts = titleId.split("|||");
+    if (parts.length !== 3) {
+      console.warn("❌ Entrada malformada em titleId:", titleId);
+      return; // ignora entradas ruins
+    }
+
+    const [title, id, color] = parts;
+    console.log("🔍 titleId:", titleId);
+    console.log("🎨 color parsed:", color);
+
     const truncated = title.length > MAX_TITLE_CHARS
       ? title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
       : title;
 
     const yOffset = y + padding + 40 + i * chapterHeight;
 
-    group.append("rect")
+    const itemGroup = group.append("g")
+      .attr("class", "chapter-item")
+      .style("cursor", "pointer")
+      .on("mouseenter", () => {
+        window.parent.postMessage({ type: "chapter-focus", id, focus: true }, "*");
+      })
+      .on("mouseleave", () => {
+        window.parent.postMessage({ type: "chapter-focus", id, focus: false }, "*");
+      })
+      .on("click", (event) => {
+        showChapterMenu(event, id, svg);
+        event.stopPropagation();
+      });
+    itemGroup.append("rect")
       .attr("class", "chapter-bullet")
       .attr("x", x - boxWidth / 2 + 14)
       .attr("y", yOffset - 10)
@@ -130,34 +156,28 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("height", 10)
       .attr("rx", 2)
       .attr("ry", 2)
-      .on("mouseenter", () => {
-        window.parent.postMessage({ type: "chapter-focus", id, focus: true }, "*");
-      })
-      .on("mouseleave", () => {
-        window.parent.postMessage({ type: "chapter-focus", id, focus: false }, "*");
-      });
+      .style("fill", color)
+      .attr("stroke", "#333")
+      .attr("stroke-width", 0.5);
 
-    group.append("text")
+
+    console.log("truncated -> ", truncated)
+    console.log("title -> ", title)
+    itemGroup.append("text")
       .attr("class", "chapter-title")
       .attr("x", x - boxWidth / 2 + 30)
       .attr("y", yOffset)
       .attr("text-anchor", "start")
+      .style("fill", "black") // <- aqui
       .text(truncated)
       .append("title")
       .text(title);
-  });
 
-  // Clique em capítulos internos
-  group.selectAll("text.chapter-title")
-    .style("cursor", "pointer")
-    .on("click", function (event) {
-      const title = d3.select(this).text();
-      showChapterMenu(event, title, svg);
-      event.stopPropagation();
-    });
+  });
 
   group.raise();
 }
+
 
 function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
@@ -165,7 +185,7 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
 
   const x = +group.attr("data-x");
   const y = +group.attr("data-y");
-  const titlesIds = (group.attr("data-chapters") ?? "").split("||");
+  const titlesIds = (group.attr("data-chapters") ?? "").split("🟰");
 
   const label = titlesIds.length === 1 ? "1" : `${titlesIds.length}`;
   const textWidth = label.length * 6.5;
@@ -180,8 +200,8 @@ function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, g
     .attr("height", 28)
     .attr("rx", 8)
     .attr("ry", 8)
-    .attr("fill", "#cce5f4")
-    .attr("stroke", "#1565c0")
+    .attr("fill", "#ffffff")
+    .attr("stroke", "#999")
     .attr("stroke-width", 1.5)
     .style("filter", "drop-shadow(0 2px 4px rgba(0,0,0,0.1))");
 
@@ -202,7 +222,7 @@ function showChapterMenu(event: MouseEvent, chapterId: string, svg: Selection<SV
   const transform = d3.zoomTransform(svg.node()!);
   const k = transform.k;
 
-  showContextMenu(event.clientX, event.clientY, ["details", "Read"], chapterId, k);
+  showContextMenu(event.clientX, event.clientY, ["Chapter Details", "Read Chapter"], chapterId, k);
 }
 
 export function hideGroup() {

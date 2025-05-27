@@ -79,7 +79,6 @@ window.addEventListener("message", async (event) => {
   if (type === "set-data" && data && !boardHasBeenRendered) {
     const { timelines, storylines, chapters } = data;
     boardHasBeenRendered = true;
-
     try {
       const timelineWidth = timelines.reduce(
         (sum: number, t: any) => sum + t.range * RANGE_GAP,
