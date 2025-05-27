@@ -88,8 +88,8 @@ export type GroupConnection = {
 
 
 export type Chapter = {
-    width: number | 0
-    height: number| 0
+    width?: number | 0
+    height?: number| 0
     id: string,
     world_id: string,
     title: string,

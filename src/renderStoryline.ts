@@ -13,7 +13,6 @@ const CHAR_WIDTH = 6.5;
 const CHAPTER_VERTICAL_MARGIN = 6;
 const CHAPTER_MIN_GAP = 5;
 
-
 export function renderStorylines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   storylines: StoryLine[],
@@ -38,11 +37,17 @@ export function renderStorylines(
   }
   const boardWidth = total * PIXELS_PER_RANGE;
 
+  // ✅ NOVO: map de posição dos storylines no array
+  const storylinePositionMap = new Map<string, number>();
+  storylines.forEach((s, index) => {
+    storylinePositionMap.set(s.id, index);
+  });
+
   const grouped = d3.groups(chapters, ch => ch.storyline_id)
     .sort(([aId], [bId]) => {
-      const aOrder = storylines.find(s => s.id === aId)?.order;
-      const bOrder = storylines.find(s => s.id === bId)?.order;
-      return (aOrder ?? Infinity) - (bOrder ?? Infinity);
+      const aPos = storylinePositionMap.get(aId) ?? Infinity;
+      const bPos = storylinePositionMap.get(bId) ?? Infinity;
+      return aPos - bPos;
     });
 
   let updatedChapters: Chapter[] = [];
@@ -59,8 +64,7 @@ export function renderStorylines(
     const placedRects: { x1: number, x2: number, layer: number }[] = [];
     const chapterHeights: Record<string, number> = {};
 
-    // Agrupa capítulos por grupo visual
-    const groupings = d3.groups(group, ch => `${ch.timeline_id}-${ch.range}`); // ← agrupamento real
+    const groupings = d3.groups(group, ch => `${ch.timeline_id}-${ch.range}`);
 
     groupings.forEach(([_, groupedChapters]) => {
       const base = groupedChapters[0];
@@ -68,7 +72,7 @@ export function renderStorylines(
       const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
       const x = LABEL_WIDTH + (timelineOffset + base.range) * PIXELS_PER_RANGE;
 
-      const w = 60; // largura fixa para o grupo
+      const w = 60;
       const halfW = w / 2;
       const x1 = x - halfW - CHAPTER_MIN_GAP;
       const x2 = x + halfW + CHAPTER_MIN_GAP;
@@ -84,6 +88,7 @@ export function renderStorylines(
         chapterHeights[ch.id] = y + layer * (20 + CHAPTER_VERTICAL_MARGIN) + 10;
       });
     });
+
     const maxLayer = placedRects.reduce((max, r) => Math.max(max, r.layer), 0) + 1;
     const rowHeight = DEFAULT_ROW_HEIGHT + (maxLayer - 1) * (20 + CHAPTER_VERTICAL_MARGIN);
     cumulativeHeight += rowHeight + STORYLINE_GAP;
@@ -129,7 +134,6 @@ export function renderStorylines(
       .style("text-align", "center")
       .text(storyline.name);
 
-    // ✅ Atualiza chapters com altura, largura e group
     const groupBuckets = d3.groups(group, ch => `${ch.timeline_id}-${ch.range}`);
     groupBuckets.forEach(([key, bucket]) => {
       const isGrouped = bucket.length > 1;
@@ -155,4 +159,3 @@ export function renderStorylines(
     height: cumulativeHeight
   };
 }
-
