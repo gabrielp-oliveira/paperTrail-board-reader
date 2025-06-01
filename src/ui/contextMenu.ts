@@ -23,8 +23,11 @@ export function showContextMenu(
       window.parent.postMessage(
         {
           type: "chapter-option-selected",
-          chapterId,
-          option
+          data: {
+
+            chapterId,
+            option
+          }
         },
         "*"
       );

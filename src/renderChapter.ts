@@ -8,7 +8,6 @@ export function renderChapters(
   chapters: Chapter[],
   func: any
 ) {
-  console.log("🔄 Iniciando renderização de capítulos...");
   svg.selectAll("g.chapter-solo, g.chapter-group, g.chapter-expanded-item").remove();
 
   const soloChapters = chapters.filter(
@@ -92,8 +91,11 @@ export function renderChapters(
         window.parent.postMessage(
           {
             type: "chapter-focus",
-            id: ch.id,
-            focus: true
+            data:{
+
+              id: ch.id,
+              focus: true
+            }
           },
           "*"
         );
@@ -104,8 +106,11 @@ export function renderChapters(
         window.parent.postMessage(
           {
             type: "chapter-focus",
-            id: ch.id,
-            focus: false
+            data:{
+
+              id: ch.id,
+              focus: false
+            }
           },
           "*"
         );
@@ -135,7 +140,6 @@ const dataChapters = groupChapters.map(ch => {
   return `${title}|||${id}|||${color}`;
 }).join("🟰");
 
-  console.log("📦 Final data-chapters for group:", dataChapters);
 
   const g = svg.append("g")
     .attr("class", "chapter-group")

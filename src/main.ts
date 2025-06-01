@@ -7,18 +7,15 @@ import { hideContextMenu } from "./ui/contextMenu.js";
 
 const RANGE_GAP = 20;
 const LABEL_WIDTH = 150;
+  const minHeightDefault = 500;
 
-let boardHasBeenRendered = false;
-
-// Cria SVG base
 const svgBase = d3.select("#board")
   .append("svg")
   .style("width", "100%")
   .style("height", "100%")
   .style("margin", "0")
   .style("padding", "0")
-  .style("display", "block")
-
+  .style("display", "block");
 
 const g = svgBase.append("g");
 
@@ -28,8 +25,9 @@ function zoomAndPan(
   width: number,
   height: number
 ) {
-
-  const initialScale = 1.5;
+  const initialScale = 0.7;
+  const initialX = 0;
+  const initialY = 0;
 
   const zoom = d3.zoom<SVGSVGElement, unknown>()
     .filter(event =>
@@ -52,16 +50,18 @@ function zoomAndPan(
     })
     .on("end", event => {
       const { x, y, k } = event.transform;
+      console.log({ x, y, k })
       window.parent.postMessage({
         type: "board-transform-update",
-        transform: { x, y, k }
+        data: {
+        transform: { x, y, k, a:"jasbkdjsa" }}
       }, "*");
     });
 
   svg.call(zoom);
   svg.transition().duration(0).call(
     zoom.transform,
-    d3.zoomIdentity.translate(0, 0).scale(initialScale)
+    d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
   );
 }
 
@@ -70,16 +70,17 @@ window.addEventListener("message", async (event) => {
   const { type, data } = event.data || {};
 
   if (type === "set-light" && data) {
-    // Remove classe anterior e aplica nova
     document.body.classList.remove("light-mode", "dark-mode");
     document.body.classList.add(data.light ? "dark-mode" : "light-mode");
-    console.log(data.light ? "🌙 " : "☀️");
   }
 
-  if (type === "set-data" && data && !boardHasBeenRendered) {
+  if (type === "set-data" && data) {
     const { timelines, storylines, chapters } = data;
-    boardHasBeenRendered = true;
+
     try {
+      // Limpa conteúdo anterior
+      g.selectAll("*").remove();
+
       const timelineWidth = timelines.reduce(
         (sum: number, t: any) => sum + t.range * RANGE_GAP,
         0
@@ -96,19 +97,19 @@ window.addEventListener("message", async (event) => {
       renderTimelines(g, timelines, height);
       renderChapters(g, renderedChapters, setupGroupInteraction);
 
+      let minHeight = Math.max(minHeightDefault, height)
       svgBase
-        .attr("viewBox", `0 0 ${totalWidth} ${height}`)
-        .call((svg) => zoomAndPan(svg, totalWidth, height));
+        .attr("viewBox", `0 0 ${totalWidth} ${minHeight}`)
+        .call((svg) => zoomAndPan(svg, totalWidth, minHeight));
     } catch (e) {
       console.error("❌ Erro ao renderizar board:", e);
     }
   }
 });
 
-
 // Suporte Vite HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    boardHasBeenRendered = false;
+    g.selectAll("*").remove();
   });
 }

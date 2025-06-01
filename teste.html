@@ -15,50 +15,66 @@
   <h1>Testando o Iframe do Board</h1>
 
   <iframe id="board-frame" src="./dist/index.html"></iframe>
+<script type="module">
+  const iframe = document.getElementById("board-frame");
 
-  <script type="module">
-    import { timelines, storylines, chapters } from './data.mjs';
+  async function loadAndSendData() {
+    try {
+      const response = await fetch('./data.json');
+      const world = await response.json();
 
-    const iframe = document.getElementById("board-frame");
+      // Extrai os campos do mundo
+      const { timelines, storyLines, chapters, papers } = world;
 
-    iframe.addEventListener("load", () => {
+      // Cria mapa de cores por paper_id
+      const paperColorMap = new Map(
+        (papers || []).map(p => [p.id, p.color])
+      );
 
-      // Envia dados
+      // Atribui color a cada capítulo com base no paper_id
+      const coloredChapters = (chapters || []).map(ch => ({
+        ...ch,
+        color: paperColorMap.get(ch.paper_id) || "#CCCCCC"
+      }));
+
       iframe.contentWindow.postMessage({
         type: "set-data",
         data: {
           timelines,
-          storylines,
-          chapters
+          storylines: storyLines, // 👈 Ajustado: no JSON está como "storyLines"
+          chapters: coloredChapters
         }
       }, "*");
 
       iframe.contentWindow.postMessage({
         type: "set-light",
         data: {
-          
-          light: true
+          light: false
         }
       }, "*");
 
+    } catch (err) {
+      console.error("❌ Erro ao carregar ou processar data.json:", err);
+    }
+  }
 
-    });
+  iframe.addEventListener("load", loadAndSendData);
 
-    window.addEventListener("message", (event) => {
-      if (event.data?.type === "chapter-option-selected") {
-        console.log("🟢 Usuário clicou:", event.data);
-      }
-    });
-    window.addEventListener("message", (event) => {
-      if (event.data?.type === "chapter-focus") {
-        console.log("🟢 Usuário focou ->:", event.data);
-      }
-    });
-    window.addEventListener("message", (event) => {
-      if (event.data?.type === "board-transform-update") {
-        console.log("🟢 Usuário focou ->:", event.data);
-      }
-    });
-  </script>
+  // Listener de retorno do iframe
+  window.addEventListener("message", (event) => {
+    console.log('..')
+    const { type, data } = event.data || {};
+    if (type === "chapter-option-selected") {
+      console.log("🟢 Usuário clicou:", data);
+    } else if (type === "chapter-focus") {
+      console.log("🟢 Usuário focou ->:", data);
+    } else if (type === "board-transform-update") {
+      console.log("🟢 Transformação do board ->:", data);
+    }
+  });
+</script>
+
+
+
 </body>
 </html>

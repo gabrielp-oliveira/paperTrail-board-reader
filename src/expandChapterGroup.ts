@@ -78,7 +78,6 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
   // 📌 use delimitador alternativo entre capítulos
   const titlesIds = (group.attr("data-chapters") ?? "").split("🟰");
 
-  console.log("📋 titlesIds raw array:", titlesIds);
 
   const MAX_TITLE_CHARS = 40;
   const boxWidth = 240;
@@ -126,8 +125,6 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     }
 
     const [title, id, color] = parts;
-    console.log("🔍 titleId:", titleId);
-    console.log("🎨 color parsed:", color);
 
     const truncated = title.length > MAX_TITLE_CHARS
       ? title.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
@@ -139,10 +136,10 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("class", "chapter-item")
       .style("cursor", "pointer")
       .on("mouseenter", () => {
-        window.parent.postMessage({ type: "chapter-focus", id, focus: true }, "*");
+        window.parent.postMessage({ type: "chapter-focus", data: { id, focus: true }}, "*");
       })
       .on("mouseleave", () => {
-        window.parent.postMessage({ type: "chapter-focus", id, focus: false }, "*");
+        window.parent.postMessage({ type: "chapter-focus", data:{ id, focus: false }}, "*");
       })
       .on("click", (event) => {
         showChapterMenu(event, id, svg);
@@ -161,8 +158,6 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("stroke-width", 0.5);
 
 
-    console.log("truncated -> ", truncated)
-    console.log("title -> ", title)
     itemGroup.append("text")
       .attr("class", "chapter-title")
       .attr("x", x - boxWidth / 2 + 30)
