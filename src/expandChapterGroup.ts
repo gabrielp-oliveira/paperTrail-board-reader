@@ -75,17 +75,16 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
   const x = +group.attr("data-x");
   const y = +group.attr("data-y");
 
-  // 📌 use delimitador alternativo entre capítulos
   const titlesIds = (group.attr("data-chapters") ?? "").split("🟰");
-
 
   const MAX_TITLE_CHARS = 40;
   const boxWidth = 240;
   const headerHeight = 28;
-  const chapterHeight = 24;
+  const chapterHeight = 28;
   const padding = 12;
   const totalHeight = headerHeight + titlesIds.length * chapterHeight + padding * 2;
 
+  // === Caixa de fundo ===
   group.select("rect")
     .attr("x", x - boxWidth / 2)
     .attr("y", y)
@@ -93,35 +92,44 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
     .attr("height", totalHeight)
     .attr("rx", 12)
     .attr("ry", 12)
-    .attr("fill", "#ffffff")
+    .attr("fill", "var(--chapter-bg)")
     .attr("stroke", "#999")
     .attr("stroke-width", 1.5)
-    .style("filter", "drop-shadow(0 4px 10px rgba(0,0,0,0.15))");
+    .style("filter", "var(--chapter-shadow)");
 
+  // Limpa conteúdos anteriores
   group.selectAll("text").remove();
   group.selectAll("line").remove();
   group.selectAll("rect.chapter-bullet").remove();
   group.selectAll("g.chapter-item").remove();
 
+  // === Cabeçalho de contagem ===
   group.append("text")
     .attr("class", "group-label")
     .attr("x", x)
     .attr("y", y + padding + 10)
     .attr("text-anchor", "middle")
-    .text(`${titlesIds.length}`);
+    .text(`${titlesIds.length}`)
+    .style("fill", "var(--chapter-text-color)")
+    .style("font-family", "Segoe UI")
+    .style("font-size", "13px")
+    .style("font-weight", "600");
 
   group.append("line")
     .attr("class", "separator")
     .attr("x1", x - boxWidth / 2 + 10)
     .attr("x2", x + boxWidth / 2 - 10)
     .attr("y1", y + padding + 20)
-    .attr("y2", y + padding + 20);
+    .attr("y2", y + padding + 20)
+    .attr("stroke", "rgba(0, 0, 0, 0.15)")
+    .attr("stroke-width", 1.2);
 
+  // === Lista de capítulos ===
   titlesIds.forEach((titleId, i) => {
     const parts = titleId.split("|||");
     if (parts.length !== 3) {
       console.warn("❌ Entrada malformada em titleId:", titleId);
-      return; // ignora entradas ruins
+      return;
     }
 
     const [title, id, color] = parts;
@@ -136,15 +144,16 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("class", "chapter-item")
       .style("cursor", "pointer")
       .on("mouseenter", () => {
-        window.parent.postMessage({ type: "chapter-focus", data: { id, focus: true }}, "*");
+        window.parent.postMessage({ type: "chapter-focus", data: { id, focus: true } }, "*");
       })
       .on("mouseleave", () => {
-        window.parent.postMessage({ type: "chapter-focus", data:{ id, focus: false }}, "*");
+        window.parent.postMessage({ type: "chapter-focus", data: { id, focus: false } }, "*");
       })
       .on("click", (event) => {
         showChapterMenu(event, id, svg);
         event.stopPropagation();
       });
+
     itemGroup.append("rect")
       .attr("class", "chapter-bullet")
       .attr("x", x - boxWidth / 2 + 14)
@@ -157,21 +166,26 @@ function expandGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, gro
       .attr("stroke", "#333")
       .attr("stroke-width", 0.5);
 
-
     itemGroup.append("text")
       .attr("class", "chapter-title")
       .attr("x", x - boxWidth / 2 + 30)
       .attr("y", yOffset)
       .attr("text-anchor", "start")
-      .style("fill", "black") // <- aqui
       .text(truncated)
       .append("title")
       .text(title);
 
+    // ✅ Fontes e estilos modernos
+    itemGroup.select("text")
+      .style("fill", "var(--chapter-text-color)")
+      .style("font-family", "Segoe UI")
+      .style("font-size", "13px")
+      .style("font-weight", "600");
   });
 
   group.raise();
 }
+
 
 
 function collapseGroup(svg: Selection<SVGGElement, unknown, HTMLElement, any>, groupId: string) {

@@ -1,20 +1,42 @@
+/* 🧁 Base para ambos os temas */
 .context-menu {
   position: absolute;
   display: none;
-  background: #ffffff;
-  border: 1px solid #ccc;
   border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   z-index: 9999;
   min-width: 160px;
   padding: 4px 0;
-}
-
-.context-menu-item {
-  padding: 8px 14px;
-  cursor: pointer;
-  font-size: 14px;
-  color: #333;
   user-select: none;
+  font-family: "Segoe UI", sans-serif;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid transparent;
 }
 
+/* 🌞 Tema Claro */
+body.light-mode .context-menu {
+  background: #ffffff;
+  border-color: #ccc;
+}
+
+body.light-mode .context-menu-item {
+  color: #333!important;
+}
+
+body.light-mode .context-menu-item:hover {
+  background-color: rgba(0, 123, 255, 0.08)!important;
+}
+
+/* 🌙 Tema Escuro */
+body.dark-mode .context-menu {
+  background: #2a2a2a!important;
+  border-color: #555!important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.6);
+}
+
+body.dark-mode .context-menu-item {
+  color: #f4f4f4;
+}
+
+body.dark-mode .context-menu-item:hover {
+  background-color: rgba(77, 181, 255, 0.12);
+}

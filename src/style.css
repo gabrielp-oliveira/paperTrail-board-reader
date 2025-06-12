@@ -57,10 +57,45 @@ body, html {
 }
 
 .chapter-group text.chapter-title {
-  fill: #003366;
-  font-weight: 500;
-  font-size: 12px;
+  fill: var(--chapter-text-color, #003366);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
 }
+
+/* Variáveis de tema */
+body.light-mode {
+  --chapter-text-color: #003366;
+  --chapter-bg: #ffffff;
+  --chapter-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+}
+
+body.dark-mode {
+  --chapter-text-color: #f4f4f4;
+  --chapter-bg: #3b3b3b;
+  --chapter-shadow: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+}
+
+/* Estilo base */
+.chapter-group[aria-expanded="true"] rect,
+.chapter-group[aria-expanded="false"] rect {
+  fill: var(--chapter-bg);
+  filter: var(--chapter-shadow);
+}
+
+/* Texto de título do capítulo */
+.chapter-group text.chapter-title {
+  fill: var(--chapter-text-color);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: "Segoe UI", sans-serif;
+}
+
+/* Hover na bolinha */
+g.chapter-item:hover rect.chapter-bullet {
+  filter: brightness(1.1) drop-shadow(0 0 4px rgba(0, 0, 0, 0.2));
+}
+
 
 .chapter-group line.separator {
   stroke: rgba(0, 0, 0, 0.15);

@@ -17,27 +17,22 @@ export function showContextMenu(
     item.className = "context-menu-item";
     item.textContent = option;
 
-    // Clique em uma das opções
-    item.onclick = async () => {
-      // Envia para o app pai
+    item.onclick = () => {
       window.parent.postMessage(
         {
           type: "chapter-option-selected",
           data: {
-
             chapterId,
             option
           }
         },
         "*"
       );
-
       hideContextMenu();
     };
 
-    // Aplica padding proporcional ao zoom
+    // Padding proporcional ao zoom
     item.style.padding = `${6 / zoomScale}px ${12 / zoomScale}px`;
-
     menu.appendChild(item);
   });
 
@@ -46,12 +41,30 @@ export function showContextMenu(
   menu.style.top = `${y}px`;
   menu.style.display = "block";
 
-  // Aplica escala visual ao menu com CSS variable
+  // Escala visual do menu
   menu.style.setProperty("--scale", `${zoomScale}`);
+  menu.style.fontSize = `${14 / zoomScale}px`;
 
-  // Font-size proporcional
-  const baseFontSize = 14;
-  menu.style.fontSize = `${baseFontSize / zoomScale}px`;
+  // ✅ Fecha ao clicar fora
+  setTimeout(() => {
+    const handleOutsideClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest("#context-menu")) {
+        hideContextMenu();
+        document.removeEventListener("click", handleOutsideClick);
+      }
+    };
+    document.addEventListener("click", handleOutsideClick);
+  });
+
+  // ✅ Fecha com ESC
+  const handleKey = (e: KeyboardEvent) => {
+    if (e.key === "Escape") {
+      hideContextMenu();
+      document.removeEventListener("keydown", handleKey);
+    }
+  };
+  document.addEventListener("keydown", handleKey);
 }
 
 export function hideContextMenu() {
@@ -60,5 +73,3 @@ export function hideContextMenu() {
     menu.style.display = "none";
   }
 }
-
-

@@ -126,18 +126,6 @@ export type Connection = {
     focus?: boolean
 
 }
-export type Subway_Settings = {
-    id: string,
-    chapter_names: boolean,
-    display_table_chapters: boolean,
-    timeline_update_chapter: boolean,
-    storyline_update_chapter: boolean,
-    zoom: number,
-    x: number,
-    y: number,
-    world_id: string,
-    group_connection_update_chapter: boolean
-}
 
 
 export type Event = {
@@ -180,4 +168,18 @@ export type StoryLine = {
 
 
 
+export type Subway_Settings = {
+  id: string,
+  chapter_names: boolean,
+  display_table_chapters: boolean,
+  timeline_update_chapter: boolean,
+  storyline_update_chapter: boolean,
+  theme: boolean,
+  group_connection_update_chapter: boolean,
+  user_id: string,
+  k: number,
+  x: number,
+  y: number,
+  world_id: string
+};
 
