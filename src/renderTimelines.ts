@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { Timeline } from "./types.js";
+import { Timeline } from "./types";
 
 const RANGE_GAP = 20;
 const LABEL_WIDTH = 150; // ← espaço reservado para nomes das storylines

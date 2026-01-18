@@ -1680,15 +1680,37 @@
     ],
     "groupConnections": [],
     "subway_settings": {
-        "id": "81df7260-8ba8-4d1b-b715-e734daac92e5",
-        "chapter_names": false,
-        "display_table_chapters": false,
-        "timeline_update_chapter": false,
-        "storyline_update_chapter": false,
-        "zoom": 1,
-        "x": 1,
-        "y": 1,
-        "world_id": "",
-        "group_connection_update_chapter": false
+  "id": "81df7260-8ba8-4d1b-b715-e734daac92e5",
+  "world_id": "",
+  "config": {
+    "theme": {
+      "mode": "dark"
+    },
+    "display": {
+      "chapter_names": false,
+      "display_table_chapters": false
+    },
+    "behavior": {
+      "timeline_update_chapter": false,
+      "storyline_update_chapter": false,
+      "group_connection_update_chapter": false
+    },
+    "zoom": {
+      "k": 1,
+      "x": 0,
+      "y": 0
+    },
+    "layout": {
+      "mode": "mixed",
+      "collapsed_lane": {
+        "enabled": true,
+        "base_height": 60,
+        "layer_gap": 8
+      },
+      "pinned_storyline_ids": []
     }
+  }
+}
+
+
 }

@@ -167,19 +167,50 @@ export type StoryLine = {
 
 
 
-
 export type Subway_Settings = {
-  id: string,
-  chapter_names: boolean,
-  display_table_chapters: boolean,
-  timeline_update_chapter: boolean,
-  storyline_update_chapter: boolean,
-  theme: boolean,
-  group_connection_update_chapter: boolean,
-  user_id: string,
-  k: number,
-  x: number,
-  y: number,
-  world_id: string
+  id: string;
+  world_id: string;
+  user_id?: string; // opcional, dependendo do contexto (user vs world settings)
+
+  // 🔹 Configuração principal (jsonb)
+  config: {
+    // 🎨 Tema visual do board
+    theme: {
+      mode: "light" | "dark" | "system";
+    };
+
+    // 🔹 Opções de exibição
+    display: {
+      chapter_names: boolean;
+      display_table_chapters: boolean;
+    };
+
+    // 🔹 Comportamentos automáticos
+    behavior: {
+      timeline_update_chapter: boolean;
+      storyline_update_chapter: boolean;
+      group_connection_update_chapter: boolean;
+    };
+
+    // 🔹 Zoom / Pan persistido
+    zoom: {
+      k: number;
+      x: number;
+      y: number;
+    };
+
+    // 🔹 Layout do board
+    layout: {
+      mode: "expanded" | "collapsed" | "mixed";
+
+      collapsed_lane: {
+        enabled: boolean;
+        base_height: number;
+        layer_gap: number;
+      };
+
+      pinned_storyline_ids: string[];
+    };
+  };
 };
 

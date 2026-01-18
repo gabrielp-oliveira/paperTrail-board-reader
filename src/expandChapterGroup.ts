@@ -1,5 +1,5 @@
 import * as d3 from "d3";
-import { showContextMenu } from "./ui/contextMenu.js";
+import { showContextMenu } from "./ui/contextMenu";
 import { Selection } from "d3-selection";
 
 let expandedGroupId: string | null = null;

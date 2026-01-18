@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <title>App Pai - Teste do Board</title>
+
+  <style>
+    body { font-family: Arial, sans-serif; }
+    iframe { width: 100%; height: 60vh; border: 2px solid red; }
+  </style>
+</head>
+<body>
+
+  <h1>Testando o Iframe do Board</h1>
+
+  <!-- ✅ DEV: aponta pro index do Vite, NÃO pro dist -->
+  <iframe id="board-frame" src="/index.html"></iframe>
+
+  <script type="module">
+    const iframe = document.getElementById("board-frame");
+
+    async function loadAndSendData() {
+      try {
+        console.log("📦 Carregando data.json...");
+
+        // ✅ DEV: data.json em /public => fetch absoluto
+        const response = await fetch("/data.json");
+        const world = await response.json();
+
+        const { timelines, storyLines, chapters, papers } = world;
+
+        const paperColorMap = new Map(
+          (papers || []).map(p => [p.id, p.color])
+        );
+
+        const coloredChapters = (chapters || []).map(ch => ({
+          ...ch,
+          color: paperColorMap.get(ch.paper_id) || "#CCCCCC"
+        }));
+
+        console.log("📤 Enviando dados para o board...");
+
+        iframe.contentWindow.postMessage({
+          type: "set-data",
+          data: {
+            timelines,
+            storylines: storyLines,
+            chapters: coloredChapters,
+            settings: {
+              zoom: { x: 0, y: 0, k: 1 },
+              theme: 'light'
+            }
+          }
+        }, "*");
+
+        iframe.contentWindow.postMessage({
+          type: "set-light",
+          data: { light: false }
+        }, "*");
+
+      } catch (err) {
+        console.error("❌ Erro ao carregar ou enviar dados:", err);
+      }
+    }
+
+    iframe.addEventListener("load", () => {
+      console.log("🧩 Iframe carregado");
+      loadAndSendData();
+    });
+
+    window.addEventListener("message", (event) => {
+      const { type, data } = event.data || {};
+      if (!type) return;
+
+      switch (type) {
+        case "chapter-option-selected":
+          console.log("📘 Chapter option selected:", data);
+          break;
+        case "chapter-focus":
+          console.log("🔍 Chapter focus:", data);
+          break;
+        case "board-transform-update":
+          console.log("🧭 Board transform:", data);
+          break;
+        default:
+          console.log("📨 Evento desconhecido:", event.data);
+      }
+    });
+  </script>
+
+</body>
+</html>
