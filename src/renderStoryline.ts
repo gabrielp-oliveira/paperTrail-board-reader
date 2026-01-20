@@ -2,57 +2,107 @@
 import * as d3 from "d3";
 import { Chapter, StoryLine, Timeline } from "./types";
 import { CONTROLS_HEIGHT, CONTROLS_BOTTOM_PADDING } from "./storylineControls";
+import { Layout } from "./globalVariables";
 
+// ---------------------------
+// Constantes de escala / base
+// ---------------------------
 
+// Quantos pixels representam 1 unidade de range (timeline/chapter)
 const PIXELS_PER_RANGE = 20;
+
+// Offset Y base do board (normalmente 0)
 const BASE_Y = 0;
 
+// ---------------------------
+// Constantes de layout vertical
+// ---------------------------
+
+// Altura mínima de uma storyline sem empilhamento
 const DEFAULT_ROW_HEIGHT = 50;
+
+// Espaço vertical entre storylines
 const STORYLINE_GAP = 8;
 
-const LABEL_WIDTH = 150;
+// Margem vertical entre capítulos empilhados
 const CHAPTER_VERTICAL_MARGIN = 6;
+
+// Espaço mínimo horizontal entre capítulos para evitar colisão
 const CHAPTER_MIN_GAP = 5;
 
-// ✅ padding da coluna esquerda (pra não colar na borda do board)
-const LEFT_PADDING = 15;
-const LEFT_COL_WIDTH = LABEL_WIDTH - LEFT_PADDING;
+// ---------------------------
+// Constantes da coluna esquerda
+// ---------------------------
 
+// Largura total reservada para labels/controles das storylines
+
+// Margem entre coluna esquerda e início da área do mundo
+const COL_ROW_MARGIN = 30;
+
+// Padding interno da coluna esquerda (evita colar na borda do board)
+const LEFT_PADDING = 15;
+
+// Largura útil da coluna esquerda (descontando padding)
+const LEFT_COL_WIDTH = Layout.LEFT_COLUMN_WIDTH - LEFT_PADDING;
+
+// ---------------------------
+// Tipos auxiliares
+// ---------------------------
+
+// Representa um capítulo já posicionado para controle de colisão
 type PlacedRect = { x1: number; x2: number; layer: number };
 
+// ---------------------------
+// Render principal
+// ---------------------------
 export function renderStorylines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   storylines: StoryLine[],
   timelines: Timeline[],
-  chapters: Chapter[]
+  chapters: Chapter[],
+  // Camada fixa da coluna esquerda (labels + controls). Se não vier, usa o svg normal
+  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
 ): { chapters: Chapter[]; height: number } {
   let height = 0;
+
+  // Camada do mundo (sofre pan/zoom)
+  const worldLayer = svg;
+
+  // Camada fixa da coluna esquerda
+  const left = leftLayer ?? svg;
 
   // ---------------------------
   // Timelines → offsets horizontais
   // ---------------------------
+
+  // Mapa timelineId → order
   const timelineOrderMap = new Map<string, number>();
   timelines.forEach((t) => timelineOrderMap.set(t.id, t.order));
 
+  // Timelines ordenadas por order
   const sortedTimelines = timelines.slice().sort((a, b) => a.order - b.order);
 
-  // cumulativeRanges[order] = soma de ranges anteriores
+  // cumulativeRanges[order] = soma dos ranges anteriores
   const cumulativeRanges: number[] = [];
   let totalRange = 0;
+
   for (const t of sortedTimelines) {
     cumulativeRanges[t.order] = totalRange;
     totalRange += t.range;
   }
 
+  // Largura total do board (sem coluna esquerda)
   const boardWidth = totalRange * PIXELS_PER_RANGE;
 
   // ---------------------------
-  // Ordenação de storylines conforme array
+  // Ordenação das storylines
   // ---------------------------
+
+  // Mapa storylineId → posição no array
   const storylinePositionMap = new Map<string, number>();
   storylines.forEach((s, index) => storylinePositionMap.set(s.id, index));
 
-  // Agrupa chapters por storyline_id e ordena na ordem do array `storylines`
+  // Agrupa capítulos por storyline_id e ordena conforme array de storylines
   const groupedByStoryline = d3
     .groups(chapters, (ch) => ch.storyline_id)
     .sort(([aId], [bId]) => {
@@ -61,45 +111,50 @@ export function renderStorylines(
       return aPos - bPos;
     });
 
-  // Resultado final
+  // Resultado final com posições calculadas
   const updatedChapters: Chapter[] = [];
 
-  // Altura acumulada total do board (somente storylines aqui)
-let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
+  // Altura acumulada do board (inclui controls)
+  let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
 
   groupedByStoryline.forEach(([storylineId, group]) => {
     const storyline = storylines.find((s) => s.id === storylineId);
     if (!storyline || !group || group.length === 0) return;
 
+    // Y base da storyline atual
     const y = BASE_Y + cumulativeHeight;
 
-    const xStart = LABEL_WIDTH;
-    const xEnd = boardWidth + LABEL_WIDTH;
+    // Limites horizontais da faixa
+    const xStart =  Layout.LEFT_COLUMN_WIDTH;
+    const xEnd = boardWidth +  Layout.LEFT_COLUMN_WIDTH;
 
     // ---------------------------
-    // Layering: evita colisão de chapters no mesmo X
+    // Layering: evita colisão de capítulos
     // ---------------------------
+
     const placedRects: PlacedRect[] = [];
     const chapterY: Record<string, number> = {};
 
-    // Agrupa por timeline_id-range para empilhar grupos no mesmo ponto
+    // Agrupa capítulos que caem no mesmo timeline + range
     const groupings = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
 
     groupings.forEach(([_, groupedChapters]) => {
       const base = groupedChapters[0];
+
       const timelineOrder = timelineOrderMap.get(base.timeline_id || "") ?? 0;
       const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
 
-      // x do centro do capítulo
-      const x = LABEL_WIDTH + (timelineOffset + base.range) * PIXELS_PER_RANGE;
+      // X central do capítulo
+      const x =
+         Layout.LEFT_COLUMN_WIDTH + (timelineOffset + base.range) * PIXELS_PER_RANGE;
 
-      // hitbox horizontal do capítulo (pra colisão)
+      // Hitbox horizontal do capítulo
       const w = 60;
       const halfW = w / 2;
       const x1 = x - halfW - CHAPTER_MIN_GAP;
       const x2 = x + halfW + CHAPTER_MIN_GAP;
 
-      // escolhe a primeira layer livre
+      // Escolhe a primeira layer livre
       let layer = 0;
       while (
         placedRects.some(
@@ -117,9 +172,11 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
       });
     });
 
+    // Quantidade máxima de layers usadas
     const maxLayer =
       placedRects.reduce((max, r) => Math.max(max, r.layer), 0) + 1;
 
+    // Altura final da storyline
     const rowHeight =
       DEFAULT_ROW_HEIGHT + (maxLayer - 1) * (20 + CHAPTER_VERTICAL_MARGIN);
 
@@ -127,11 +184,13 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
     height += rowHeight;
 
     // ---------------------------
-    // Draw: faixa da storyline
+    // Draw: faixa da storyline (MUNDO)
     // ---------------------------
-    svg
+    worldLayer
       .append("rect")
-      .attr("x", xStart)
+      .attr("class", "storyline-band")
+      .attr("data-storyline-id", storylineId)
+      .attr("x", xStart + COL_ROW_MARGIN)
       .attr("y", y)
       .attr("width", xEnd - xStart)
       .attr("height", rowHeight)
@@ -143,9 +202,13 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
       .attr("ry", 4)
       .attr("opacity", 0.3);
 
-    // Coluna esquerda (label)
-    svg
+    // ---------------------------
+    // Draw: coluna esquerda (FIXA)
+    // ---------------------------
+    left
       .append("rect")
+      .attr("class", "storyline-left-col")
+      .attr("data-storyline-id", storylineId)
       .attr("x", LEFT_PADDING)
       .attr("y", y)
       .attr("width", LEFT_COL_WIDTH)
@@ -154,8 +217,10 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
       .attr("stroke", "#ccc")
       .attr("stroke-dasharray", "4,4");
 
-    svg
+    left
       .append("foreignObject")
+      .attr("class", "storyline-left-label")
+      .attr("data-storyline-id", storylineId)
       .attr("x", LEFT_PADDING)
       .attr("y", y)
       .attr("width", LEFT_COL_WIDTH)
@@ -174,7 +239,7 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
       .text(storyline.name);
 
     // ---------------------------
-    // Output chapters posicionados
+    // Output: capítulos posicionados
     // ---------------------------
     const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
 
@@ -186,21 +251,18 @@ let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
         const timelineOrder = timelineOrderMap.get(ch.timeline_id || "") ?? 0;
         const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
 
-        const x = LABEL_WIDTH + (timelineOffset + ch.range) * PIXELS_PER_RANGE;
+        const x =
+           Layout.LEFT_COLUMN_WIDTH + (timelineOffset + ch.range) * PIXELS_PER_RANGE;
 
         updatedChapters.push({
           ...ch,
 
-          // ✅ Compat com o renderChapter atual (se ele lê width/height como x/y)
+          // Compat com renderChapter atual (width/height usados como x/y)
           width: x,
           height: chapterY[ch.id],
 
-          // ✅ grupo para expandir/colapsar
+          // Grupo para expandir/colapsar
           group: groupId ?? `__solo__${ch.id}`,
-
-          // ✅ se seu tipo suportar (recomendado)
-          // x,
-          // y: chapterY[ch.id],
         });
       });
     });

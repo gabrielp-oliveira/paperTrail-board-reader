@@ -1696,9 +1696,9 @@
       "group_connection_update_chapter": false
     },
     "zoom": {
-      "k": 1,
-      "x": 0,
-      "y": 0
+      "k": 2,
+      "x": 2,
+      "y": 2
     },
     "layout": {
       "mode": "mixed",

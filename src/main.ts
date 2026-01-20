@@ -10,9 +10,38 @@ import {
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
 
-const RANGE_GAP = 20;
-const LABEL_WIDTH = 150;
-const minHeightDefault = 500;
+/**
+ * ---------------------------
+ * Layout / Visual constants
+ * ---------------------------
+ */
+const PIXELS_PER_RANGE = 20; // (antigo RANGE_GAP) usado no computeTotalWidth
+const LEFT_COLUMN_WIDTH = 200; // (antigo LABEL_WIDTH)
+const MIN_VIEWBOX_HEIGHT = 500; // (antigo minHeightDefault)
+
+/**
+ * ---------------------------
+ * Zoom / Pan constants
+ * ---------------------------
+ */
+const MIN_ZOOM_SCALE = 2; // "maxZoomOut" no seu naming atual
+const MAX_ZOOM_SCALE = 5;
+
+const PAN_TOP_PADDING_PX = 0; // quanto pode "subir" acima do topo do conteúdo
+const PAN_RIGHT_PADDING_PX = 200; // folga para arrastar um pouco à direita
+const PAN_BOTTOM_PADDING_PX = 100; // folga para arrastar um pouco abaixo
+
+/**
+ * ---------------------------
+ * Left fixed column (background) style
+ * ---------------------------
+ */
+const LEFT_BG_X = 0;
+const LEFT_BG_Y = 0;
+const LEFT_BG_FILL = "#fafafa";
+const LEFT_BG_STROKE = "#ddd";
+const LEFT_BG_STROKE_WIDTH = 1;
+const LEFT_BG_SHADOW_FILTER = "drop-shadow(2px 0 4px rgba(0,0,0,0.08))";
 
 // 🎯 Cria SVG base
 const svgBase = d3
@@ -24,8 +53,30 @@ const svgBase = d3
   .style("padding", "0")
   .style("display", "block");
 
-// Grupo principal
-const g = svgBase.append("g");
+// ✅ Root container (não recebe transform diretamente)
+const gRoot = svgBase.append("g").attr("class", "board-root");
+
+// ✅ Camada do mundo (pan/zoom normal)
+const gWorld = gRoot.append("g").attr("class", "board-world");
+
+// ✅ Camada fixa da esquerda (labels + controls + menu)
+const gLeft = gRoot
+  .append("g")
+  .attr("class", "board-left-fixed")
+  .style("pointer-events", "all");
+
+// 🎨 Background da coluna fixa (fica atrás de tudo)
+gLeft
+  .append("rect")
+  .attr("class", "board-left-bg")
+  .attr("x", LEFT_BG_X)
+  .attr("y", LEFT_BG_Y)
+  .attr("width", LEFT_COLUMN_WIDTH)
+  .attr("height", MIN_VIEWBOX_HEIGHT)
+  .attr("fill", LEFT_BG_FILL)
+  .attr("stroke", LEFT_BG_STROKE)
+  .attr("stroke-width", LEFT_BG_STROKE_WIDTH)
+  .attr("filter", LEFT_BG_SHADOW_FILTER);
 
 /**
  * ✅ Normaliza settings para suportar:
@@ -43,12 +94,15 @@ function normalizeSettings(input: any): {
   const cfg = raw?.config ?? raw;
   const zoomObj = cfg?.zoom ?? raw?.zoom ?? null;
 
-  const k =
+  const kRaw =
     typeof zoomObj?.k === "number"
       ? zoomObj.k
       : typeof raw?.k === "number"
       ? raw.k
-      : 0.7;
+      : MIN_ZOOM_SCALE;
+
+  // ✅ garante que nunca inicia abaixo do "zoom out mínimo"
+  const k = Math.max(MIN_ZOOM_SCALE, kRaw);
 
   const x =
     typeof zoomObj?.x === "number"
@@ -82,11 +136,9 @@ function applyThemeFromSettings(settings: any) {
   const raw = settings ?? {};
   const cfg = raw?.config ?? raw;
 
-  // preferido: config.theme.mode
   const mode =
     typeof cfg?.theme?.mode === "string" ? cfg.theme.mode : undefined;
 
-  // fallback: se algum lugar antigo mandar boolean
   const legacyLight = typeof cfg?.theme === "boolean" ? cfg.theme : undefined;
 
   const resolved: "light" | "dark" | "system" =
@@ -122,7 +174,7 @@ function zoomAndPan(
   const normalized = normalizeSettings(settings);
 
   const initialScale =
-    typeof normalized.zoom.k === "number" ? normalized.zoom.k : 0.7;
+    typeof normalized.zoom.k === "number" ? normalized.zoom.k : MIN_ZOOM_SCALE;
   const initialX = typeof normalized.zoom.x === "number" ? normalized.zoom.x : 0;
   const initialY = typeof normalized.zoom.y === "number" ? normalized.zoom.y : 0;
 
@@ -134,17 +186,21 @@ function zoomAndPan(
         event.type === "mousedown" ||
         event.type === "touchstart"
     )
-    .scaleExtent([0.2, 5])
+    .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
     .translateExtent([
-      [0, -height],
-      [width + 200, height + 100],
+      [0, -PAN_TOP_PADDING_PX],
+      [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
     ])
     .on("zoom", (event) => {
       const { x, y, k } = event.transform;
 
-      svg
-        .select("g")
-        .attr("transform", d3.zoomIdentity.translate(x, y).scale(k).toString());
+      gWorld.attr(
+        "transform",
+        d3.zoomIdentity.translate(x, y).scale(k).toString()
+      );
+
+      // ✅ coluna fixa (não depende do X, mas escala e acompanha Y)
+      gLeft.attr("transform", `translate(0,${y}) scale(${k})`);
 
       hideContextMenu();
     })
@@ -165,10 +221,7 @@ function zoomAndPan(
   svg
     .transition()
     .duration(0)
-    .call(
-      zoom.transform,
-      d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
-    );
+    .call(zoom.transform, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
 
   svg.on("click.hideMenu", () => {
     hideContextMenu();
@@ -177,14 +230,14 @@ function zoomAndPan(
 
 function computeTotalWidth(timelines: any[]): number {
   const timelineWidth = (timelines || []).reduce(
-    (sum: number, t: any) => sum + (t?.range ?? 0) * RANGE_GAP,
+    (sum: number, t: any) => sum + (t?.range ?? 0) * PIXELS_PER_RANGE,
     0
   );
-  return LABEL_WIDTH + timelineWidth;
+  return LEFT_COLUMN_WIDTH + timelineWidth;
 }
 
 function applyViewBox(totalWidth: number, height: number) {
-  const minHeight = Math.max(minHeightDefault, height);
+  const minHeight = Math.max(MIN_VIEWBOX_HEIGHT, height);
   svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   return minHeight;
 }
@@ -198,37 +251,42 @@ function renderBoard(data: any) {
     return;
   }
 
-  // ✅ Tema vem do settings.config.theme.mode
   applyThemeFromSettings(settings);
 
-  g.selectAll("*").remove();
+  gWorld.selectAll("*").remove();
+  gLeft.selectAll(":not(rect.board-left-bg)").remove();
 
   const totalWidth = computeTotalWidth(timelines);
 
-  // 1) init state dos controles (mantém coerência quando storylines mudam)
   initStorylineUIState(storylines);
 
-  // 2) render controles (UI-only)
-  renderStorylineControls(g, storylines, {
-    onChange: () => {
-      // quando mudar seleção/collapse, re-render completo
-      renderBoard({ timelines, storylines, chapters, settings });
-    },
-  });
-
-  // 3) render storylines (rows + layout dos chapters)
-  const { chapters: renderedChapters, height } = renderStorylines(
-    g,
+  renderStorylineControls(
+    gWorld,
     storylines,
-    timelines,
-    chapters
+    {
+      onChange: () => {
+        renderBoard({ timelines, storylines, chapters, settings });
+      },
+    },
+    gLeft
   );
 
-  // 4) timelines + chapters
-  renderTimelines(g, timelines, height);
-  renderChapters(g, renderedChapters, setupGroupInteraction);
+  const { chapters: renderedChapters, height } = renderStorylines(
+    gWorld,
+    storylines,
+    timelines,
+    chapters,
+    gLeft
+  );
 
-  // 5) viewBox + zoom
+  // ✅ ajusta altura do background da coluna esquerda
+  gLeft
+    .select<SVGRectElement>("rect.board-left-bg")
+    .attr("height", Math.max(MIN_VIEWBOX_HEIGHT, height));
+
+  renderTimelines(gWorld, timelines, height);
+  renderChapters(gWorld, renderedChapters, setupGroupInteraction);
+
   const minHeight = applyViewBox(totalWidth, height);
   svgBase.call((svg) => zoomAndPan(svg, totalWidth, minHeight, settings));
 }
@@ -237,8 +295,6 @@ function renderBoard(data: any) {
 window.addEventListener("message", async (event) => {
   const { type, data } = event.data || {};
 
-  // ✅ Agora theme deve vir dentro de settings, então set-light pode ser ignorado
-  // (se quiser manter compat, você pode mapear set-light => settings.config.theme.mode no app pai)
   if (type === "set-data" && data) {
     try {
       renderBoard(data);
@@ -251,6 +307,7 @@ window.addEventListener("message", async (event) => {
 // 🧪 Suporte Vite HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    g.selectAll("*").remove();
+    gWorld.selectAll("*").remove();
+    gLeft.selectAll(":not(rect.board-left-bg)").remove();
   });
 }
