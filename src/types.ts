@@ -105,7 +105,9 @@ export type Chapter = {
     color: string,
     selected?: boolean,
     focus?: boolean,
-    last_update?: any
+    last_update?: any,
+    yCollapsed?: number;
+
 }
 
 export type ChapterTimeline =  {

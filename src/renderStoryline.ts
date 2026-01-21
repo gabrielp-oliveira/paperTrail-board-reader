@@ -15,9 +15,7 @@ const BASE_Y = 0;
 // ---------------------------
 const DEFAULT_ROW_HEIGHT_MIN = 50;
 const STORYLINE_GAP = 8;
-
 const CHAPTER_VERTICAL_MARGIN = 8;
-const CARD_HEIGHT = 28;
 
 // ---------------------------
 // Coluna esquerda
@@ -27,19 +25,20 @@ const LEFT_PADDING = 15;
 const LEFT_COL_WIDTH = Layout.LEFT_COLUMN_WIDTH - LEFT_PADDING;
 
 // ---------------------------
-// Collapsed row ("storyline mãe")
+// Collapsed row global ("storyline mãe")
 // ---------------------------
-// ✅ altura inicial pequena (sempre visível)
 const COLLAPSED_ROW_MIN_HEIGHT = 20;
-
-// ✅ altura mínima quando expandida (pra caber os cards)
 const COLLAPSED_ROW_EXPANDED_MIN_HEIGHT = 120;
-
 const COLLAPSED_MARGIN_BOTTOM = 8;
 
 const COLLAPSED_WORLD_FILL = "#d8ecff";
 const COLLAPSED_LEFT_FILL = "#eaf4ff";
 const COLLAPSED_STROKE = "#6aa6d8";
+
+// Inline collapsed (por storyline)
+const INLINE_COLLAPSED_WORLD_FILL = "#eef6ff";
+const INLINE_COLLAPSED_LEFT_FILL = "#f5fbff";
+const INLINE_COLLAPSED_STROKE = "#6aa6d8";
 
 // Animações
 const COLLAPSE_ANIM_MS = 450;
@@ -47,15 +46,26 @@ const FADE_ANIM_MS = 420;
 const FADE_UP_PX = 40;
 
 // ---------------------------
-// Colisão horizontal (hitbox)
+// Colisão horizontal
 // ---------------------------
-const CHAPTER_HITBOX_MIN_W = 120;
 const CHAPTER_MIN_GAP = 8;
 
-const CHAPTER_MIN_WIDTH = 90;
-const CHAPTER_PADDING_X = 18; // padding interno (ambos lados somados)
-const CHAR_WIDTH_PX = 7.2; // média pra font 12-13px
-const MAX_TITLE_CHARS = 18;
+// ---------------------------
+// ✅ Sizing (DEVE bater com renderChapter.ts)
+// ---------------------------
+const MAX_TITLE_CHARS = 20;
+const CHAR_WIDTH_PX = 6.5;
+
+const CHAPTER_PADDING = 6;
+const CHAPTER_MIN_WIDTH = 100;
+const CHAPTER_HEIGHT = 25;
+
+const GROUP_MIN_WIDTH = 80;
+const GROUP_HEIGHT = 28;
+const GROUP_PADDING_X = 20;
+
+// altura usada por layer (garante espaço pra solo e grupo)
+const STACK_ITEM_HEIGHT = Math.max(CHAPTER_HEIGHT, GROUP_HEIGHT);
 
 // ---------------------------
 // Tipos auxiliares
@@ -64,13 +74,13 @@ type PlacedRect = { x1: number; x2: number; layer: number };
 
 type LayoutCache = {
   collapsedY: number;
-
-  // ✅ collapsed row sempre existe:
-  collapsedMinHeight: number; // 15px
-  collapsedExpandedHeight: number; // calculada para caber chapters
-
+  collapsedMinHeight: number;
+  collapsedExpandedHeight: number;
   expandedChapterY: Map<string, number>;
   collapsedChapterY: Map<string, number>;
+  // ✅ novas: alturas de board
+  expandedBoardHeight: number;
+  collapsedBoardHeight: number;
 };
 
 let lastLayoutCache: LayoutCache | null = null;
@@ -92,7 +102,26 @@ function computeChapterX(
   );
 }
 
-function estimateChapterWidthPx(ch: Chapter) {
+function clampTitleLikeRenderChapter(title: string) {
+  const t = String(title ?? "").trim();
+  if (!t) return "";
+  return t.length > MAX_TITLE_CHARS
+    ? t.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
+    : t;
+}
+
+function computeSoloBoxWidthLikeRenderChapter(displayTitle: string) {
+  const textWidth = displayTitle.length * CHAR_WIDTH_PX;
+  return Math.max(CHAPTER_MIN_WIDTH, textWidth + CHAPTER_PADDING * 2);
+}
+
+function computeGroupBoxWidthLikeRenderChapter(count: number) {
+  const label = String(count);
+  const textWidth = label.length * CHAR_WIDTH_PX;
+  return Math.max(GROUP_MIN_WIDTH, textWidth + GROUP_PADDING_X);
+}
+
+function estimateSoloWidthFromChapter(ch: Chapter) {
   const raw =
     (ch as any).title ??
     (ch as any).name ??
@@ -100,34 +129,35 @@ function estimateChapterWidthPx(ch: Chapter) {
     (ch as any).chapter_name ??
     "";
 
-  const t = String(raw || "").trim();
-  if (!t) return CHAPTER_HITBOX_MIN_W;
+  const display = clampTitleLikeRenderChapter(String(raw || ""));
+  if (!display) return CHAPTER_MIN_WIDTH;
 
-  const clipped = t.length > MAX_TITLE_CHARS ? t.slice(0, MAX_TITLE_CHARS) : t;
-  const w = CHAPTER_PADDING_X + clipped.length * CHAR_WIDTH_PX;
-  return Math.max(CHAPTER_MIN_WIDTH, w, CHAPTER_HITBOX_MIN_W);
+  return computeSoloBoxWidthLikeRenderChapter(display);
+}
+
+function estimateBucketWidth(bucket: Chapter[]) {
+  if (!bucket || bucket.length === 0) return CHAPTER_MIN_WIDTH;
+  if (bucket.length > 1)
+    return computeGroupBoxWidthLikeRenderChapter(bucket.length);
+  return estimateSoloWidthFromChapter(bucket[0]);
 }
 
 function computeLayering(
   group: Chapter[],
   timelineOrderMap: Map<string, number>,
-  cumulativeRanges: number[]
+  cumulativeRanges: number[],
+  bucketKeyFn: (ch: Chapter) => string
 ): { layers: Record<string, number>; maxLayer: number } {
   const placedRects: PlacedRect[] = [];
   const layers: Record<string, number> = {};
 
-  const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
+  const buckets = d3.groups(group, bucketKeyFn);
 
   const ordered = buckets
     .map(([key, bucket]) => {
       const base = bucket[0];
       const x = computeChapterX(base, timelineOrderMap, cumulativeRanges);
-
-      const w = bucket.reduce(
-        (m, c) => Math.max(m, estimateChapterWidthPx(c)),
-        0
-      );
-
+      const w = estimateBucketWidth(bucket);
       return { key, bucket, x, w };
     })
     .sort((a, b) => a.x - b.x);
@@ -157,22 +187,19 @@ function computeRowHeightForLayers(maxLayer: number, minHeight: number) {
   const topPad = 10;
   const bottomPad = 10;
 
-  const step = CARD_HEIGHT + CHAPTER_VERTICAL_MARGIN;
+  const step = STACK_ITEM_HEIGHT + CHAPTER_VERTICAL_MARGIN;
 
   const needed =
-    topPad + Math.max(0, maxLayer - 1) * step + CARD_HEIGHT + bottomPad;
+    topPad + Math.max(0, maxLayer - 1) * step + STACK_ITEM_HEIGHT + bottomPad;
 
   return Math.max(minHeight, needed);
 }
 
-function computeChapterYFromLayers(
-  yBase: number,
-  layers: Record<string, number>
-) {
+function computeChapterYFromLayers(yBase: number, layers: Record<string, number>) {
   const chapterY: Record<string, number> = {};
 
   const topPad = 10;
-  const step = CARD_HEIGHT + CHAPTER_VERTICAL_MARGIN;
+  const step = STACK_ITEM_HEIGHT + CHAPTER_VERTICAL_MARGIN;
 
   for (const id of Object.keys(layers)) {
     const layer = layers[id] ?? 0;
@@ -183,7 +210,7 @@ function computeChapterYFromLayers(
 }
 
 // ---------------------------
-// Collapsed row DOM helpers
+// Collapsed row global DOM helpers
 // ---------------------------
 function drawCollapsedRow(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -196,7 +223,6 @@ function drawCollapsedRow(
   const xStart = Layout.LEFT_COLUMN_WIDTH;
   const xEnd = boardWidthPx + Layout.LEFT_COLUMN_WIDTH;
 
-  // WORLD
   worldLayer
     .append("rect")
     .attr("class", "storyline-band storyline-band-collapsed")
@@ -215,7 +241,6 @@ function drawCollapsedRow(
     .attr("ry", 8)
     .attr("opacity", 0.55);
 
-  // LEFT COL
   leftLayer
     .append("rect")
     .attr("class", "storyline-left-col storyline-left-col-collapsed")
@@ -234,7 +259,6 @@ function drawCollapsedRow(
     .attr("ry", 8)
     .attr("opacity", 1);
 
-  // LABEL
   const fo = leftLayer
     .append("foreignObject")
     .attr("class", "storyline-left-label storyline-left-label-collapsed")
@@ -263,19 +287,8 @@ function drawCollapsedRow(
     .text("Collapsed");
 }
 
-function collapsedRowExists(
-  worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  const w = worldLayer.selectAll("rect.storyline-band-collapsed").size() > 0;
-  const l = leftLayer.selectAll("rect.storyline-left-col-collapsed").size() > 0;
-  const fo =
-    leftLayer.selectAll("foreignObject.storyline-left-label-collapsed").size() > 0;
-  return w && l && fo;
-}
-
 // ---------------------------
-// ✅ PUBLIC: anima altura da collapsed row (15px ↔ expandedHeight)
+// ✅ PUBLIC: anima altura da collapsed row global
 // ---------------------------
 export function animateCollapsedRow(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -317,7 +330,6 @@ export function animateCollapsedRow(
     .ease(ease)
     .attr("height", targetH)
     .on("end", function () {
-      // garante estado final do div interno
       const fo = d3.select(this);
       fo.select("div").style("height", `${targetH}px`);
     })
@@ -334,7 +346,7 @@ export function animateCollapsedRow(
 }
 
 // ---------------------------
-// ✅ PUBLIC: anima capítulos pro topo/corpo
+// ✅ PUBLIC: anima capítulos pro topo/corpo (só pro collapsedAll)
 // ---------------------------
 export function applyCollapsedTransition(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -349,7 +361,9 @@ export function applyCollapsedTransition(
   if (nodes.empty()) return;
 
   const toY = (id: string) =>
-    collapsedAll ? cache.collapsedChapterY.get(id) : cache.expandedChapterY.get(id);
+    collapsedAll
+      ? cache.collapsedChapterY.get(id)
+      : cache.expandedChapterY.get(id);
 
   nodes
     .transition()
@@ -377,8 +391,7 @@ export function applyCollapsedTransition(
 }
 
 // ---------------------------
-// ✅ PUBLIC: fade-out + sobe rows/names quando colapsa
-// (não mexe na collapsed row — ela fica sempre visível)
+// ✅ PUBLIC: fade-out rows/names quando collapsedAll
 // ---------------------------
 export function applyStorylinesFadeTransition(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -388,7 +401,6 @@ export function applyStorylinesFadeTransition(
   if (!lastLayoutCache) return;
   const cache = lastLayoutCache;
 
-  // ✅ target: sobe e some “por trás” da collapsed row (usa o Y dela)
   const collapseTargetY = cache.collapsedY - FADE_UP_PX;
 
   const band = worldLayer
@@ -425,14 +437,20 @@ export function applyStorylinesFadeTransition(
       .ease(d3.easeCubicInOut)
       .attr("y", function () {
         const el = this as any;
-        const y0 = parseFloat(el.getAttribute("data-y") || el.getAttribute("y") || "0");
+        const y0 = parseFloat(
+          el.getAttribute("data-y") || el.getAttribute("y") || "0"
+        );
         if (collapsedAll) return collapseTargetY;
         return y0;
       })
       .attr("opacity", function () {
         const el = this as any;
         const base =
-          parseFloat(el.getAttribute(baseOpacityAttr) || el.getAttribute("data-opacity") || "1") || 1;
+          parseFloat(
+            el.getAttribute(baseOpacityAttr) ||
+              el.getAttribute("data-opacity") ||
+              "1"
+          ) || 1;
         if (collapsedAll) return 0;
         return base;
       })
@@ -458,15 +476,27 @@ export function renderStorylines(
   leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   collapsedAll: boolean = false,
   collapsedStorylineIds: Set<string> = new Set()
-): { chapters: Chapter[]; height: number } {
+): { chapters: Chapter[]; height: number; expandedHeight: number; collapsedHeight: number } {
   lastLayoutCache = null;
 
   const worldLayer = svg;
   const left = leftLayer ?? svg;
 
-  // ---------------------------
+  // ✅ limpar rows/labels antigas
+  worldLayer
+    .selectAll(
+      "rect.storyline-band, rect.storyline-band-collapsed, rect.storyline-band-collapsed-inline"
+    )
+    .remove();
+
+  left
+    .selectAll(
+      "rect.storyline-left-col, rect.storyline-left-col-collapsed, rect.storyline-left-col-collapsed-inline," +
+        "foreignObject.storyline-left-label, foreignObject.storyline-left-label-collapsed, foreignObject.storyline-left-label-collapsed-inline"
+    )
+    .remove();
+
   // Timelines → offsets horizontais
-  // ---------------------------
   const timelineOrderMap = new Map<string, number>();
   timelines.forEach((t) => timelineOrderMap.set(t.id, t.order));
 
@@ -482,36 +512,54 @@ export function renderStorylines(
 
   const boardWidthPx = totalRange * PIXELS_PER_RANGE;
 
-  // ---------------------------
   // Ordenação das storylines
-  // ---------------------------
   const storylinePositionMap = new Map<string, number>();
   storylines.forEach((s, index) => storylinePositionMap.set(s.id, index));
 
   const groupedByStoryline = d3
-    .groups(chapters, (ch) => ch.storyline_id)
+    .groups(chapters ?? [], (ch) => ch.storyline_id)
     .sort(([aId], [bId]) => {
       const aPos = storylinePositionMap.get(aId) ?? Infinity;
       const bPos = storylinePositionMap.get(bId) ?? Infinity;
       return aPos - bPos;
     });
 
-  // ---------------------------
-  // Altura inicial
-  // ---------------------------
-  let cumulativeHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
+  // ✅ 2 acumuladores:
+  // - visibleHeight: altura que DEVE ser usada pra grid/timelines/bg (o que o usuário vê)
+  // - expandedHeightAcc: altura real do layout expandido (pra yExpanded ficar certo)
+  let visibleHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
+  let expandedHeightAcc = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
 
-  // ---------------------------
-  // ✅ Collapsed row SEMPRE existe (começa pequena)
-  // ---------------------------
-  const collapsedY = BASE_Y + cumulativeHeight;
+  // Collapsed row global sempre existe, e sempre consome altura VISÍVEL
+  const collapsedY = BASE_Y + visibleHeight;
 
-  // a altura expandida depende de todos os chapters (quando collapsedAll)
-  const collapsedLayering = computeLayering(chapters ?? [], timelineOrderMap, cumulativeRanges);
+  const allChapters = chapters ?? [];
+
+  const collapsedLayering = computeLayering(
+    allChapters,
+    timelineOrderMap,
+    cumulativeRanges,
+    (ch) => `${ch.storyline_id ?? ""}-${ch.timeline_id ?? ""}-${ch.range ?? 0}`
+  );
+
   const collapsedExpandedHeight = computeRowHeightForLayers(
     collapsedLayering.maxLayer,
     COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
   );
+
+  // desenha row global collapsed (visível)
+  drawCollapsedRow(
+    worldLayer,
+    left,
+    collapsedY,
+    boardWidthPx,
+    COLLAPSED_ROW_MIN_HEIGHT,
+    collapsedExpandedHeight
+  );
+
+  // reserva espaço VISÍVEL e EXPANDIDO (porque a row global sempre existe)
+  visibleHeight += COLLAPSED_ROW_MIN_HEIGHT + COLLAPSED_MARGIN_BOTTOM;
+  expandedHeightAcc += COLLAPSED_ROW_MIN_HEIGHT + COLLAPSED_MARGIN_BOTTOM;
 
   const cache: LayoutCache = {
     collapsedY,
@@ -519,100 +567,212 @@ export function renderStorylines(
     collapsedExpandedHeight,
     expandedChapterY: new Map(),
     collapsedChapterY: new Map(),
+    expandedBoardHeight: 0,
+    collapsedBoardHeight: 0,
   };
 
-  // desenha a collapsed row (se ainda não existe)
-  if (!collapsedRowExists(worldLayer, left)) {
-    drawCollapsedRow(
-      worldLayer,
-      left,
-      collapsedY,
-      boardWidthPx,
-      COLLAPSED_ROW_MIN_HEIGHT, // começa pequena
-      collapsedExpandedHeight
-    );
-  } else {
-    // se já existe (por re-render), garante posição Y correta
-    worldLayer
-      .selectAll<SVGRectElement, unknown>("rect.storyline-band-collapsed")
-      .attr("y", collapsedY)
-      .attr("data-y", collapsedY);
-
-    left
-      .selectAll<SVGRectElement, unknown>("rect.storyline-left-col-collapsed")
-      .attr("y", collapsedY)
-      .attr("data-y", collapsedY);
-
-    left
-      .selectAll<SVGForeignObjectElement, unknown>(
-        "foreignObject.storyline-left-label-collapsed"
-      )
-      .attr("y", collapsedY)
-      .attr("data-y", collapsedY);
-  }
-
-  // reserva o espaço da collapsed row PEQUENA no layout inicial
-  cumulativeHeight += COLLAPSED_ROW_MIN_HEIGHT + COLLAPSED_MARGIN_BOTTOM;
-
-  // pré-calcula as posições Y colapsadas (dentro da row expandida)
+  // posições colapsadas globais (para collapsedAll)
   const collapsedChapterYMap = computeChapterYFromLayers(
     collapsedY,
     collapsedLayering.layers
   );
-  for (const ch of chapters ?? []) {
+  for (const ch of allChapters) {
     cache.collapsedChapterY.set(ch.id, collapsedChapterYMap[ch.id]);
   }
 
-  // ---------------------------
-  // 2) Storylines normais abaixo
-  // ---------------------------
   const updatedChapters: Chapter[] = [];
 
   groupedByStoryline.forEach(([storylineId, group]) => {
     const storyline = storylines.find((s) => s.id === storylineId);
-    if (!storyline) return;
+    if (!storyline || !group || group.length === 0) return;
 
-    const isCollapsedThisOne =
-      collapsedAll || collapsedStorylineIds.has(storylineId);
-
-    // (se for colapso por lista e NÃO for collapsedAll, você pode “sumir” a row dessa storyline,
-    //  mas o seu pedido agora é sobre o collapsedAll global, então mantive como estava.)
-    if (!collapsedAll && isCollapsedThisOne) {
-      const yVirtual = BASE_Y + cumulativeHeight;
-      if (group && group.length > 0) {
-        const layering = computeLayering(group, timelineOrderMap, cumulativeRanges);
-        const expandedYMap = computeChapterYFromLayers(yVirtual, layering.layers);
-        for (const ch of group) cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
-      }
-      return;
-    }
-
-    const y = BASE_Y + cumulativeHeight;
+    // ✅ y “real” do layout expandido (sempre avança)
+    const yExpandedRow = BASE_Y + expandedHeightAcc;
 
     const xStart = Layout.LEFT_COLUMN_WIDTH;
     const xEnd = boardWidthPx + Layout.LEFT_COLUMN_WIDTH;
 
-    let rowHeight = DEFAULT_ROW_HEIGHT_MIN;
+    const isCollapsedThisOne = collapsedStorylineIds.has(storylineId);
 
-    if (group && group.length > 0) {
-      const layering = computeLayering(group, timelineOrderMap, cumulativeRanges);
-      rowHeight = computeRowHeightForLayers(layering.maxLayer, DEFAULT_ROW_HEIGHT_MIN);
+    // ---------------------------------------------------------
+    // 1) collapsedAll: NÃO aumenta visibleHeight (só expandedHeightAcc)
+    // ---------------------------------------------------------
+    if (collapsedAll) {
+      const layeringExpanded = computeLayering(
+        group,
+        timelineOrderMap,
+        cumulativeRanges,
+        (ch) => `${ch.timeline_id ?? ""}-${ch.range ?? 0}`
+      );
+      const rowHeight = computeRowHeightForLayers(
+        layeringExpanded.maxLayer,
+        DEFAULT_ROW_HEIGHT_MIN
+      );
 
-      const expandedYMap = computeChapterYFromLayers(y, layering.layers);
+      const expandedYMap = computeChapterYFromLayers(
+        yExpandedRow,
+        layeringExpanded.layers
+      );
       for (const ch of group) cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
+
+      // ✅ só o layout expandido avança
+      expandedHeightAcc += rowHeight + STORYLINE_GAP;
+
+      const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
+      buckets.forEach(([key, bucket]) => {
+        const isGrouped = bucket.length > 1;
+        const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
+
+        bucket.forEach((ch) => {
+          const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
+          const yCollapsed = cache.collapsedChapterY.get(ch.id) ?? collapsedY;
+          const yExpanded = cache.expandedChapterY.get(ch.id) ?? yExpandedRow;
+
+          updatedChapters.push({
+            ...ch,
+            width: x,
+            height: yCollapsed,
+            group: groupId ?? `__solo__${ch.id}`,
+            ...( { yCollapsed, yExpanded } as any ),
+          });
+        });
+      });
+
+      return;
     }
 
-    cumulativeHeight += rowHeight + STORYLINE_GAP;
+    // ---------------------------------------------------------
+    // 2) collapsed inline: AQUI É VISÍVEL, então ambos acumuladores avançam
+    // ---------------------------------------------------------
+    if (isCollapsedThisOne) {
+      const layering = computeLayering(
+        group,
+        timelineOrderMap,
+        cumulativeRanges,
+        (ch) => `${ch.timeline_id ?? ""}-${ch.range ?? 0}`
+      );
+      const rowHeight = computeRowHeightForLayers(
+        layering.maxLayer,
+        COLLAPSED_ROW_MIN_HEIGHT
+      );
 
-    // Banda (MUNDO)
+      const yMap = computeChapterYFromLayers(yExpandedRow, layering.layers);
+      for (const ch of group) cache.expandedChapterY.set(ch.id, yMap[ch.id]);
+
+      // ✅ visível e expandido avançam
+      visibleHeight += rowHeight + STORYLINE_GAP;
+      expandedHeightAcc += rowHeight + STORYLINE_GAP;
+
+      worldLayer
+        .append("rect")
+        .attr("class", "storyline-band storyline-band-collapsed-inline")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", 0.6)
+        .attr("x", xStart + COL_ROW_MARGIN)
+        .attr("y", yExpandedRow)
+        .attr("width", xEnd - xStart)
+        .attr("height", rowHeight)
+        .attr("fill", INLINE_COLLAPSED_WORLD_FILL)
+        .attr("stroke", INLINE_COLLAPSED_STROKE)
+        .attr("stroke-width", 1.2)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        .attr("opacity", 0.6);
+
+      left
+        .append("rect")
+        .attr("class", "storyline-left-col storyline-left-col-collapsed-inline")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", 1)
+        .attr("x", LEFT_PADDING)
+        .attr("y", yExpandedRow)
+        .attr("width", LEFT_COL_WIDTH)
+        .attr("height", rowHeight)
+        .attr("fill", INLINE_COLLAPSED_LEFT_FILL)
+        .attr("stroke", INLINE_COLLAPSED_STROKE)
+        .attr("stroke-width", 1.2)
+        .attr("rx", 6)
+        .attr("ry", 6)
+        .attr("opacity", 1);
+
+      left
+        .append("foreignObject")
+        .attr("class", "storyline-left-label storyline-left-label-collapsed-inline")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", 1)
+        .attr("x", LEFT_PADDING)
+        .attr("y", yExpandedRow)
+        .attr("width", LEFT_COL_WIDTH)
+        .attr("height", rowHeight)
+        .attr("opacity", 1)
+        .append("xhtml:div")
+        .style("display", "flex")
+        .style("flex-wrap", "wrap")
+        .style("align-items", "center")
+        .style("justify-content", "center")
+        .style("height", `${rowHeight}px`)
+        .style("width", `${LEFT_COL_WIDTH}px`)
+        .style("font-size", "12px")
+        .style("font-weight", "800")
+        .style("color", "#1f4f7a")
+        .style("text-align", "center")
+        .style("user-select", "none")
+        .text(storyline.name);
+
+      const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
+      buckets.forEach(([key, bucket]) => {
+        const isGrouped = bucket.length > 1;
+        const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
+
+        bucket.forEach((ch) => {
+          const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
+          const yExpanded = cache.expandedChapterY.get(ch.id) ?? yExpandedRow;
+          const yCollapsed = cache.collapsedChapterY.get(ch.id) ?? collapsedY;
+
+          updatedChapters.push({
+            ...ch,
+            width: x,
+            height: yExpanded,
+            group: groupId ?? `__solo__${ch.id}`,
+            ...( { yCollapsed, yExpanded } as any ),
+          });
+        });
+      });
+
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // 3) normal: VISÍVEL, então ambos acumuladores avançam
+    // ---------------------------------------------------------
+    const layering = computeLayering(
+      group,
+      timelineOrderMap,
+      cumulativeRanges,
+      (ch) => `${ch.timeline_id ?? ""}-${ch.range ?? 0}`
+    );
+    const rowHeight = computeRowHeightForLayers(
+      layering.maxLayer,
+      DEFAULT_ROW_HEIGHT_MIN
+    );
+
+    const expandedYMap = computeChapterYFromLayers(yExpandedRow, layering.layers);
+    for (const ch of group) cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
+
+    visibleHeight += rowHeight + STORYLINE_GAP;
+    expandedHeightAcc += rowHeight + STORYLINE_GAP;
+
     worldLayer
       .append("rect")
       .attr("class", "storyline-band")
       .attr("data-storyline-id", storylineId)
-      .attr("data-y", y)
+      .attr("data-y", yExpandedRow)
       .attr("data-opacity", 0.3)
       .attr("x", xStart + COL_ROW_MARGIN)
-      .attr("y", y)
+      .attr("y", yExpandedRow)
       .attr("width", xEnd - xStart)
       .attr("height", rowHeight)
       .attr("fill", "#e5e5e5")
@@ -621,36 +781,34 @@ export function renderStorylines(
       .attr("stroke-width", 1)
       .attr("rx", 4)
       .attr("ry", 4)
-      .attr("opacity", collapsedAll ? 0 : 0.3);
+      .attr("opacity", 0.3);
 
-    // Coluna esquerda
     left
       .append("rect")
       .attr("class", "storyline-left-col")
       .attr("data-storyline-id", storylineId)
-      .attr("data-y", y)
+      .attr("data-y", yExpandedRow)
       .attr("data-opacity", 1)
       .attr("x", LEFT_PADDING)
-      .attr("y", y)
+      .attr("y", yExpandedRow)
       .attr("width", LEFT_COL_WIDTH)
       .attr("height", rowHeight)
       .attr("fill", "#fafafa")
       .attr("stroke", "#ccc")
       .attr("stroke-dasharray", "4,4")
-      .attr("opacity", collapsedAll ? 0 : 1);
+      .attr("opacity", 1);
 
-    // Label
     left
       .append("foreignObject")
       .attr("class", "storyline-left-label")
       .attr("data-storyline-id", storylineId)
-      .attr("data-y", y)
+      .attr("data-y", yExpandedRow)
       .attr("data-opacity", 1)
       .attr("x", LEFT_PADDING)
-      .attr("y", y)
+      .attr("y", yExpandedRow)
       .attr("width", LEFT_COL_WIDTH)
       .attr("height", rowHeight)
-      .attr("opacity", collapsedAll ? 0 : 1)
+      .attr("opacity", 1)
       .append("xhtml:div")
       .style("display", "flex")
       .style("flex-wrap", "wrap")
@@ -664,39 +822,38 @@ export function renderStorylines(
       .style("text-align", "center")
       .text(storyline.name);
 
-    // capítulos retornados
-    if (group && group.length > 0) {
-      const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
+    const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
+    buckets.forEach(([key, bucket]) => {
+      const isGrouped = bucket.length > 1;
+      const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
 
-      buckets.forEach(([key, bucket]) => {
-        const isGrouped = bucket.length > 1;
-        const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
+      bucket.forEach((ch) => {
+        const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
+        const yExpanded = cache.expandedChapterY.get(ch.id) ?? yExpandedRow;
+        const yCollapsed = cache.collapsedChapterY.get(ch.id) ?? collapsedY;
 
-        bucket.forEach((ch) => {
-          const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
-
-          const yExpanded = cache.expandedChapterY.get(ch.id);
-          const yCollapsed = cache.collapsedChapterY.get(ch.id);
-
-          const yFinal =
-            collapsedAll && typeof yCollapsed === "number"
-              ? yCollapsed
-              : typeof yExpanded === "number"
-              ? yExpanded
-              : y;
-
-          updatedChapters.push({
-            ...ch,
-            width: x,
-            height: yFinal,
-            group: groupId ?? `__solo__${ch.id}`,
-          });
+        updatedChapters.push({
+          ...ch,
+          width: x,
+          height: yExpanded,
+          group: groupId ?? `__solo__${ch.id}`,
+          ...( { yCollapsed, yExpanded } as any ),
         });
       });
-    }
+    });
   });
+
+  cache.expandedBoardHeight = expandedHeightAcc;
+  cache.collapsedBoardHeight = visibleHeight;
 
   lastLayoutCache = cache;
 
-  return { chapters: updatedChapters, height: cumulativeHeight };
+  // ✅ height = altura VISÍVEL atual (pra timelines line / bg acompanhar)
+  // ✅ expandedHeight = altura real expandida (se você quiser usar em outro lugar)
+  return {
+    chapters: updatedChapters,
+    height: collapsedAll ? visibleHeight : expandedHeightAcc,
+    expandedHeight: expandedHeightAcc,
+    collapsedHeight: visibleHeight,
+  };
 }

@@ -5,12 +5,17 @@ import { Chapter } from "./types";
 // ---------------------------
 // Constantes de texto / títulos
 // ---------------------------
+
+// Limite de caracteres do título visível no card
 const MAX_TITLE_CHARS = 20;
+
+// Aproximação de largura por caractere (px) pra calcular boxWidth
 const CHAR_WIDTH_PX = 6.5;
 
 // ---------------------------
-// Constantes de layout / spacing
+// Constantes de layout / sizing
 // ---------------------------
+
 const CHAPTER_PADDING = 6;
 const CHAPTER_MIN_WIDTH = 100;
 const CHAPTER_HEIGHT = 25;
@@ -24,6 +29,7 @@ const GROUP_PADDING_X = 20;
 // ---------------------------
 // Constantes de estilo / fonte
 // ---------------------------
+
 const SOLO_FONT_FAMILY = "Georgia, 'Times New Roman', serif";
 const SOLO_FONT_SIZE = "13px";
 
@@ -37,12 +43,17 @@ const GROUP_TEXT_COLOR = "#000";
 // ---------------------------
 // Constantes de encoding de data-chapters
 // ---------------------------
+
 const CHAPTER_FIELD_SEP = "|||";
 const CHAPTER_JOIN_SEP = "🟰";
 
 const NO_TITLE = "NO_TITLE";
 const NO_ID = "NO_ID";
 const NO_COLOR = "#999";
+
+// ---------------------------
+// Helpers
+// ---------------------------
 
 function clampTitle(title: string) {
   const t = String(title ?? "").trim();
@@ -57,10 +68,28 @@ function computeSoloBoxWidth(displayTitle: string) {
   return Math.max(CHAPTER_MIN_WIDTH, textWidth + CHAPTER_PADDING * 2);
 }
 
+function computeGroupBoxWidth(count: number) {
+  const label = String(count);
+  const textWidth = label.length * CHAR_WIDTH_PX;
+  return Math.max(GROUP_MIN_WIDTH, textWidth + GROUP_PADDING_X);
+}
+
 function isValidPos(ch: Chapter) {
   return ch.width != null && ch.height != null;
 }
 
+function getChapterTitleForDisplay(ch: Chapter) {
+  return clampTitle((ch as any).title ?? (ch as any).name ?? "");
+}
+
+function getChapterTitleFull(ch: Chapter) {
+  const raw = (ch as any).title ?? (ch as any).name ?? "";
+  return String(raw ?? "").trim();
+}
+
+// ---------------------------
+// Render principal
+// ---------------------------
 export function renderChapters(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   chapters: Chapter[],
@@ -101,12 +130,15 @@ export function renderChapters(
     .each(function (ch) {
       const g = d3.select(this);
 
+      // ✅ garante idempotência (evita duplicar append se reusar node em join)
+      g.selectAll("*").remove();
+
       const baseColor = d3.color(ch.color || NO_COLOR) || d3.color(NO_COLOR)!;
       const luminance = d3.lab(baseColor).l;
-      // lab.l vai de 0 a 100
       const textColor = luminance > 50 ? "black" : "white";
 
-      const displayTitle = clampTitle((ch as any).title ?? (ch as any).name ?? "");
+      const displayTitle = getChapterTitleForDisplay(ch);
+      const fullTitle = getChapterTitleFull(ch);
 
       const boxWidth = computeSoloBoxWidth(displayTitle);
       const boxHeight = CHAPTER_HEIGHT;
@@ -127,7 +159,7 @@ export function renderChapters(
         .attr("stroke-width", 1)
         .style("cursor", "pointer");
 
-      // ✅ texto via foreignObject (não captura clique)
+      // texto via foreignObject (não captura clique)
       g.append("foreignObject")
         .attr("x", -boxWidth / 2)
         .attr("y", 0)
@@ -152,7 +184,7 @@ export function renderChapters(
         .style("user-select", "none")
         .text(displayTitle);
 
-      g.append("title").text((ch as any).title || "");
+      g.append("title").text(fullTitle || displayTitle);
 
       g.on("mouseenter", function () {
         ch.focus = true;
@@ -185,16 +217,14 @@ export function renderChapters(
     const y = base.height;
 
     const count = groupChapters.length;
-    const label = `${count}`;
 
-    const textWidth = label.length * CHAR_WIDTH_PX;
-    const boxWidth = Math.max(GROUP_MIN_WIDTH, textWidth + GROUP_PADDING_X);
+    const boxWidth = computeGroupBoxWidth(count);
     const boxHeight = GROUP_HEIGHT;
 
     // Serializa capítulos do grupo em um atributo (para expandir depois)
     const dataChapters = groupChapters
       .map((ch) => {
-        const title = (ch as any).title || NO_TITLE;
+        const title = (ch as any).title || (ch as any).name || NO_TITLE;
         const id = ch.id || NO_ID;
         const color = ch.color || NO_COLOR;
         return `${title}${CHAPTER_FIELD_SEP}${id}${CHAPTER_FIELD_SEP}${color}`;
@@ -203,6 +233,7 @@ export function renderChapters(
 
     const g = svg
       .append("g")
+      .datum(base as any) // ✅ ESSENCIAL: agora o grupo tem __data__ (com yExpanded/yCollapsed)
       .attr("class", "chapter-group")
       .attr("data-group-id", groupKey)
       // ✅ essencial pra animação: escolhe um id representante do grupo
@@ -214,6 +245,12 @@ export function renderChapters(
       // ✅ posicionamento via transform
       .attr("transform", `translate(${x},${y})`)
       .style("cursor", "pointer");
+
+    // ✅ fallback extra (caso alguma lib/padrão externo remova datum)
+    (g.node() as any).__data__ = base;
+
+    // ✅ idempotência defensiva
+    g.selectAll("*").remove();
 
     g.append("rect")
       .attr("x", -boxWidth / 2)
@@ -234,9 +271,14 @@ export function renderChapters(
       .attr("font-family", GROUP_FONT_FAMILY)
       .attr("fill", GROUP_TEXT_COLOR)
       .style("pointer-events", "none")
-      .text(label);
+      .text(String(count));
 
-    g.append("title").text(groupChapters.map((ch) => (ch as any).title).join("\n"));
+    // tooltip do grupo
+    g.append("title").text(
+      groupChapters
+        .map((ch) => getChapterTitleFull(ch) || getChapterTitleForDisplay(ch))
+        .join("\n")
+    );
   }
 
   // Hook externo (ex: expand/collapse)
