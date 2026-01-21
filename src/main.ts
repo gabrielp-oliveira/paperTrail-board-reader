@@ -2,10 +2,16 @@
 import * as d3 from "d3";
 import { renderTimelines } from "./renderTimelines";
 import { renderChapters } from "./renderChapter";
-import { renderStorylines } from "./renderStoryline";
+import {
+  renderStorylines,
+  applyCollapsedTransition,
+  applyStorylinesFadeTransition,
+  animateCollapsedRow
+} from "./renderStoryline";
 import {
   initStorylineUIState,
   renderStorylineControls,
+  getStorylineUIState,
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
@@ -15,21 +21,21 @@ import { hideContextMenu } from "./ui/contextMenu";
  * Layout / Visual constants
  * ---------------------------
  */
-const PIXELS_PER_RANGE = 20; // (antigo RANGE_GAP) usado no computeTotalWidth
-const LEFT_COLUMN_WIDTH = 200; // (antigo LABEL_WIDTH)
-const MIN_VIEWBOX_HEIGHT = 500; // (antigo minHeightDefault)
+const PIXELS_PER_RANGE = 20; // usado no computeTotalWidth
+const LEFT_COLUMN_WIDTH = 200;
+const MIN_VIEWBOX_HEIGHT = 500;
 
 /**
  * ---------------------------
  * Zoom / Pan constants
  * ---------------------------
  */
-const MIN_ZOOM_SCALE = 2; // "maxZoomOut" no seu naming atual
+const MIN_ZOOM_SCALE = 2; // "maxZoomOut"
 const MAX_ZOOM_SCALE = 5;
 
-const PAN_TOP_PADDING_PX = 0; // quanto pode "subir" acima do topo do conteúdo
-const PAN_RIGHT_PADDING_PX = 200; // folga para arrastar um pouco à direita
-const PAN_BOTTOM_PADDING_PX = 100; // folga para arrastar um pouco abaixo
+const PAN_TOP_PADDING_PX = 0;
+const PAN_RIGHT_PADDING_PX = 200;
+const PAN_BOTTOM_PADDING_PX = 100;
 
 /**
  * ---------------------------
@@ -82,7 +88,7 @@ gLeft
  * ✅ Normaliza settings para suportar:
  * - settings antigo (flat): { k, x, y }
  * - settings novo (jsonb): { config: { zoom: { k, x, y }, ... } }
- * - settings config direto: { zoom: { k, x, y }, layout: ... } (quando você manda settings = config)
+ * - settings config direto: { zoom: { k, x, y }, layout: ... }
  */
 function normalizeSettings(input: any): {
   zoom: { k: number; x: number; y: number };
@@ -221,7 +227,10 @@ function zoomAndPan(
   svg
     .transition()
     .duration(0)
-    .call(zoom.transform, d3.zoomIdentity.translate(initialX, initialY).scale(initialScale));
+    .call(
+      zoom.transform,
+      d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
+    );
 
   svg.on("click.hideMenu", () => {
     hideContextMenu();
@@ -253,20 +262,44 @@ function renderBoard(data: any) {
 
   applyThemeFromSettings(settings);
 
+  // ⚠️ Se você quiser animar SEM redesenhar, não pode limpar tudo
+  // quando for só toggle do collapse. Aqui, como renderBoard ainda é usado
+  // para re-render completo (data/set-data, menu), mantém o clear normal:
   gWorld.selectAll("*").remove();
   gLeft.selectAll(":not(rect.board-left-bg)").remove();
 
   const totalWidth = computeTotalWidth(timelines);
 
+  // ✅ Mantém state (não reseta): init só garante consistência com IDs novas/removidas
   initStorylineUIState(storylines);
+
+  // ✅ pega estado atual (pra render inicial já sair no modo correto)
+  const ui = getStorylineUIState();
+  const collapsedAll = !!ui.collapsedAll;
 
   renderStorylineControls(
     gWorld,
     storylines,
     {
+      // ✅ menu/seleção: re-render completo (por enquanto)
       onChange: () => {
         renderBoard({ timelines, storylines, chapters, settings });
       },
+
+      // ✅ CHECKBOX: anima sem re-render
+
+      onCollapseToggle: (checked: boolean) => {
+      // 1) cresce/encolhe a collapsed row (15px ↔ height necessário)
+      animateCollapsedRow(gWorld, gLeft, checked);
+
+      // 2) move chapters pro topo/corpo
+      applyCollapsedTransition(gWorld, checked);
+
+      // 3) fade/slide das storylines
+      applyStorylinesFadeTransition(gWorld, gLeft, checked);
+    },
+
+
     },
     gLeft
   );
@@ -276,7 +309,8 @@ function renderBoard(data: any) {
     storylines,
     timelines,
     chapters,
-    gLeft
+    gLeft,
+    collapsedAll
   );
 
   // ✅ ajusta altura do background da coluna esquerda
