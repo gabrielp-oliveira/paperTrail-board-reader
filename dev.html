@@ -72,19 +72,19 @@
       const { type, data } = event.data || {};
       if (!type) return;
 
-      switch (type) {
-        case "chapter-option-selected":
-          console.log("📘 Chapter option selected:", data);
-          break;
-        case "chapter-focus":
-          console.log("🔍 Chapter focus:", data);
-          break;
-        case "board-transform-update":
-          console.log("🧭 Board transform:", data);
-          break;
-        default:
-          console.log("📨 Evento desconhecido:", event.data);
-      }
+      // switch (type) {
+      //   case "chapter-option-selected":
+      //     console.log("📘 Chapter option selected:", data);
+      //     break;
+      //   case "chapter-focus":
+      //     console.log("🔍 Chapter focus:", data);
+      //     break;
+      //   case "board-transform-update":
+      //     console.log("🧭 Board transform:", data);
+      //     break;
+      //   default:
+      //     console.log("📨 Evento desconhecido:", event.data);
+      // }
     });
   </script>
 
