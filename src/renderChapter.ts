@@ -16,8 +16,8 @@ const CHAR_WIDTH_PX = 6.5;
 // Constantes de layout / sizing
 // ---------------------------
 
-const CHAPTER_PADDING = 6;
-const CHAPTER_MIN_WIDTH = 100;
+const CHAPTER_PADDING = 60;
+const CHAPTER_MIN_WIDTH = 20;
 const CHAPTER_HEIGHT = 25;
 const CHAPTER_RADIUS = 6;
 
