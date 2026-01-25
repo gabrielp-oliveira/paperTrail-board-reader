@@ -6,7 +6,10 @@ import {
   renderStorylines,
   applyCollapsedTransition,
   applyStorylinesFadeTransition,
-  animateCollapsedRow
+  animateCollapsedRow,
+  // (mantidos caso você queira usar depois)
+  getCollapsedRowExpandedHeight,
+  getCollapsedRowCurrentHeight,
 } from "./renderStoryline";
 import {
   initStorylineUIState,
@@ -170,73 +173,6 @@ function applyThemeFromSettings(settings: any) {
   document.body.classList.add(resolved === "dark" ? "dark-mode" : "light-mode");
 }
 
-// 🎯 Zoom/Pan + esconder menu de contexto
-function zoomAndPan(
-  svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>,
-  width: number,
-  height: number,
-  settings: any
-) {
-  const normalized = normalizeSettings(settings);
-
-  const initialScale =
-    typeof normalized.zoom.k === "number" ? normalized.zoom.k : MIN_ZOOM_SCALE;
-  const initialX = typeof normalized.zoom.x === "number" ? normalized.zoom.x : 0;
-  const initialY = typeof normalized.zoom.y === "number" ? normalized.zoom.y : 0;
-
-  const zoom = d3
-    .zoom<SVGSVGElement, unknown>()
-    .filter(
-      (event: any) =>
-        event.type === "wheel" ||
-        event.type === "mousedown" ||
-        event.type === "touchstart"
-    )
-    .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
-    .translateExtent([
-      [0, -PAN_TOP_PADDING_PX],
-      [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
-    ])
-    .on("zoom", (event) => {
-      const { x, y, k } = event.transform;
-
-      gWorld.attr(
-        "transform",
-        d3.zoomIdentity.translate(x, y).scale(k).toString()
-      );
-
-      // ✅ coluna fixa (não depende do X, mas escala e acompanha Y)
-      gLeft.attr("transform", `translate(0,${y}) scale(${k})`);
-
-      hideContextMenu();
-    })
-    .on("end", (event) => {
-      const { x, y, k } = event.transform;
-
-      window.parent.postMessage(
-        {
-          type: "board-transform-update",
-          data: { transform: { x, y, k } },
-        },
-        "*"
-      );
-    });
-
-  svg.call(zoom);
-
-  svg
-    .transition()
-    .duration(0)
-    .call(
-      zoom.transform,
-      d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
-    );
-
-  svg.on("click.hideMenu", () => {
-    hideContextMenu();
-  });
-}
-
 function computeTotalWidth(timelines: any[]): number {
   const timelineWidth = (timelines || []).reduce(
     (sum: number, t: any) => sum + (t?.range ?? 0) * PIXELS_PER_RANGE,
@@ -251,6 +187,124 @@ function applyViewBox(totalWidth: number, height: number) {
   return minHeight;
 }
 
+/**
+ * ---------------------------
+ * Zoom Behavior (persistente)
+ * ---------------------------
+ * ✅ Mantém o zoom vivo entre re-renders e permite atualizar translateExtent
+ * sem resetar o transform atual.
+ */
+let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
+
+function initOrUpdateZoom(width: number, height: number, settings: any) {
+  const svg = svgBase as unknown as d3.Selection<
+    SVGSVGElement,
+    unknown,
+    HTMLElement,
+    any
+  >;
+
+  // transform atual (se já existir)
+  const node = svg.node();
+  const currentTransform = node ? d3.zoomTransform(node) : d3.zoomIdentity;
+
+  if (!zoomBehavior) {
+    const normalized = normalizeSettings(settings);
+
+    const initialScale =
+      typeof normalized.zoom.k === "number" ? normalized.zoom.k : MIN_ZOOM_SCALE;
+    const initialX =
+      typeof normalized.zoom.x === "number" ? normalized.zoom.x : 0;
+    const initialY =
+      typeof normalized.zoom.y === "number" ? normalized.zoom.y : 0;
+
+    zoomBehavior = d3
+      .zoom<SVGSVGElement, unknown>()
+      .filter(
+        (event: any) =>
+          event.type === "wheel" ||
+          event.type === "mousedown" ||
+          event.type === "touchstart"
+      )
+      .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
+      .translateExtent([
+        [0, -PAN_TOP_PADDING_PX],
+        [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
+      ])
+      .on("zoom", (event) => {
+        const { x, y, k } = event.transform;
+
+        gWorld.attr(
+          "transform",
+          d3.zoomIdentity.translate(x, y).scale(k).toString()
+        );
+
+        // ✅ coluna fixa (não depende do X, mas escala e acompanha Y)
+        gLeft.attr("transform", `translate(0,${y}) scale(${k})`);
+
+        hideContextMenu();
+      })
+      .on("end", (event) => {
+        const { x, y, k } = event.transform;
+
+        window.parent.postMessage(
+          {
+            type: "board-transform-update",
+            data: { transform: { x, y, k } },
+          },
+          "*"
+        );
+      });
+
+    svg.call(zoomBehavior);
+
+    // ✅ aplica transform inicial (apenas 1x, no primeiro init)
+    svg
+      .transition()
+      .duration(0)
+      .call(
+        zoomBehavior.transform,
+        d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
+      );
+
+    svg.on("click.hideMenu", () => {
+      hideContextMenu();
+    });
+
+    return;
+  }
+
+  // ✅ update de limites sem resetar o transform atual
+  zoomBehavior
+    .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
+    .translateExtent([
+      [0, -PAN_TOP_PADDING_PX],
+      [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
+    ]);
+
+  svg.call(zoomBehavior);
+
+  // ✅ reaplica o transform atual (mantém exatamente onde o usuário está)
+  svg.call(zoomBehavior.transform, currentTransform);
+}
+
+let lastHeights = {
+  expandedHeight: MIN_VIEWBOX_HEIGHT,
+  collapsedHeight: MIN_VIEWBOX_HEIGHT,
+  visibleHeight: MIN_VIEWBOX_HEIGHT,
+};
+
+/**
+ * ✅ Altura visível do modo atual (expanded vs collapsedAll).
+ * IMPORTANT: usado no toggle sem re-render.
+ */
+function getTargetVisibleHeight(collapsedAll: boolean): number {
+  return Math.max(
+    MIN_VIEWBOX_HEIGHT,
+    collapsedAll ? lastHeights.collapsedHeight : lastHeights.expandedHeight
+  );
+}
+
 // ✅ centraliza o re-render (pra UI controls poder chamar)
 function renderBoard(data: any) {
   const { timelines, storylines, chapters, settings } = data;
@@ -262,9 +316,7 @@ function renderBoard(data: any) {
 
   applyThemeFromSettings(settings);
 
-  // ⚠️ Se você quiser animar SEM redesenhar, não pode limpar tudo
-  // quando for só toggle do collapse. Aqui, como renderBoard ainda é usado
-  // para re-render completo (data/set-data, menu), mantém o clear normal:
+  // re-render completo
   gWorld.selectAll("*").remove();
   gLeft.selectAll(":not(rect.board-left-bg)").remove();
 
@@ -277,34 +329,13 @@ function renderBoard(data: any) {
   const ui = getStorylineUIState();
   const collapsedAll = !!ui.collapsedAll;
 
-  renderStorylineControls(
-    gWorld,
-    storylines,
-    {
-      // ✅ menu/seleção: re-render completo (por enquanto)
-      onChange: () => {
-        renderBoard({ timelines, storylines, chapters, settings });
-      },
-
-      // ✅ CHECKBOX: anima sem re-render
-
-      onCollapseToggle: (checked: boolean) => {
-      // 1) cresce/encolhe a collapsed row (15px ↔ height necessário)
-      animateCollapsedRow(gWorld, gLeft, checked);
-
-      // 2) move chapters pro topo/corpo
-      applyCollapsedTransition(gWorld, checked);
-
-      // 3) fade/slide das storylines
-      applyStorylinesFadeTransition(gWorld, gLeft, checked);
-    },
-
-
-    },
-    gLeft
-  );
-
-  const { chapters: renderedChapters, height } = renderStorylines(
+  // ✅ render base de storylines + chapters (calcula cache e heights)
+  const {
+    chapters: renderedChapters,
+    height,
+    expandedHeight,
+    collapsedHeight,
+  } = renderStorylines(
     gWorld,
     storylines,
     timelines,
@@ -313,16 +344,80 @@ function renderBoard(data: any) {
     collapsedAll
   );
 
-  // ✅ ajusta altura do background da coluna esquerda
-  gLeft
-    .select<SVGRectElement>("rect.board-left-bg")
-    .attr("height", Math.max(MIN_VIEWBOX_HEIGHT, height));
+  // ✅ cache atualizado SEM logs
+  lastHeights = {
+    expandedHeight,
+    collapsedHeight,
+    visibleHeight: Math.max(MIN_VIEWBOX_HEIGHT, height),
+  };
 
-  renderTimelines(gWorld, timelines, height);
+  // ✅ ajusta altura do background da coluna esquerda (sempre pela altura VISÍVEL atual)
+  const bgHeight = lastHeights.visibleHeight;
+  gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", bgHeight);
+
+  // ✅ timelines: usa o height visível atual do render
+  renderTimelines(gWorld, timelines, lastHeights.visibleHeight, {
+    collapsedAll,
+    expandedBoardHeight: lastHeights.expandedHeight,
+    collapsedBoardHeight: lastHeights.collapsedHeight,
+    animate: false,
+  });
+
   renderChapters(gWorld, renderedChapters, setupGroupInteraction);
 
-  const minHeight = applyViewBox(totalWidth, height);
-  svgBase.call((svg) => zoomAndPan(svg, totalWidth, minHeight, settings));
+  // ✅ Controls por último, porque precisam do estado inicial pronto
+  renderStorylineControls(
+    gWorld,
+    storylines,
+    {
+      onChange: () => {
+        // ✅ re-render completo (mantém zoom via initOrUpdateZoom)
+        renderBoard({ timelines, storylines, chapters, settings });
+      },
+
+      // ✅ CHECKBOX: anima sem re-render completo
+      onCollapseToggle: (checked: boolean) => {
+
+
+        // aquiiii -> se ops valores desse metodo, de alguma forma, na animacao pra mudar a altura das timelines
+        console.log(checked, getCollapsedRowCurrentHeight())
+        // 1) anima row + fades do mundo
+        animateCollapsedRow(gWorld, gLeft, checked);
+        applyCollapsedTransition(gWorld, checked);
+        applyStorylinesFadeTransition(gWorld, gLeft, checked);
+
+        // ✅ 2) ALTURA CORRETA DO MODO ATUAL (isso estava errado antes)
+        const targetVisibleHeight = getTargetVisibleHeight(checked);
+        lastHeights.visibleHeight = targetVisibleHeight;
+
+        // ✅ 3) timelines/grid reagem usando a altura correta (não a antiga)
+        renderTimelines(gWorld, timelines, targetVisibleHeight, {
+          collapsedAll: checked,
+          expandedBoardHeight: lastHeights.expandedHeight,
+          collapsedBoardHeight: lastHeights.collapsedHeight,
+          animate: true,
+        });
+
+        // ✅ 4) viewBox + zoom extents reagem imediatamente (sem resetar transform)
+        const minHeight = applyViewBox(totalWidth, targetVisibleHeight);
+        initOrUpdateZoom(totalWidth, minHeight, settings);
+
+        // ✅ 5) anima background esquerdo para acompanhar o modo
+        gLeft
+          .select<SVGRectElement>("rect.board-left-bg")
+          .interrupt()
+          .transition()
+          .duration(350)
+          .ease(d3.easeCubicInOut)
+          .attr("height", targetVisibleHeight);
+      },
+    },
+    gLeft
+  );
+
+  // ✅ viewBox inicial + zoom init/update
+  const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
+  initOrUpdateZoom(totalWidth, minHeight, settings);
 }
 
 // 📩 Recebe dados do app pai

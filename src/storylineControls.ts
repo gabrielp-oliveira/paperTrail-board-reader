@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import { StoryLine } from "./types";
 import { hideGroup } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
-import { applyCollapsedTransition } from "./renderStoryline";
+import { applyCollapsedTransition, getCollapsedRowCurrentHeight } from "./renderStoryline";
 
 // UI-only: Controls + Menu (não renderiza rows / não calcula layout)
 

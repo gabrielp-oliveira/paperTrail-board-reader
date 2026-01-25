@@ -78,7 +78,7 @@ type LayoutCache = {
   collapsedExpandedHeight: number;
   expandedChapterY: Map<string, number>;
   collapsedChapterY: Map<string, number>;
-  // ✅ novas: alturas de board
+  // ✅ novas: alturas de board (pra timelines/bg acompanharem)
   expandedBoardHeight: number;
   collapsedBoardHeight: number;
 };
@@ -142,6 +142,11 @@ function estimateBucketWidth(bucket: Chapter[]) {
   return estimateSoloWidthFromChapter(bucket[0]);
 }
 
+/**
+ * ✅ computeLayering agora recebe um bucketKeyFn.
+ * Importante: no collapsed/global você NÃO pode bucketear só por timeline+range,
+ * senão mistura storylines diferentes e dá overlap.
+ */
 function computeLayering(
   group: Chapter[],
   timelineOrderMap: Map<string, number>,
@@ -288,6 +293,35 @@ function drawCollapsedRow(
 }
 
 // ---------------------------
+// ✅ PUBLIC: layout cache getters (pra main.ts)
+// ---------------------------
+export function getStorylinesLayoutCache() {
+  return lastLayoutCache;
+}
+
+/**
+ * ✅ “tamanho grande” determinístico da collapsed row (target)
+ */
+export function getCollapsedRowExpandedHeight(): number {
+  return (
+    lastLayoutCache?.collapsedExpandedHeight ?? COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
+  );
+}
+
+/**
+ * ✅ altura atual “real-time” (lida do DOM)
+ */
+export function getCollapsedRowCurrentHeight(): number {
+  const el = d3.select<SVGRectElement, unknown>("rect.storyline-band-collapsed");
+  if (el.empty()) {
+    return lastLayoutCache?.collapsedMinHeight ?? COLLAPSED_ROW_MIN_HEIGHT;
+  }
+  const h = parseFloat(el.attr("height") || "0");
+  if (Number.isFinite(h) && h > 0) return h;
+  return lastLayoutCache?.collapsedMinHeight ?? COLLAPSED_ROW_MIN_HEIGHT;
+}
+
+// ---------------------------
 // ✅ PUBLIC: anima altura da collapsed row global
 // ---------------------------
 export function animateCollapsedRow(
@@ -361,9 +395,7 @@ export function applyCollapsedTransition(
   if (nodes.empty()) return;
 
   const toY = (id: string) =>
-    collapsedAll
-      ? cache.collapsedChapterY.get(id)
-      : cache.expandedChapterY.get(id);
+    collapsedAll ? cache.collapsedChapterY.get(id) : cache.expandedChapterY.get(id);
 
   nodes
     .transition()
@@ -535,6 +567,7 @@ export function renderStorylines(
 
   const allChapters = chapters ?? [];
 
+  // ✅ bucket por storyline+timeline+range pra não juntar storylines diferentes no mesmo X
   const collapsedLayering = computeLayering(
     allChapters,
     timelineOrderMap,
@@ -613,7 +646,9 @@ export function renderStorylines(
         yExpandedRow,
         layeringExpanded.layers
       );
-      for (const ch of group) cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
+      for (const ch of group) {
+        cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
+      }
 
       // ✅ só o layout expandido avança
       expandedHeightAcc += rowHeight + STORYLINE_GAP;
@@ -633,7 +668,7 @@ export function renderStorylines(
             width: x,
             height: yCollapsed,
             group: groupId ?? `__solo__${ch.id}`,
-            ...( { yCollapsed, yExpanded } as any ),
+            ...({ yCollapsed, yExpanded } as any),
           });
         });
       });
@@ -642,7 +677,7 @@ export function renderStorylines(
     }
 
     // ---------------------------------------------------------
-    // 2) collapsed inline: AQUI É VISÍVEL, então ambos acumuladores avançam
+    // 2) collapsed inline: VISÍVEL, então ambos acumuladores avançam
     // ---------------------------------------------------------
     if (isCollapsedThisOne) {
       const layering = computeLayering(
@@ -699,7 +734,10 @@ export function renderStorylines(
 
       left
         .append("foreignObject")
-        .attr("class", "storyline-left-label storyline-left-label-collapsed-inline")
+        .attr(
+          "class",
+          "storyline-left-label storyline-left-label-collapsed-inline"
+        )
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", 1)
@@ -737,7 +775,7 @@ export function renderStorylines(
             width: x,
             height: yExpanded,
             group: groupId ?? `__solo__${ch.id}`,
-            ...( { yCollapsed, yExpanded } as any ),
+            ...({ yCollapsed, yExpanded } as any),
           });
         });
       });
@@ -837,7 +875,7 @@ export function renderStorylines(
           width: x,
           height: yExpanded,
           group: groupId ?? `__solo__${ch.id}`,
-          ...( { yCollapsed, yExpanded } as any ),
+          ...({ yCollapsed, yExpanded } as any),
         });
       });
     });
@@ -849,11 +887,13 @@ export function renderStorylines(
   lastLayoutCache = cache;
 
   // ✅ height = altura VISÍVEL atual (pra timelines line / bg acompanhar)
-  // ✅ expandedHeight = altura real expandida (se você quiser usar em outro lugar)
+  // - se collapsedAll: height deve ser visibleHeight
+  // - senão: height deve ser expandedHeightAcc
   return {
     chapters: updatedChapters,
     height: collapsedAll ? visibleHeight : expandedHeightAcc,
     expandedHeight: expandedHeightAcc,
     collapsedHeight: visibleHeight,
+    
   };
 }
