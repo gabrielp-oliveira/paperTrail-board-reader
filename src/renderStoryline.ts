@@ -260,6 +260,28 @@ export function getCollapsedRowCurrentHeight(): number {
 }
 
 // ---------------------------
+// ✅ PUBLIC: adiciona handler de clique na collapsed row global
+// ---------------------------
+export function setupCollapsedRowInteraction(
+  worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
+  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
+  onClick: () => void
+) {
+  const targets = [
+    worldLayer.select<SVGRectElement>("rect.storyline-band-collapsed"),
+    leftLayer.select<SVGRectElement>("rect.storyline-left-col-collapsed"),
+    leftLayer.select<SVGForeignObjectElement>("foreignObject.storyline-left-label-collapsed"),
+  ] as const;
+
+  targets.forEach((sel) => {
+    sel.style("cursor", "pointer").on("click.collapseRow", (event) => {
+      event.stopPropagation();
+      onClick();
+    });
+  });
+}
+
+// ---------------------------
 // ✅ PUBLIC: anima altura da collapsed row global
 // ---------------------------
 export function animateCollapsedRow(
@@ -572,6 +594,7 @@ export function renderStorylines(
 
     // ---------------------------------------------------------
     // 1) collapsedAll: NÃO aumenta visibleHeight (só expandedHeightAcc)
+    //    Renderiza elementos com opacity=0 para que a animação de expand funcione
     // ---------------------------------------------------------
     if (collapsedAll) {
       const layeringExpanded = computeLayering(
@@ -595,6 +618,66 @@ export function renderStorylines(
 
       // ✅ só o layout expandido avança
       expandedHeightAcc += rowHeight + StorylinesUI.STORYLINE_GAP;
+
+      // Renderiza elementos invisíveis (opacity=0) para que a animação de expand os encontre
+      const initialY = collapsedY - StorylinesUI.FADE_UP_PX;
+
+      worldLayer
+        .append("rect")
+        .attr("class", "storyline-band")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", StorylinesUI.BAND_OPACITY)
+        .attr("x", xStart + StorylinesUI.COL_ROW_MARGIN)
+        .attr("y", initialY)
+        .attr("width", xEnd - xStart)
+        .attr("height", rowHeight)
+        .attr("fill", StorylinesUI.BAND_FILL)
+        .attr("stroke", StorylinesUI.BAND_STROKE)
+        .attr("stroke-dasharray", StorylinesUI.BAND_STROKE_DASHARRAY)
+        .attr("stroke-width", StorylinesUI.BAND_STROKE_WIDTH)
+        .attr("rx", StorylinesUI.BAND_RX)
+        .attr("ry", StorylinesUI.BAND_RY)
+        .attr("opacity", 0);
+
+      left
+        .append("rect")
+        .attr("class", "storyline-left-col")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", 1)
+        .attr("x", StorylinesUI.LEFT_PADDING)
+        .attr("y", initialY)
+        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
+        .attr("height", rowHeight)
+        .attr("fill", StorylinesUI.LEFT_COL_FILL)
+        .attr("stroke", StorylinesUI.LEFT_COL_STROKE)
+        .attr("stroke-dasharray", StorylinesUI.LEFT_COL_STROKE_DASHARRAY)
+        .attr("opacity", 0);
+
+      left
+        .append("foreignObject")
+        .attr("class", "storyline-left-label")
+        .attr("data-storyline-id", storylineId)
+        .attr("data-y", yExpandedRow)
+        .attr("data-opacity", 1)
+        .attr("x", StorylinesUI.LEFT_PADDING)
+        .attr("y", initialY)
+        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
+        .attr("height", rowHeight)
+        .attr("opacity", 0)
+        .append("xhtml:div")
+        .style("display", "flex")
+        .style("flex-wrap", "wrap")
+        .style("align-items", "center")
+        .style("justify-content", "center")
+        .style("height", `${rowHeight}px`)
+        .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
+        .style("font-size", StorylinesUI.LABEL_FONT_SIZE)
+        .style("font-weight", StorylinesUI.LABEL_FONT_WEIGHT)
+        .style("color", StorylinesUI.LABEL_COLOR)
+        .style("text-align", "center")
+        .text(storyline.name);
 
       const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {

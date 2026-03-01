@@ -1,360 +1,229 @@
-# PaperTrail Board Reader
+# PaperTrail Board
 
-> ⚠️ This README reflects the **actual implementation based on the source code**, not previous documentation.
+A narrative board renderer built with SVG and D3.js, designed to run inside an **iframe or WebView**. The parent application sends story data via `postMessage`, and the board renders an interactive grid where chapters are laid out across storylines and timelines.
 
----
+## Stack
 
-# Overview
+- **Vite** – build tooling and dev server
+- **TypeScript** – strict mode, ESNext target
+- **D3.js v7** – SVG rendering, zoom/pan, transitions
 
-This project is a **narrative board renderer** built with:
+## Getting Started
 
-* Vite
-* TypeScript
-* D3.js
-* SVG
-
-It is designed to run inside an **iframe/WebView** and receive data from a parent application via `postMessage`.
-
-The board visualizes:
-
-* **Timelines** (horizontal progression, X axis)
-* **Storylines** (rows, Y axis)
-* **Chapters** (positioned blocks inside storylines)
-* **Chapter Groups** (collapsed aggregations of chapters sharing the same group)
-
-The layout engine is deterministic and based on:
-
-* Timeline `order` and `range`
-* Chapter `timeline_id`
-* Chapter `range`
-* Storyline `order`
-
----
-
-# Coordinate System
-
-The board uses an SVG with two main layers:
-
-* `gWorld` → zoomable (timelines, storylines, chapters)
-* `gLeft` → fixed left column (labels and controls)
-
-The coordinate system works as follows:
-
-## X Axis (Horizontal – Time)
-
-The X position of a chapter is determined by:
-
-1. The sum of all **timeline ranges to its left**
-2. Plus the chapter's own `range`
-3. Multiplied by a pixel multiplier
-
-### Pixel multiplier
-
-Each unit of `range` equals:
-
-```
-20px
+```bash
+npm install
+npm run dev    # dev server with HMR
+npm run build  # production build → dist/
 ```
 
 ---
 
-## Timeline Horizontal Offset Calculation
+## SVG Architecture
 
-For a chapter belonging to timeline T:
+The board renders a single `<svg>` element with two main layers inside a root `<g>`:
 
 ```
-X = (
-    sum(timeline.range for all timelines where timeline.order < T.order)
-    + chapter.range
-) * 20
+svgBase  (preserveAspectRatio="xMinYMin meet", 100% width/height)
+└── gRoot
+    ├── gWorld   ← receives the D3 zoom transform (timelines, storyline bands, chapters)
+    └── gLeft    ← fixed to the left edge; follows vertical pan but not horizontal pan
+         └── rect.board-left-bg  ← background of the 200px fixed column
 ```
 
-This ensures:
-
-* Timelines are laid sequentially
-* Chapters are positioned relative to their timeline's start
-* Timeline width is proportional to its `range`
+`gLeft` contains storyline labels, the "Collapse all" toggle, and the "Storylines" dropdown. It stays fixed horizontally regardless of pan position.
 
 ---
 
-# Timeline Rendering
+## Source Files
 
-Timelines are rendered as:
-
-* Vertical grid separators
-* Header labels at the top
-
-The width of each timeline is:
-
-```
-timeline.range * 20px
-```
-
-The total board width is:
-
-```
-sum(all timeline.range) * 20px
-```
+| File | Responsibility |
+|------|---------------|
+| [`src/main.ts`](src/main.ts) | Entry point. Creates SVG layers, initializes zoom/pan behavior, orchestrates `renderBoard()`, handles `postMessage` and `ResizeObserver` |
+| [`src/types.ts`](src/types.ts) | All TypeScript types: `world`, `Chapter`, `StoryLine`, `Timeline`, `Subway_Settings`, etc. |
+| [`src/globalVariables.ts`](src/globalVariables.ts) | Single source of truth for all layout constants, grouped into namespaces (`Layout`, `Controls`, `ZoomPan`, `TimelinesUI`, `StorylinesUI`, `ChaptersUI`, `ChapterGroupExpandedUI`, `StorylineControlsUI`, `StorylineMenu`, `LeftBg`) |
+| [`src/renderStoryline.ts`](src/renderStoryline.ts) | Renders storyline row bands and left-column labels; computes collision-based layer stacking; animates global collapse/expand transitions; maintains `LayoutCache` |
+| [`src/renderTimelines.ts`](src/renderTimelines.ts) | Renders timeline header rects, labels, and vertical grid lines; supports animated height transitions |
+| [`src/renderChapter.ts`](src/renderChapter.ts) | Renders solo chapter boxes (colored cards) and collapsed group boxes (count badge); fires `chapter-focus` events on hover |
+| [`src/expandChapterGroup.ts`](src/expandChapterGroup.ts) | Expands a group box into a full card with a chapter list; collapses it back; attaches context menu to chapter clicks |
+| [`src/storylineControls.ts`](src/storylineControls.ts) | "Collapse all" toggle switch and "Storylines ▾" dropdown menu in the fixed left column; manages `StorylineUIState` |
+| [`src/ui/contextMenu.ts`](src/ui/contextMenu.ts) | Floating context menu shown when clicking a chapter; sends `chapter-option-selected` to parent |
+| [`src/style.css`](src/style.css) | Global styles, light/dark theme via `.light-mode` / `.dark-mode` body classes |
+| [`src/contextMenu.css`](src/contextMenu.css) | Styles for the context menu overlay |
 
 ---
 
-# Y Axis (Vertical – Storylines)
-
-Storylines behave like table rows.
-
-They are rendered in ascending order of:
+## Render Flow
 
 ```
-storyline.order
-```
-
-Each storyline occupies a vertical band.
-
----
-
-# Storyline Height Calculation
-
-The height of a storyline is dynamic.
-
-It depends on:
-
-* Number of chapters inside it
-* Collision stacking (chapters that overlap horizontally)
-
----
-
-## Chapter Collision and Vertical Layering
-
-Within a storyline:
-
-1. Chapters are sorted by X
-2. For each chapter:
-
-   * If it overlaps an existing chapter horizontally
-   * It is pushed to the next vertical "layer"
-
-Each layer increases Y offset by a fixed vertical spacing.
-
-So final Y for a chapter is:
-
-```
-Y = storylineBaseY + (layerIndex * verticalSpacing)
-```
-
-Where:
-
-* `storylineBaseY` = top position of the storyline row
-* `layerIndex` = 0 for first layer, 1 for stacked, etc
-
-The total storyline height is determined by the highest layer used.
-
----
-
-# Chapter Rendering
-
-Chapters are rendered differently depending on whether they belong to a group.
-
----
-
-## 1️⃣ Solo Chapters
-
-A chapter is considered "solo" when:
-
-```
-chapter.group starts with "__solo__"
-```
-
-Rendered as:
-
-* Colored rectangular card
-* Width proportional to chapter.range
-* Displays chapter title
-
-### Width Calculation
-
-```
-width = chapter.range * 20px
-```
-
-### Position
-
-```
-x = calculated timeline offset
-
-y = calculated storyline layer position
+postMessage({ type: "set-data", data })
+  └── renderBoard(data)
+        ├── applyThemeFromSettings()        ← applies light/dark/system theme
+        ├── gWorld.selectAll("*").remove()  ← full DOM clear
+        ├── initStorylineUIState()          ← syncs collapsedAll from DB
+        ├── renderStorylines()             ← layout engine + draws bands/labels
+        ├── renderTimelines()              ← draws headers + grid lines
+        ├── renderChapters()              ← draws solo + group boxes
+        ├── setupGroupInteraction()        ← attaches click/keyboard handlers
+        ├── renderStorylineControls()      ← draws toggle + dropdown
+        ├── applyViewBox()                 ← fits SVG viewBox to container
+        └── initOrUpdateZoom()             ← sets pan/zoom extents (preserves current transform)
 ```
 
 ---
 
-## 2️⃣ Chapter Groups (Collapsed State)
+## Coordinate System
 
-If multiple chapters share the same `group` value:
+| Axis | Formula |
+|------|---------|
+| **X** | `LEFT_COLUMN_WIDTH(200) + sum(preceding timeline ranges) * 20px + chapter.range * 20px` |
+| **Y** | `storylineBaseY + layerIndex * (STACK_ITEM_HEIGHT(28) + CHAPTER_VERTICAL_MARGIN(8))` |
 
-They are aggregated into a single "group block".
-
-Rendered as:
-
-* White rectangular card
-* Fixed width (collapsed state)
-* Displays number of chapters
-
-The group stores serialized chapter data inside:
-
-```
-data-chapters="title|||id|||color 🟰 ..."
-```
-
-Position of group block:
-
-* X = same calculation as individual chapters
-* Y = based on collision stacking
-
-Group width does NOT represent the sum of child ranges.
+- **20 px per range unit** (`PIXELS_PER_RANGE`)
+- Chapters within the same storyline that overlap horizontally are stacked vertically into layers (collision-based greedy algorithm)
+- `chapter.width` stores the computed X position; `chapter.height` stores the computed Y position
 
 ---
 
-# Expanded Group Rendering
+## Layout Modes
 
-When a group is clicked:
+### 1. Expanded (default)
+All storyline rows are visible. Each chapter sits at its calculated `(x, y)`.
 
-* It expands into a larger card (fixed expanded width)
-* Shows a vertical list of child chapters
-* Only one group can be expanded at a time
+### 2. Collapse All
+All chapters animate upward into a global "collapsed row" (blue band at the top). Storyline bands and labels fade out. Activated by the "Collapse all" toggle — **no full re-render**, only D3 transitions on existing DOM elements.
 
-Expansion does NOT recalculate layout.
-It overlays content within the same base position.
-
----
-
-# Collapsed Mode (Global Collapse)
-
-There is a special mode controlled by the "Collapse" toggle.
-
-When enabled:
-
-* All storylines fade out
-* All chapters move into a single collapsed lane
-* A single horizontal band is rendered
-
-Chapter Y transitions from:
-
-```
-yExpanded → yCollapsed
-```
-
-Where:
-
-```
-yCollapsed = collapsedLaneBaseY
-```
-
-This is animated using D3 transitions.
-
-No full re-render occurs — only transforms are animated.
+### 3. Inline Collapsed (per storyline)
+Individual storylines can be hidden via the Storylines dropdown. The storyline row shrinks to a compact blue band.
 
 ---
 
-# Storyline Ordering and Placement
+## Collapse Toggle (animation-only path)
 
-Storylines are rendered sequentially:
+When the user flips "Collapse all":
 
-```
-Sorted by storyline.order ascending
-```
+1. `animateCollapsedRow()` – animates the height of the global collapsed row band
+2. `applyCollapsedTransition()` – animates each chapter's Y between `yExpanded` and `yCollapsed`
+3. `applyStorylinesFadeTransition()` – fades storyline bands/labels in/out with a slide
+4. `renderTimelines()` – redraws grid lines to the new height (animated)
+5. `applyViewBox()` + `initOrUpdateZoom()` – animates viewBox, updates pan extents without resetting the current transform
 
-Each storyline base Y is:
-
-```
-previousStorylineBottom + gap
-```
-
-Gap is a fixed vertical spacing between rows.
+> **Key detail:** even when `collapsedAll=true` on initial load, `renderStorylines()` still creates all storyline band/label DOM elements (hidden with `opacity: 0`). This ensures the expand animation always has elements to transition into view.
 
 ---
 
-# Board Height Calculation
+## LayoutCache
 
-Expanded mode height:
+After each `renderStorylines()`, an internal cache is stored in `renderStoryline.ts` and used by all animation functions:
 
+```ts
+{
+  collapsedY: number                  // Y of the top edge of the global collapsed row
+  collapsedMinHeight: number          // row height when collapsed is closed (thin bar)
+  collapsedExpandedHeight: number     // row height when collapsed is open (full)
+  expandedChapterY: Map<id, number>   // Y of each chapter in expanded mode
+  collapsedChapterY: Map<id, number>  // Y of each chapter in collapsed mode
+  expandedBoardHeight: number         // total board height in expanded mode
+  collapsedBoardHeight: number        // total board height in collapsed mode
+}
 ```
-sum(all storyline heights + gaps)
-```
-
-Collapsed mode height:
-
-```
-collapsedLaneHeight
-```
-
-The SVG viewBox and zoom translateExtent are recalculated accordingly.
 
 ---
 
-# Zoom & Pan
+## postMessage API
 
-Zoom scale range:
+### Receiving (from parent → board)
 
+```ts
+window.postMessage({
+  type: "set-data",
+  data: {
+    timelines: Timeline[],
+    storylines: StoryLine[],
+    chapters: Chapter[],
+    settings: {
+      config: {
+        collapsedAll: boolean,           // initial collapse state
+        zoom: { k: number, x: number, y: number }, // saved pan/zoom
+        theme: { mode: "light" | "dark" | "system" }
+      }
+    }
+  }
+})
 ```
-2x to 5x
+
+### Sending (board → parent)
+
+| `type` | `data` | When |
+|--------|--------|------|
+| `board-transform-update` | `{ transform: { x, y, k } }` | On every zoom/pan end |
+| `board-settings-update` | `{ collapsedAll: boolean }` | When toggle changes or storyline filter changes |
+| `chapter-focus` | `{ id: string, focus: boolean }` | On chapter hover enter/leave |
+| `chapter-option-selected` | `{ chapterId: string, option: string }` | When a context menu option is clicked |
+
+---
+
+## Data Types
+
+```ts
+type Chapter = {
+  id: string
+  title: string
+  timeline_id: string    // which timeline column it belongs to
+  storyline_id: string   // which storyline row it belongs to
+  range: number          // X position in range units within its timeline
+  order: number
+  color: string          // hex color for the chapter card
+  group?: string         // "__solo__<id>" for single; "group-<storylineId>-<key>" for grouped
+  // computed by renderStorylines:
+  width?: number         // final X position in px
+  height?: number        // final Y position in px
+  yCollapsed?: number    // Y position in collapsed mode
+}
+
+type StoryLine = {
+  id: string; name: string; description: string; order: number; world_id: string
+}
+
+type Timeline = {
+  id: string; name: string; description: string; order: number; range: number; world_id: string
+}
 ```
 
-* X and Y translation allowed within bounds
-* Left column does not move horizontally
-* Transform is persisted via postMessage
+**Chapter grouping:** chapters that share the same `timeline_id` and `range` within a storyline are grouped automatically. A group renders as a single badge with a count; clicking expands it into a card listing each chapter individually.
 
 ---
 
-# Rendering Flow
+## Chapter Interaction
 
-1. Parent sends `{ type: "set-data", data }`
-2. normalizeSettings()
-3. Render timelines
-4. Render storylines
-5. Calculate layout
-6. Render chapters
-7. Attach group interaction
-8. Setup zoom
+- **Solo chapter click** → context menu with `["Chapter Details", "Read Chapter"]`
+- **Group click** → expands into a card (only one open at a time; clicking outside or another group collapses it)
+- **Item inside expanded group click** → same context menu
+- **Chapter hover** → sends `chapter-focus` to parent (used to highlight in the parent UI)
 
 ---
 
-# Required Data Fields
+## Zoom & Pan
 
-## Timeline
+| Setting | Value |
+|---------|-------|
+| Min zoom | 2× |
+| Max zoom | 5× |
+| Pan right padding | 200 px |
+| Pan bottom padding | 100 px |
 
-* id
-* order
-* range
-
-## Storyline
-
-* id
-* order
-* name
-
-## Chapter
-
-* id
-* title
-* timeline_id
-* storyline_id
-* range
-* group
+The zoom transform is applied to `gWorld`. `gLeft` applies only the Y translation and scale, keeping labels fixed horizontally. The current transform is persisted via `board-transform-update` and restored from `settings.config.zoom` on the next `set-data`.
 
 ---
 
-# Summary
+## Constants Reference
 
-The board layout is entirely deterministic and based on:
+All constants live in [`src/globalVariables.ts`](src/globalVariables.ts):
 
-* Timeline sequential range accumulation (X)
-* Storyline vertical stacking (Y)
-* Collision-based layering
-* 20px per range unit
-
-Chapters and groups are positioned using calculated X/Y derived from timeline offsets and storyline stacking logic.
-
-No automatic layout engine is used — everything is explicitly computed in the renderer.
-
----
-
-End of documentation.
+| Namespace | Key constants |
+|-----------|--------------|
+| `Layout` | `PIXELS_PER_RANGE=20`, `LEFT_COLUMN_WIDTH=200`, `CHAPTER_VERTICAL_MARGIN=8`, `MIN_VIEWBOX_HEIGHT=500` |
+| `Controls` | `HEIGHT=52`, `BOTTOM_PADDING=18` |
+| `ZoomPan` | `MIN_ZOOM_SCALE=2`, `MAX_ZOOM_SCALE=5` |
+| `TimelinesUI` | `HEADER_HEIGHT=45`, `ANIM_MS=350` |
+| `StorylinesUI` | `DEFAULT_ROW_HEIGHT=50`, `STACK_ITEM_HEIGHT=28`, `COLLAPSE_ANIM_MS=450`, `FADE_ANIM_MS=420`, `FADE_UP_PX=40` |
+| `ChaptersUI` | `SOLO_BOX_HEIGHT=25`, `GROUP_BOX_HEIGHT=28`, `MAX_TITLE_CHARS=20` |

@@ -183,6 +183,69 @@ g.chapter-item:hover rect.chapter-bullet {
   color: #ffffff;
 }
 
+/* ===== COLLAPSED ROW GLOBAL (clicável) ===== */
+rect.storyline-band-collapsed,
+rect.storyline-left-col-collapsed,
+foreignObject.storyline-left-label-collapsed {
+  cursor: pointer;
+}
+
+body.light-mode rect.storyline-band-collapsed {
+  fill: #dbeafe !important;
+  stroke: #6aa6d8 !important;
+  stroke-width: 1.5 !important;
+  opacity: 0.85 !important;
+}
+
+body.light-mode rect.storyline-left-col-collapsed {
+  fill: #eff6ff !important;
+  stroke: #6aa6d8 !important;
+  stroke-width: 1.5 !important;
+}
+
+body.light-mode foreignObject.storyline-left-label-collapsed div {
+  color: #1e4d7a !important;
+}
+
+body.dark-mode rect.storyline-band-collapsed {
+  fill: #1e3a5f !important;
+  stroke: #4a78aa !important;
+  stroke-width: 1.5 !important;
+  opacity: 0.85 !important;
+}
+
+body.dark-mode rect.storyline-left-col-collapsed {
+  fill: #162f4d !important;
+  stroke: #4a78aa !important;
+  stroke-width: 1.5 !important;
+}
+
+body.dark-mode foreignObject.storyline-left-label-collapsed div {
+  color: #7eb8e8 !important;
+}
+
+/* ===== PREVENT TEXT SELECTION na coluna esquerda ===== */
+foreignObject.storyline-left-label div,
+foreignObject.storyline-left-label-collapsed div,
+foreignObject.storyline-left-label-collapsed-inline div {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.storyline-controls-root,
+.storyline-controls-root * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.storyline-menu-root,
+.storyline-menu-root div,
+.storyline-menu-root span,
+.storyline-menu-root button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* ===== MODO CLARO ===== */
 body.light-mode {
   background-color: #ffffff;
@@ -201,36 +264,164 @@ body.light-mode .timeline-txt {
   fill: #222222;
 }
 
-/* body.light-mode rect.chapter-bullet {
-  fill: #8ccbe7;
+/* Left column */
+body.light-mode rect.board-left-bg {
+  fill: #fafafa;
+  stroke: #ddd;
 }
 
-body.light-mode rect.chapter-bullet:hover {
-  fill: #4aa9d8;
-} */
+/* Storyline bands & labels */
+body.light-mode rect.storyline-band {
+  fill: #e5e5e5;
+  stroke: #999;
+}
+
+body.light-mode rect.storyline-left-col {
+  fill: #fafafa;
+  stroke: #ccc;
+}
+
+body.light-mode foreignObject.storyline-left-label div {
+  color: #333 !important;
+}
+
+/* Controls */
+body.light-mode .storyline-controls-root span {
+  color: #666 !important;
+}
+
+body.light-mode .storyline-controls-root button {
+  background: #f4f4f4 !important;
+  color: #444 !important;
+  border-color: #d5d5d5 !important;
+}
+
+/* Dropdown menu */
+body.light-mode g.storyline-controls-menu rect {
+  fill: #ffffff;
+  stroke: #bbb;
+}
+
+body.light-mode .storyline-menu-root {
+  background: #ffffff !important;
+  color: #333 !important;
+}
+
+body.light-mode .storyline-menu-root div {
+  color: #333 !important;
+}
+
+/* Context menu */
+body.light-mode #context-menu {
+  background: #ffffff;
+  border-color: #e0e0e0;
+  color: #222;
+}
+
+body.light-mode .context-menu-item:hover {
+  background-color: #000000;
+  color: #ffffff;
+}
 
 /* ===== MODO ESCURO ===== */
 body.dark-mode {
-  background-color: #2a2a2a;
+  background-color: #1e1e1e;
 }
 
 body.dark-mode .timeline-rect {
-  fill: #3b3b3b;
-  stroke: #666666;
+  fill: #2d2d2d;
+  stroke: #555;
 }
 
 body.dark-mode .timeline-header {
-  fill: #3b3b3b;
+  fill: #2d2d2d;
 }
 
 body.dark-mode .timeline-txt {
-  fill: #f0f0f0;
+  fill: #e8e8e8;
 }
 
-/* body.dark-mode rect.chapter-bullet {
-  fill: #6ca4c8;
-} */
+/* Left column */
+body.dark-mode rect.board-left-bg {
+  fill: #252525;
+  stroke: #3a3a3a;
+}
 
-/* body.dark-mode rect.chapter-bullet:hover {
-  fill: #4593c4;
-} */
+/* Storyline bands & labels */
+body.dark-mode rect.storyline-band {
+  fill: #323232;
+  stroke: #4a4a4a;
+}
+
+body.dark-mode rect.storyline-left-col {
+  fill: #2a2a2a;
+  stroke: #3d3d3d;
+}
+
+body.dark-mode foreignObject.storyline-left-label div {
+  color: #d8d8d8 !important;
+}
+
+/* Inline collapsed storyline */
+body.dark-mode rect.storyline-band-collapsed-inline {
+  fill: #1a3a5e !important;
+  stroke: #4a78aa !important;
+}
+
+body.dark-mode rect.storyline-left-col-collapsed-inline {
+  fill: #162f4d !important;
+  stroke: #4a78aa !important;
+}
+
+body.dark-mode foreignObject.storyline-left-label-collapsed-inline div {
+  color: #8fc4f0 !important;
+}
+
+/* Controls */
+body.dark-mode .storyline-controls-root span {
+  color: #aaa !important;
+}
+
+body.dark-mode .storyline-controls-root button {
+  background: #333 !important;
+  color: #ccc !important;
+  border-color: #4a4a4a !important;
+}
+
+/* Dropdown menu */
+body.dark-mode g.storyline-controls-menu rect {
+  fill: #2a2a2a;
+  stroke: #4a4a4a;
+}
+
+body.dark-mode .storyline-menu-root {
+  background: #2a2a2a !important;
+  color: #d8d8d8 !important;
+}
+
+body.dark-mode .storyline-menu-root div {
+  color: #d8d8d8 !important;
+}
+
+body.dark-mode .storyline-menu-root button {
+  background: #333 !important;
+  color: #ccc !important;
+  border-color: #555 !important;
+}
+
+/* Chapter group separator line */
+body.dark-mode .chapter-group line.separator {
+  stroke: rgba(255, 255, 255, 0.12);
+}
+
+/* Context menu */
+body.dark-mode #context-menu {
+  background: #2a2a2a;
+  border-color: #444;
+  color: #e0e0e0;
+}
+
+body.dark-mode .context-menu-item:hover {
+  background-color: #444;
+  color: #ffffff;
+}

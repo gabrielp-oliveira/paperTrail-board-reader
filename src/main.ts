@@ -8,11 +8,13 @@ import {
   applyStorylinesFadeTransition,
   animateCollapsedRow,
   getCollapsedRowCurrentHeight,
+  setupCollapsedRowInteraction,
 } from "./renderStoryline";
 import {
   initStorylineUIState,
   renderStorylineControls,
   getStorylineUIState,
+  triggerCollapseToggle,
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
@@ -142,7 +144,7 @@ function applyThemeFromSettings(settings: any) {
     return;
   }
 
-  document.body.classList.add(resolved === "dark" ? "dark-mode" : "light-mode");
+  document.body.classList.add(resolved === "dark" ? "light-mode" : "dark-mode");
 }
 
 function computeTotalWidth(timelines: any[]): number {
@@ -360,18 +362,6 @@ function renderBoard(data: any) {
     gWorld,
     storylines,
     {
-      onChange: () => {
-        // ✅ re-render completo (mantém zoom via initOrUpdateZoom)
-        renderBoard({ timelines, storylines, chapters, settings });
-        // ✅ garante que collapsedAll vai de null → boolean quando o usuário altera algo
-        const ui = getStorylineUIState();
-        window.parent.postMessage(
-          { type: "board-settings-update", data: { collapsedAll: !!ui.collapsedAll } },
-          "*"
-        );
-      },
-
-      // ✅ CHECKBOX: anima sem re-render completo
       onCollapseToggle: (checked: boolean) => {
         currentCollapsedAll = checked;
         // aquiiii -> se ops valores desse metodo, de alguma forma, na animacao pra mudar a altura das timelines
@@ -410,6 +400,9 @@ function renderBoard(data: any) {
     },
     gLeft
   );
+
+  // ✅ Conecta clique na collapsed row ao mesmo toggle dos controls
+  setupCollapsedRowInteraction(gWorld, gLeft, triggerCollapseToggle);
 
   // ✅ viewBox inicial + zoom init/update (adapta ao container)
   const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);

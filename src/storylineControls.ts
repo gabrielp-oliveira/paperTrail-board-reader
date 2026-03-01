@@ -1,243 +1,49 @@
 // storylineControls.ts
 import * as d3 from "d3";
 import { StoryLine } from "./types";
-import { hideGroup } from "./expandChapterGroup";
-import { hideContextMenu } from "./ui/contextMenu";
-import { StorylineControlsUI, StorylineMenu, Controls, Layout, StorylinesUI } from "./globalVariables";
+import { Controls, Layout, StorylinesUI } from "./globalVariables";
 
-// UI-only: Controls + Menu (não renderiza rows / não calcula layout)
-
-// Exports mantidos para compatibilidade com imports existentes
 export const CONTROLS_HEIGHT = Controls.HEIGHT;
 export const CONTROLS_BOTTOM_PADDING = Controls.BOTTOM_PADDING;
 
 export type StorylineControlsEvents = {
-  onChange?: () => void;
   onCollapseToggle?: (checked: boolean) => void;
 };
 
 export type StorylineUIState = {
   collapsedAll: boolean;
-  selectedStorylines: Set<string>;
-  menuOpen: boolean;
 };
 
 const uiState: StorylineUIState = {
   collapsedAll: false,
-  selectedStorylines: new Set(),
-  menuOpen: false,
 };
 
 let isCollapseAnimating = false;
+let _triggerToggle: (() => void) | null = null;
+
+export function triggerCollapseToggle() {
+  _triggerToggle?.();
+}
 
 export function getStorylineUIState(): StorylineUIState {
   return uiState;
 }
 
-export function initStorylineUIState(storylines: StoryLine[], initialCollapsedAll = false) {
-  const allIds = (storylines || []).map((s) => s.id);
-
+export function initStorylineUIState(_storylines: StoryLine[], initialCollapsedAll = false) {
   uiState.collapsedAll = initialCollapsedAll;
-
-  if (!initialCollapsedAll) {
-    uiState.selectedStorylines = new Set(allIds);
-  } else {
-    // Mantém seleção existente mas filtra IDs que não existem mais
-    const filtered = new Set<string>();
-    for (const id of uiState.selectedStorylines) {
-      if (allIds.includes(id)) filtered.add(id);
-    }
-    uiState.selectedStorylines = filtered;
-  }
 }
 
-function setCollapsedAll(value: boolean, storylines: StoryLine[]) {
+function setCollapsedAll(value: boolean) {
   uiState.collapsedAll = value;
-  if (value) uiState.selectedStorylines = new Set();
-  else uiState.selectedStorylines = new Set((storylines || []).map((s) => s.id));
-}
-
-function toggleStoryline(id: string) {
-  if (uiState.selectedStorylines.has(id)) uiState.selectedStorylines.delete(id);
-  else uiState.selectedStorylines.add(id);
-}
-
-function getUiLayer(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  return leftLayer ?? svg;
-}
-
-function closeMenu(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  const layer = getUiLayer(svg, leftLayer);
-
-  layer.selectAll("g.storyline-controls-menu").remove();
-  uiState.menuOpen = false;
-
-  d3.select(window).on("mousedown.storylineMenuOutside", null);
-  d3.select(window).on("touchstart.storylineMenuOutside", null);
-}
-
-function openMenu(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  storylines: StoryLine[],
-  events?: StorylineControlsEvents,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  if (uiState.menuOpen) {
-    closeMenu(svg, leftLayer);
-    return;
-  }
-
-  uiState.menuOpen = true;
-  renderStorylineMenu(svg, storylines, events, leftLayer);
-
-  const outsideHandler = (ev: any) => {
-    const target = ev?.target as HTMLElement | null;
-    if (!target) return;
-
-    const inMenu = target.closest?.(".storyline-menu-root");
-    const inControls = target.closest?.(".storyline-controls-root");
-    if (inMenu || inControls) return;
-
-    closeMenu(svg, leftLayer);
-  };
-
-  d3.select(window).on("mousedown.storylineMenuOutside", outsideHandler);
-  d3.select(window).on("touchstart.storylineMenuOutside", outsideHandler);
-}
-
-function renderStorylineMenu(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  storylines: StoryLine[],
-  events?: StorylineControlsEvents,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  const layer = getUiLayer(svg, leftLayer);
-
-  layer.selectAll("g.storyline-controls-menu").remove();
-
-  const gMenu = layer
-    .append("g")
-    .attr("class", "storyline-controls-menu")
-    .style("pointer-events", "all");
-
-  const menuX = StorylineControlsUI.LEFT_PADDING;
-  const menuY = Controls.Y + Controls.HEIGHT + StorylineMenu.MARGIN_TOP;
-
-  const menuHeight = Math.min(
-    StorylineMenu.MAX_HEIGHT,
-    StorylineMenu.BASE_HEIGHT + (storylines?.length ?? 0) * StorylineMenu.ROW_HEIGHT
-  );
-
-  gMenu
-    .append("rect")
-    .attr("x", menuX)
-    .attr("y", menuY)
-    .attr("width", StorylineMenu.WIDTH)
-    .attr("height", menuHeight)
-    .attr("rx", 10)
-    .attr("ry", 10)
-    .attr("fill", "#fff")
-    .attr("stroke", "#bbb");
-
-  const fo = gMenu
-    .append("foreignObject")
-    .attr("x", menuX)
-    .attr("y", menuY)
-    .attr("width", StorylineMenu.WIDTH)
-    .attr("height", menuHeight)
-    .style("pointer-events", "all");
-
-  const box = fo
-    .append("xhtml:div")
-    .attr("class", "storyline-menu-root")
-    .style("width", `${StorylineMenu.WIDTH}px`)
-    .style("height", `${menuHeight}px`)
-    .style("overflow", "auto")
-    .style("padding", `${StorylineMenu.PADDING_PX}px`)
-    .style("box-sizing", "border-box")
-    .style("font-family", "Arial, sans-serif")
-    .style("user-select", "none")
-    .style("pointer-events", "all");
-
-  const header = box
-    .append("div")
-    .style("display", "flex")
-    .style("align-items", "center")
-    .style("justify-content", "space-between")
-    .style("margin-bottom", "10px");
-
-  header
-    .append("div")
-    .style("font-weight", "800")
-    .style("font-size", "12px")
-    .style("color", "#222")
-    .text("Storylines");
-
-  header
-    .append("button")
-    .style("font-size", "12px")
-    .style("padding", "4px 8px")
-    .style("border", "1px solid #bbb")
-    .style("border-radius", "8px")
-    .style("background", "#fff")
-    .style("cursor", "pointer")
-    .text("Close")
-    .on("click", (ev: any) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      closeMenu(svg, leftLayer);
-    });
-
-  (storylines || []).forEach((s) => {
-    const row = box
-      .append("div")
-      .style("display", "flex")
-      .style("align-items", "center")
-      .style("gap", "8px")
-      .style("padding", "6px 2px");
-
-    const checked = uiState.selectedStorylines.has(s.id);
-
-    row
-      .append("input")
-      .attr("type", "checkbox")
-      .property("checked", checked)
-      .style("cursor", "pointer")
-      .on("change", (ev: any) => {
-        ev.stopPropagation();
-        toggleStoryline(s.id);
-        events?.onChange?.();
-      });
-
-    row
-      .append("div")
-      .style("font-size", "12px")
-      .style("color", "#333")
-      .text(s.name);
-  });
-
-  fo.on("mousedown", (ev: any) => ev.stopPropagation());
-  fo.on("touchstart", (ev: any) => ev.stopPropagation());
-  fo.on("click", (ev: any) => ev.stopPropagation());
-
-  gMenu.on("mousedown", (ev: any) => ev.stopPropagation());
-  gMenu.on("touchstart", (ev: any) => ev.stopPropagation());
-  gMenu.on("click", (ev: any) => ev.stopPropagation());
 }
 
 export function renderStorylineControls(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  storylines: StoryLine[],
+  _storylines: StoryLine[],
   events?: StorylineControlsEvents,
   leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
 ) {
-  const layer = getUiLayer(svg, leftLayer);
+  const layer = leftLayer ?? svg;
 
   layer.selectAll("g.storyline-controls-ui").remove();
 
@@ -262,44 +68,56 @@ export function renderStorylineControls(
     .style("width", `${colW}px`)
     .style("height", `${Controls.HEIGHT}px`)
     .style("display", "flex")
-    .style("flex-direction", "column")
+    .style("align-items", "center")
     .style("justify-content", "center")
-    .style("gap", "5px")
-    .style("padding", "0 12px")
+    .style("padding", "0 14px")
     .style("box-sizing", "border-box")
     .style("font-family", "'Segoe UI', Arial, sans-serif")
     .style("user-select", "none")
     .style("pointer-events", "all");
 
-  // Row 1: toggle switch + label
-  const collapseGroup = root
+  // Toggle row
+  const collapseRow = root
     .append("xhtml:div")
     .style("display", "flex")
     .style("align-items", "center")
-    .style("gap", "8px")
+    .style("justify-content", "center")
+    .style("gap", "10px")
     .style("cursor", "pointer");
 
-  const track = collapseGroup
+  // Track
+  const track = collapseRow
     .append("xhtml:div")
-    .style("width", "26px")
-    .style("height", "14px")
-    .style("border-radius", "7px")
-    .style("background", uiState.collapsedAll ? "#4a90d9" : "#c8c8c8")
+    .style("width", "52px")
+    .style("height", "28px")
+    .style("border-radius", "14px")
+    .style("background", uiState.collapsedAll ? "#4a90d9" : "rgba(0,0,0,0.15)")
     .style("position", "relative")
     .style("flex-shrink", "0")
-    .style("transition", "background 0.2s ease");
+    .style("transition", "background 0.22s ease")
+    .style("box-shadow", "inset 0 1px 4px rgba(0,0,0,0.18)");
 
+  // Thumb
   const thumb = track
     .append("xhtml:div")
-    .style("width", "10px")
-    .style("height", "10px")
+    .style("width", "22px")
+    .style("height", "22px")
     .style("border-radius", "50%")
-    .style("background", "#fff")
+    .style("background", "#ffffff")
     .style("position", "absolute")
-    .style("top", "2px")
-    .style("left", uiState.collapsedAll ? "14px" : "2px")
-    .style("transition", "left 0.2s ease")
-    .style("box-shadow", "0 1px 3px rgba(0,0,0,0.3)");
+    .style("top", "3px")
+    .style("left", uiState.collapsedAll ? "27px" : "3px")
+    .style("transition", "left 0.22s ease")
+    .style("box-shadow", "0 1px 5px rgba(0,0,0,0.28)");
+
+  // Label
+  collapseRow
+    .append("xhtml:span")
+    .style("font-size", "13px")
+    .style("font-weight", "500")
+    .style("letter-spacing", "0.3px")
+    .attr("class", "collapse-label")
+    .text("Collapse");
 
   const ANIM_LOCK_MS = Math.max(StorylinesUI.COLLAPSE_ANIM_MS, StorylinesUI.FADE_ANIM_MS) + 50;
 
@@ -307,9 +125,9 @@ export function renderStorylineControls(
     if (isCollapseAnimating) return;
 
     const next = !uiState.collapsedAll;
-    track.style("background", next ? "#4a90d9" : "#c8c8c8");
-    thumb.style("left", next ? "14px" : "2px");
-    setCollapsedAll(next, storylines);
+    track.style("background", next ? "#4a90d9" : "rgba(0,0,0,0.15)");
+    thumb.style("left", next ? "27px" : "3px");
+    setCollapsedAll(next);
 
     isCollapseAnimating = true;
     setTimeout(() => { isCollapseAnimating = false; }, ANIM_LOCK_MS);
@@ -319,55 +137,13 @@ export function renderStorylineControls(
       { type: "board-settings-update", data: { collapsedAll: next } },
       "*"
     );
-    if (uiState.menuOpen) {
-      layer.selectAll("g.storyline-controls-menu").remove();
-      renderStorylineMenu(svg, storylines, events, leftLayer);
-    }
   };
 
-  track.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
-  collapseGroup.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
+  _triggerToggle = onToggle;
 
-  collapseGroup
-    .append("xhtml:span")
-    .style("font-size", "11px")
-    .style("font-weight", "600")
-    .style("color", "#666")
-    .style("letter-spacing", "0.2px")
-    .text("Collapse all");
-
-  // Row 2: botão Storylines (largura total)
-  root
-    .append("xhtml:button")
-    .style("width", "100%")
-    .style("font-size", "11px")
-    .style("font-family", "'Segoe UI', Arial, sans-serif")
-    .style("padding", "4px 0")
-    .style("border", "1px solid #d5d5d5")
-    .style("border-radius", "5px")
-    .style("background", "#f4f4f4")
-    .style("color", "#444")
-    .style("cursor", "pointer")
-    .style("outline", "none")
-    .style("letter-spacing", "0.2px")
-    .text("Storylines ▾")
-    .on("click", (ev: any) => {
-      ev.preventDefault();
-      ev.stopPropagation();
-      hideContextMenu();
-      hideGroup();
-      openMenu(svg, storylines, events, leftLayer);
-    });
+  collapseRow.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
 
   fo.on("mousedown", (ev: any) => ev.stopPropagation());
   fo.on("touchstart", (ev: any) => ev.stopPropagation());
   fo.on("click", (ev: any) => ev.stopPropagation());
-}
-
-export function forceCloseStorylineMenu(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  if (!uiState.menuOpen) return;
-  closeMenu(svg, leftLayer);
 }
