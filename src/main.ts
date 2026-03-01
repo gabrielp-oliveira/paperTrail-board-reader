@@ -18,7 +18,7 @@ import {
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
-import { Layout, ZoomPan, LeftBg, StorylinesUI } from "./globalVariables";
+import { Layout, ZoomPan, LeftBg, StorylinesUI, TimelinesUI } from "./globalVariables";
 
 // 🎯 Cria SVG base
 const svgBase = d3
@@ -31,13 +31,40 @@ const svgBase = d3
   .style("padding", "0")
   .style("display", "block");
 
+// ClipPath para gTop: limita os headers à área à direita da coluna fixa esquerda
+svgBase
+  .append("defs")
+  .append("clipPath")
+  .attr("id", "board-top-clip")
+  .append("rect")
+  .attr("x", Layout.LEFT_COLUMN_WIDTH)
+  .attr("y", 0)
+  .attr("width", 9999)
+  .attr("height", TimelinesUI.HEADER_HEIGHT);
+
 // ✅ Root container (não recebe transform diretamente)
 const gRoot = svgBase.append("g").attr("class", "board-root");
 
 // ✅ Camada do mundo (pan/zoom normal)
 const gWorld = gRoot.append("g").attr("class", "board-world");
 
-// ✅ Camada fixa da esquerda (labels + controls + menu)
+// ✅ Background fixo do header das timelines (sem transform — cobre a área do header)
+const gTopBg = gRoot.append("g").attr("class", "board-top-bg-fixed");
+gTopBg
+  .append("rect")
+  .attr("class", "board-top-bg")
+  .attr("x", Layout.LEFT_COLUMN_WIDTH)
+  .attr("y", 0)
+  .attr("width", 9999)
+  .attr("height", TimelinesUI.HEADER_HEIGHT);
+
+// ✅ Camada dos headers de timeline (segue X mas não Y — fixo no topo)
+const gTop = gRoot
+  .append("g")
+  .attr("class", "board-top-fixed")
+  .attr("clip-path", "url(#board-top-clip)");
+
+// ✅ Camada fixa da esquerda (labels das storylines — segue Y)
 const gLeft = gRoot
   .append("g")
   .attr("class", "board-left-fixed")
@@ -55,6 +82,12 @@ gLeft
   .attr("stroke", LeftBg.STROKE)
   .attr("stroke-width", LeftBg.STROKE_WIDTH)
   .attr("filter", LeftBg.SHADOW_FILTER);
+
+// ✅ Camada completamente fixa — sem transform (toggle sempre visível)
+const gFixed = gRoot
+  .append("g")
+  .attr("class", "board-fixed")
+  .style("pointer-events", "all");
 
 /**
  * ✅ Normaliza settings para suportar:
@@ -232,6 +265,12 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
         // ✅ coluna fixa (não depende do X, mas escala e acompanha Y)
         gLeft.attr("transform", `translate(0,${y}) scale(${k})`);
 
+        // ✅ headers fixos (não dependem do Y, mas escalam e acompanham X)
+        gTop.attr("transform", `translate(${x},0) scale(${k})`);
+
+        // ✅ toggle fixo (sem translate — apenas scale para manter o tamanho correto)
+        gFixed.attr("transform", `scale(${k})`);
+
         hideContextMenu();
       })
       .on("end", (event) => {
@@ -314,7 +353,9 @@ function renderBoard(data: any) {
 
   // re-render completo
   gWorld.selectAll("*").remove();
+  gTop.selectAll("*").remove();
   gLeft.selectAll(":not(rect.board-left-bg)").remove();
+  gFixed.selectAll("*").remove();
 
   const totalWidth = computeTotalWidth(timelines);
 
@@ -353,7 +394,7 @@ function renderBoard(data: any) {
     expandedBoardHeight: lastHeights.expandedHeight,
     collapsedBoardHeight: lastHeights.collapsedHeight,
     animate: false,
-  });
+  }, gTop);
 
   renderChapters(gWorld, renderedChapters, setupGroupInteraction);
 
@@ -381,14 +422,31 @@ function renderBoard(data: any) {
           expandedBoardHeight: lastHeights.expandedHeight,
           collapsedBoardHeight: lastHeights.collapsedHeight,
           animate: true,
-        });
+        }, gTop);
 
         // ✅ 4) viewBox anima junto com as transições (evita salto de escala)
         // e zoom extents são atualizados imediatamente (sem resetar o transform).
         const minHeight = applyViewBox(totalWidth, targetVisibleHeight, true);
         initOrUpdateZoom(totalWidth, minHeight, settings);
 
-        // ✅ 5) anima background esquerdo (usa minHeight do container, não só o conteúdo)
+        // ✅ 5) ao colapsar, anima câmera para y=0 para o usuário não ficar perdido abaixo
+        if (checked) {
+          const svgEl = svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
+          const node = svgEl.node();
+          const currentT = node ? d3.zoomTransform(node) : d3.zoomIdentity;
+          if (zoomBehavior && currentT.y < 0) {
+            svgEl
+              .transition()
+              .duration(StorylinesUI.COLLAPSE_ANIM_MS)
+              .ease(d3.easeCubicInOut)
+              .call(
+                zoomBehavior.transform as any,
+                d3.zoomIdentity.translate(currentT.x, 0).scale(currentT.k)
+              );
+          }
+        }
+
+        // ✅ 6) anima background esquerdo (usa minHeight do container, não só o conteúdo)
         gLeft
           .select<SVGRectElement>("rect.board-left-bg")
           .interrupt()
@@ -398,7 +456,7 @@ function renderBoard(data: any) {
           .attr("height", minHeight);
       },
     },
-    gLeft
+    gFixed
   );
 
   // ✅ Conecta clique na collapsed row ao mesmo toggle dos controls
@@ -445,6 +503,8 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     gWorld.selectAll("*").remove();
+    gTop.selectAll("*").remove();
     gLeft.selectAll(":not(rect.board-left-bg)").remove();
+    gFixed.selectAll("*").remove();
   });
 }

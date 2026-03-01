@@ -246,6 +246,17 @@ foreignObject.storyline-left-label-collapsed-inline div {
   -webkit-user-select: none;
 }
 
+/* ===== HEADER FIXO DAS TIMELINES (gTopBg) ===== */
+body.light-mode .board-top-bg {
+  fill: #fcdec2;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+}
+
+body.dark-mode .board-top-bg {
+  fill: #2d2d2d;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
 /* ===== MODO CLARO ===== */
 body.light-mode {
   background-color: #ffffff;
@@ -286,6 +297,12 @@ body.light-mode foreignObject.storyline-left-label div {
 }
 
 /* Controls */
+body.light-mode .storyline-controls-root {
+  background: #fafafa !important;
+  border-bottom: 1px solid #ddd;
+  border-right: 1px solid #ddd;
+}
+
 body.light-mode .storyline-controls-root span {
   color: #666 !important;
 }
@@ -378,6 +395,12 @@ body.dark-mode foreignObject.storyline-left-label-collapsed-inline div {
 }
 
 /* Controls */
+body.dark-mode .storyline-controls-root {
+  background: #252525 !important;
+  border-bottom: 1px solid #3a3a3a;
+  border-right: 1px solid #3a3a3a;
+}
+
 body.dark-mode .storyline-controls-root span {
   color: #aaa !important;
 }
