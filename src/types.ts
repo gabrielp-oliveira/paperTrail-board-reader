@@ -194,6 +194,7 @@ export type Subway_Settings = {
       group_connection_update_chapter: boolean;
     };
 
+    storyLine_colapsad: boolean;
     // 🔹 Zoom / Pan persistido
     zoom: {
       k: number;

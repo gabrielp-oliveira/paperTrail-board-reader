@@ -6,7 +6,10 @@
 
   <style>
     body { font-family: Arial, sans-serif; }
-    iframe { width: 100%; height: 60vh; border: 2px solid red; }
+    iframe {
+      width: 100%;
+      height: 60vh;
+      border: 2px solid red; }
   </style>
 </head>
 <body>
@@ -48,7 +51,8 @@
             chapters: coloredChapters,
             settings: {
               zoom: { x: 0, y: 0, k: 1 },
-              theme: 'light'
+              theme: 'light',
+              collapsedAll: false
             }
           }
         }, "*");

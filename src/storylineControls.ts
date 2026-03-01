@@ -3,75 +3,50 @@ import * as d3 from "d3";
 import { StoryLine } from "./types";
 import { hideGroup } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
-import { applyCollapsedTransition, getCollapsedRowCurrentHeight } from "./renderStoryline";
+import { StorylineControlsUI, StorylineMenu, Controls, Layout, StorylinesUI } from "./globalVariables";
 
 // UI-only: Controls + Menu (não renderiza rows / não calcula layout)
 
-// Largura total reservada para a coluna esquerda (deve casar com renderStorylines)
-export const LABEL_WIDTH = 150;
-
-// Padding interno da coluna esquerda (evita colar na borda)
-export const LEFT_PADDING = 15;
-
-// Largura útil da coluna esquerda (LABEL_WIDTH - LEFT_PADDING)
-export const LEFT_COL_WIDTH = LABEL_WIDTH - LEFT_PADDING;
-
-// Altura do bloco de controles (topo esquerdo)
-export const CONTROLS_HEIGHT = 52;
-
-// Espaço recomendado entre controls e a primeira row (use no renderStorylines)
-export const CONTROLS_BOTTOM_PADDING = 18;
-
-// Posição Y fixa dos controles no board
-const CONTROLS_Y = 0;
-
-// Largura do menu dropdown
-const MENU_WIDTH = 280;
-
-// Altura máxima do menu dropdown (com scroll interno)
-const MENU_MAX_HEIGHT = 320;
-
-// Espaço entre controls e o menu dropdown
-const MENU_MARGIN_TOP = 8;
+// Exports mantidos para compatibilidade com imports existentes
+export const CONTROLS_HEIGHT = Controls.HEIGHT;
+export const CONTROLS_BOTTOM_PADDING = Controls.BOTTOM_PADDING;
 
 export type StorylineControlsEvents = {
   onChange?: () => void;
-  onCollapseToggle?: (checked: boolean) => void; // ✅ novo
+  onCollapseToggle?: (checked: boolean) => void;
 };
 
-
 export type StorylineUIState = {
-  collapsedAll: boolean; // controla modo "storyline mãe"
-  selectedStorylines: Set<string>; // (uso futuro p/ tirar da mãe)
+  collapsedAll: boolean;
+  selectedStorylines: Set<string>;
   menuOpen: boolean;
 };
 
 const uiState: StorylineUIState = {
-  collapsedAll: false, // default: expandido
+  collapsedAll: false,
   selectedStorylines: new Set(),
   menuOpen: false,
 };
+
+let isCollapseAnimating = false;
 
 export function getStorylineUIState(): StorylineUIState {
   return uiState;
 }
 
 // ⚠️ NÃO reseta estado se já existir (importante pro toggle persistir)
-export function initStorylineUIState(storylines: StoryLine[]) {
+export function initStorylineUIState(storylines: StoryLine[], initialCollapsedAll = false) {
   const allIds = (storylines || []).map((s) => s.id);
 
-  // Primeira inicialização: seleciona todas e mantém expandido
-  if (uiState.selectedStorylines.size === 0) {
-    uiState.collapsedAll = false;
-    uiState.selectedStorylines = new Set(allIds);
+  if (uiState.selectedStorylines.size === 0 && !uiState.collapsedAll) {
+    uiState.collapsedAll = initialCollapsedAll;
+    uiState.selectedStorylines = initialCollapsedAll ? new Set() : new Set(allIds);
     return;
   }
 
-  // Se não está colapsado globalmente, sempre mantém todas selecionadas
   if (!uiState.collapsedAll) {
     uiState.selectedStorylines = new Set(allIds);
   } else {
-    // Se colapsado, preserva apenas as IDs que ainda existem
     const filtered = new Set<string>();
     for (const id of uiState.selectedStorylines) {
       if (allIds.includes(id)) filtered.add(id);
@@ -82,8 +57,6 @@ export function initStorylineUIState(storylines: StoryLine[]) {
 
 function setCollapsedAll(value: boolean, storylines: StoryLine[]) {
   uiState.collapsedAll = value;
-
-  // Colapsado = ninguém selecionado; Expandido = todos selecionados
   if (value) uiState.selectedStorylines = new Set();
   else uiState.selectedStorylines = new Set((storylines || []).map((s) => s.id));
 }
@@ -93,7 +66,6 @@ function toggleStoryline(id: string) {
   else uiState.selectedStorylines.add(id);
 }
 
-// Escolhe onde renderizar UI (fixo vs mundo). Retrocompatível.
 function getUiLayer(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
@@ -120,7 +92,6 @@ function openMenu(
   events?: StorylineControlsEvents,
   leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
 ) {
-  // Toggle: se já está aberto, fecha
   if (uiState.menuOpen) {
     closeMenu(svg, leftLayer);
     return;
@@ -129,7 +100,6 @@ function openMenu(
   uiState.menuOpen = true;
   renderStorylineMenu(svg, storylines, events, leftLayer);
 
-  // Fecha ao clicar fora (menu + controls)
   const outsideHandler = (ev: any) => {
     const target = ev?.target as HTMLElement | null;
     if (!target) return;
@@ -153,7 +123,6 @@ function renderStorylineMenu(
 ) {
   const layer = getUiLayer(svg, leftLayer);
 
-  // Re-render limpo
   layer.selectAll("g.storyline-controls-menu").remove();
 
   const gMenu = layer
@@ -161,19 +130,19 @@ function renderStorylineMenu(
     .attr("class", "storyline-controls-menu")
     .style("pointer-events", "all");
 
-  const menuX = LEFT_PADDING;
-  const menuY = CONTROLS_Y + CONTROLS_HEIGHT + MENU_MARGIN_TOP;
+  const menuX = StorylineControlsUI.LEFT_PADDING;
+  const menuY = Controls.Y + Controls.HEIGHT + StorylineMenu.MARGIN_TOP;
 
   const menuHeight = Math.min(
-    MENU_MAX_HEIGHT,
-    52 + (storylines?.length ?? 0) * 26
+    StorylineMenu.MAX_HEIGHT,
+    StorylineMenu.BASE_HEIGHT + (storylines?.length ?? 0) * StorylineMenu.ROW_HEIGHT
   );
 
   gMenu
     .append("rect")
     .attr("x", menuX)
     .attr("y", menuY)
-    .attr("width", MENU_WIDTH)
+    .attr("width", StorylineMenu.WIDTH)
     .attr("height", menuHeight)
     .attr("rx", 10)
     .attr("ry", 10)
@@ -184,17 +153,17 @@ function renderStorylineMenu(
     .append("foreignObject")
     .attr("x", menuX)
     .attr("y", menuY)
-    .attr("width", MENU_WIDTH)
+    .attr("width", StorylineMenu.WIDTH)
     .attr("height", menuHeight)
     .style("pointer-events", "all");
 
   const box = fo
     .append("xhtml:div")
     .attr("class", "storyline-menu-root")
-    .style("width", `${MENU_WIDTH}px`)
+    .style("width", `${StorylineMenu.WIDTH}px`)
     .style("height", `${menuHeight}px`)
     .style("overflow", "auto")
-    .style("padding", "10px")
+    .style("padding", `${StorylineMenu.PADDING_PX}px`)
     .style("box-sizing", "border-box")
     .style("font-family", "Arial, sans-serif")
     .style("user-select", "none")
@@ -257,7 +226,6 @@ function renderStorylineMenu(
       .text(s.name);
   });
 
-  // Evita pan/zoom ao interagir com o menu
   fo.on("mousedown", (ev: any) => ev.stopPropagation());
   fo.on("touchstart", (ev: any) => ev.stopPropagation());
   fo.on("click", (ev: any) => ev.stopPropagation());
@@ -282,109 +250,123 @@ export function renderStorylineControls(
     .attr("class", "storyline-controls-ui")
     .style("pointer-events", "all");
 
-  // Hit area transparente NÃO pode capturar clique (senão mata o checkbox)
-  gUi
-    .append("rect")
-    .attr("x", LEFT_PADDING)
-    .attr("y", CONTROLS_Y)
-    .attr("width", LEFT_COL_WIDTH)
-    .attr("height", CONTROLS_HEIGHT)
-    .attr("fill", "transparent")
-    .style("pointer-events", "none"); // ✅ deixa passar pro foreignObject
+  const colW = Layout.LEFT_COLUMN_WIDTH;
 
   const fo = gUi
     .append("foreignObject")
-    .attr("x", LEFT_PADDING)
-    .attr("y", CONTROLS_Y)
-    .attr("width", LEFT_COL_WIDTH)
-    .attr("height", CONTROLS_HEIGHT)
+    .attr("x", 0)
+    .attr("y", Controls.Y)
+    .attr("width", colW)
+    .attr("height", Controls.HEIGHT)
     .style("pointer-events", "all");
 
   const root = fo
     .append("xhtml:div")
     .attr("class", "storyline-controls-root")
-    .style("width", `${LEFT_COL_WIDTH}px`)
-    .style("height", `${CONTROLS_HEIGHT}px`)
+    .style("width", `${colW}px`)
+    .style("height", `${Controls.HEIGHT}px`)
     .style("display", "flex")
     .style("flex-direction", "column")
     .style("justify-content", "center")
-    .style("gap", "6px")
-    .style("padding", "6px 8px")
+    .style("gap", "5px")
+    .style("padding", "0 12px")
     .style("box-sizing", "border-box")
-    .style("font-family", "Arial, sans-serif")
+    .style("font-family", "'Segoe UI', Arial, sans-serif")
     .style("user-select", "none")
     .style("pointer-events", "all");
 
-  const row1 = root
-    .append("div")
+  // Row 1: toggle switch + label
+  const collapseGroup = root
+    .append("xhtml:div")
     .style("display", "flex")
     .style("align-items", "center")
-    .style("justify-content", "center")
-    .style("gap", "8px");
+    .style("gap", "8px")
+    .style("cursor", "pointer");
 
-  // ✅ checkbox (agora chama animação)
-  row1
-    .append("input")
-    .attr("type", "checkbox")
-    .property("checked", uiState.collapsedAll)
-    .style("cursor", "pointer")
-    .on("change", (ev: any) => {
-      ev.stopPropagation();
-      const checked = !!(ev.target as HTMLInputElement).checked;
+  const track = collapseGroup
+    .append("xhtml:div")
+    .style("width", "26px")
+    .style("height", "14px")
+    .style("border-radius", "7px")
+    .style("background", uiState.collapsedAll ? "#4a90d9" : "#c8c8c8")
+    .style("position", "relative")
+    .style("flex-shrink", "0")
+    .style("transition", "background 0.2s ease");
 
-      setCollapsedAll(checked, storylines);
-
-      // ✅ aqui dispara a animação (sem re-render)
-      events?.onCollapseToggle?.(checked);
-
-      // se quiser, pode re-render do menu quando aberto
-      if (uiState.menuOpen) {
-        layer.selectAll("g.storyline-controls-menu").remove();
-        renderStorylineMenu(svg, storylines, events, leftLayer);
-      }
-    });
-
-  row1
-    .append("span")
-    .style("font-size", "12px")
-    .style("font-weight", "700")
-    .style("color", "#222")
-    .text("Collapse");
-
-  const row2 = root
-    .append("div")
-    .style("display", "flex")
-    .style("align-items", "center")
-    .style("justify-content", "center");
-
-  row2
-    .append("button")
-    .style("font-size", "12px")
-    .style("padding", "6px 10px")
-    .style("border", "1px solid #bbb")
-    .style("border-radius", "8px")
+  const thumb = track
+    .append("xhtml:div")
+    .style("width", "10px")
+    .style("height", "10px")
+    .style("border-radius", "50%")
     .style("background", "#fff")
-    .style("color", "#222")
+    .style("position", "absolute")
+    .style("top", "2px")
+    .style("left", uiState.collapsedAll ? "14px" : "2px")
+    .style("transition", "left 0.2s ease")
+    .style("box-shadow", "0 1px 3px rgba(0,0,0,0.3)");
+
+  const ANIM_LOCK_MS = Math.max(StorylinesUI.COLLAPSE_ANIM_MS, StorylinesUI.FADE_ANIM_MS) + 50;
+
+  const onToggle = () => {
+    if (isCollapseAnimating) return;
+
+    const next = !uiState.collapsedAll;
+    track.style("background", next ? "#4a90d9" : "#c8c8c8");
+    thumb.style("left", next ? "14px" : "2px");
+    setCollapsedAll(next, storylines);
+
+    isCollapseAnimating = true;
+    setTimeout(() => { isCollapseAnimating = false; }, ANIM_LOCK_MS);
+
+    events?.onCollapseToggle?.(next);
+    window.parent.postMessage(
+      { type: "board-settings-update", data: { collapsedAll: next } },
+      "*"
+    );
+    if (uiState.menuOpen) {
+      layer.selectAll("g.storyline-controls-menu").remove();
+      renderStorylineMenu(svg, storylines, events, leftLayer);
+    }
+  };
+
+  track.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
+  collapseGroup.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
+
+  collapseGroup
+    .append("xhtml:span")
+    .style("font-size", "11px")
+    .style("font-weight", "600")
+    .style("color", "#666")
+    .style("letter-spacing", "0.2px")
+    .text("Collapse all");
+
+  // Row 2: botão Storylines (largura total)
+  root
+    .append("xhtml:button")
+    .style("width", "100%")
+    .style("font-size", "11px")
+    .style("font-family", "'Segoe UI', Arial, sans-serif")
+    .style("padding", "4px 0")
+    .style("border", "1px solid #d5d5d5")
+    .style("border-radius", "5px")
+    .style("background", "#f4f4f4")
+    .style("color", "#444")
     .style("cursor", "pointer")
-    .style("width", "fit-content")
+    .style("outline", "none")
+    .style("letter-spacing", "0.2px")
     .text("Storylines ▾")
     .on("click", (ev: any) => {
       ev.preventDefault();
       ev.stopPropagation();
-
       hideContextMenu();
       hideGroup();
-
       openMenu(svg, storylines, events, leftLayer);
     });
 
-  // Evita pan/zoom ao clicar dentro dos controls
   fo.on("mousedown", (ev: any) => ev.stopPropagation());
   fo.on("touchstart", (ev: any) => ev.stopPropagation());
   fo.on("click", (ev: any) => ev.stopPropagation());
 }
-
-
 
 export function forceCloseStorylineMenu(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,

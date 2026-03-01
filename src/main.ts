@@ -7,7 +7,6 @@ import {
   applyCollapsedTransition,
   applyStorylinesFadeTransition,
   animateCollapsedRow,
-  // (mantidos caso você queira usar depois)
   getCollapsedRowExpandedHeight,
   getCollapsedRowCurrentHeight,
 } from "./renderStoryline";
@@ -18,44 +17,13 @@ import {
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
-
-/**
- * ---------------------------
- * Layout / Visual constants
- * ---------------------------
- */
-const PIXELS_PER_RANGE = 20; // usado no computeTotalWidth
-const LEFT_COLUMN_WIDTH = 200;
-const MIN_VIEWBOX_HEIGHT = 500;
-
-/**
- * ---------------------------
- * Zoom / Pan constants
- * ---------------------------
- */
-const MIN_ZOOM_SCALE = 2; // "maxZoomOut"
-const MAX_ZOOM_SCALE = 5;
-
-const PAN_TOP_PADDING_PX = 0;
-const PAN_RIGHT_PADDING_PX = 200;
-const PAN_BOTTOM_PADDING_PX = 100;
-
-/**
- * ---------------------------
- * Left fixed column (background) style
- * ---------------------------
- */
-const LEFT_BG_X = 0;
-const LEFT_BG_Y = 0;
-const LEFT_BG_FILL = "#fafafa";
-const LEFT_BG_STROKE = "#ddd";
-const LEFT_BG_STROKE_WIDTH = 1;
-const LEFT_BG_SHADOW_FILTER = "drop-shadow(2px 0 4px rgba(0,0,0,0.08))";
+import { Layout, ZoomPan, LeftBg } from "./globalVariables";
 
 // 🎯 Cria SVG base
 const svgBase = d3
   .select("#board")
   .append("svg")
+  .attr("preserveAspectRatio", "xMinYMin meet")
   .style("width", "100%")
   .style("height", "100%")
   .style("margin", "0")
@@ -78,14 +46,14 @@ const gLeft = gRoot
 gLeft
   .append("rect")
   .attr("class", "board-left-bg")
-  .attr("x", LEFT_BG_X)
-  .attr("y", LEFT_BG_Y)
-  .attr("width", LEFT_COLUMN_WIDTH)
-  .attr("height", MIN_VIEWBOX_HEIGHT)
-  .attr("fill", LEFT_BG_FILL)
-  .attr("stroke", LEFT_BG_STROKE)
-  .attr("stroke-width", LEFT_BG_STROKE_WIDTH)
-  .attr("filter", LEFT_BG_SHADOW_FILTER);
+  .attr("x", LeftBg.X)
+  .attr("y", LeftBg.Y)
+  .attr("width", Layout.LEFT_COLUMN_WIDTH)
+  .attr("height", Layout.MIN_VIEWBOX_HEIGHT)
+  .attr("fill", LeftBg.FILL)
+  .attr("stroke", LeftBg.STROKE)
+  .attr("stroke-width", LeftBg.STROKE_WIDTH)
+  .attr("filter", LeftBg.SHADOW_FILTER);
 
 /**
  * ✅ Normaliza settings para suportar:
@@ -97,6 +65,7 @@ function normalizeSettings(input: any): {
   zoom: { k: number; x: number; y: number };
   layout?: any;
   themeMode?: "light" | "dark" | "system";
+  collapsedAll: boolean;
   raw: any;
 } {
   const raw = input ?? {};
@@ -108,10 +77,10 @@ function normalizeSettings(input: any): {
       ? zoomObj.k
       : typeof raw?.k === "number"
       ? raw.k
-      : MIN_ZOOM_SCALE;
+      : ZoomPan.MIN_ZOOM_SCALE;
 
   // ✅ garante que nunca inicia abaixo do "zoom out mínimo"
-  const k = Math.max(MIN_ZOOM_SCALE, kRaw);
+  const k = Math.max(ZoomPan.MIN_ZOOM_SCALE, kRaw);
 
   const x =
     typeof zoomObj?.x === "number"
@@ -130,6 +99,9 @@ function normalizeSettings(input: any): {
   const themeMode =
     typeof cfg?.theme?.mode === "string" ? cfg.theme.mode : undefined;
 
+  const collapsedAll =
+    typeof cfg?.collapsedAll === "boolean" ? cfg.collapsedAll : false;
+
   return {
     zoom: { k, x, y },
     layout: cfg?.layout,
@@ -137,6 +109,7 @@ function normalizeSettings(input: any): {
       themeMode === "light" || themeMode === "dark" || themeMode === "system"
         ? themeMode
         : undefined,
+    collapsedAll,
     raw,
   };
 }
@@ -175,14 +148,16 @@ function applyThemeFromSettings(settings: any) {
 
 function computeTotalWidth(timelines: any[]): number {
   const timelineWidth = (timelines || []).reduce(
-    (sum: number, t: any) => sum + (t?.range ?? 0) * PIXELS_PER_RANGE,
+    (sum: number, t: any) => sum + (t?.range ?? 0) * Layout.PIXELS_PER_RANGE,
     0
   );
-  return LEFT_COLUMN_WIDTH + timelineWidth;
+  return Layout.LEFT_COLUMN_WIDTH + timelineWidth;
 }
 
 function applyViewBox(totalWidth: number, height: number) {
-  const minHeight = Math.max(MIN_VIEWBOX_HEIGHT, height);
+  const boardEl = document.getElementById("board");
+  const containerH = boardEl ? boardEl.clientHeight : 0;
+  const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height, containerH);
   svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   return minHeight;
 }
@@ -212,7 +187,7 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
     const normalized = normalizeSettings(settings);
 
     const initialScale =
-      typeof normalized.zoom.k === "number" ? normalized.zoom.k : MIN_ZOOM_SCALE;
+      typeof normalized.zoom.k === "number" ? normalized.zoom.k : ZoomPan.MIN_ZOOM_SCALE;
     const initialX =
       typeof normalized.zoom.x === "number" ? normalized.zoom.x : 0;
     const initialY =
@@ -226,10 +201,10 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
           event.type === "mousedown" ||
           event.type === "touchstart"
       )
-      .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
+      .scaleExtent([ZoomPan.MIN_ZOOM_SCALE, ZoomPan.MAX_ZOOM_SCALE])
       .translateExtent([
-        [0, -PAN_TOP_PADDING_PX],
-        [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
+        [0, -ZoomPan.PAN_TOP_PADDING_PX],
+        [width + ZoomPan.PAN_RIGHT_PADDING_PX, height + ZoomPan.PAN_BOTTOM_PADDING_PX],
       ])
       .on("zoom", (event) => {
         const { x, y, k } = event.transform;
@@ -276,10 +251,10 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
 
   // ✅ update de limites sem resetar o transform atual
   zoomBehavior
-    .scaleExtent([MIN_ZOOM_SCALE, MAX_ZOOM_SCALE])
+    .scaleExtent([ZoomPan.MIN_ZOOM_SCALE, ZoomPan.MAX_ZOOM_SCALE])
     .translateExtent([
-      [0, -PAN_TOP_PADDING_PX],
-      [width + PAN_RIGHT_PADDING_PX, height + PAN_BOTTOM_PADDING_PX],
+      [0, -ZoomPan.PAN_TOP_PADDING_PX],
+      [width + ZoomPan.PAN_RIGHT_PADDING_PX, height + ZoomPan.PAN_BOTTOM_PADDING_PX],
     ]);
 
   svg.call(zoomBehavior);
@@ -288,11 +263,13 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
   svg.call(zoomBehavior.transform, currentTransform);
 }
 
-let lastHeights = {
-  expandedHeight: MIN_VIEWBOX_HEIGHT,
-  collapsedHeight: MIN_VIEWBOX_HEIGHT,
-  visibleHeight: MIN_VIEWBOX_HEIGHT,
+let lastHeights: { expandedHeight: number; collapsedHeight: number; visibleHeight: number } = {
+  expandedHeight: Layout.MIN_VIEWBOX_HEIGHT,
+  collapsedHeight: Layout.MIN_VIEWBOX_HEIGHT,
+  visibleHeight: Layout.MIN_VIEWBOX_HEIGHT,
 };
+
+let lastRenderData: { timelines: any; storylines: any; chapters: any; settings: any } | null = null;
 
 /**
  * ✅ Altura visível do modo atual (expanded vs collapsedAll).
@@ -300,13 +277,14 @@ let lastHeights = {
  */
 function getTargetVisibleHeight(collapsedAll: boolean): number {
   return Math.max(
-    MIN_VIEWBOX_HEIGHT,
+    Layout.MIN_VIEWBOX_HEIGHT,
     collapsedAll ? lastHeights.collapsedHeight : lastHeights.expandedHeight
   );
 }
 
 // ✅ centraliza o re-render (pra UI controls poder chamar)
 function renderBoard(data: any) {
+  lastRenderData = data;
   const { timelines, storylines, chapters, settings } = data;
 
   if (!settings) {
@@ -323,7 +301,8 @@ function renderBoard(data: any) {
   const totalWidth = computeTotalWidth(timelines);
 
   // ✅ Mantém state (não reseta): init só garante consistência com IDs novas/removidas
-  initStorylineUIState(storylines);
+  const normalized = normalizeSettings(settings);
+  initStorylineUIState(storylines, normalized.collapsedAll);
 
   // ✅ pega estado atual (pra render inicial já sair no modo correto)
   const ui = getStorylineUIState();
@@ -348,12 +327,8 @@ function renderBoard(data: any) {
   lastHeights = {
     expandedHeight,
     collapsedHeight,
-    visibleHeight: Math.max(MIN_VIEWBOX_HEIGHT, height),
+    visibleHeight: Math.max(Layout.MIN_VIEWBOX_HEIGHT, height),
   };
-
-  // ✅ ajusta altura do background da coluna esquerda (sempre pela altura VISÍVEL atual)
-  const bgHeight = lastHeights.visibleHeight;
-  gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", bgHeight);
 
   // ✅ timelines: usa o height visível atual do render
   renderTimelines(gWorld, timelines, lastHeights.visibleHeight, {
@@ -373,12 +348,16 @@ function renderBoard(data: any) {
       onChange: () => {
         // ✅ re-render completo (mantém zoom via initOrUpdateZoom)
         renderBoard({ timelines, storylines, chapters, settings });
+        // ✅ garante que collapsedAll vai de null → boolean quando o usuário altera algo
+        const ui = getStorylineUIState();
+        window.parent.postMessage(
+          { type: "board-settings-update", data: { collapsedAll: !!ui.collapsedAll } },
+          "*"
+        );
       },
 
       // ✅ CHECKBOX: anima sem re-render completo
       onCollapseToggle: (checked: boolean) => {
-
-
         // aquiiii -> se ops valores desse metodo, de alguma forma, na animacao pra mudar a altura das timelines
         console.log(checked, getCollapsedRowCurrentHeight())
         // 1) anima row + fades do mundo
@@ -402,22 +381,25 @@ function renderBoard(data: any) {
         const minHeight = applyViewBox(totalWidth, targetVisibleHeight);
         initOrUpdateZoom(totalWidth, minHeight, settings);
 
-        // ✅ 5) anima background esquerdo para acompanhar o modo
+        // ✅ 5) anima background esquerdo (usa minHeight do container, não só o conteúdo)
         gLeft
           .select<SVGRectElement>("rect.board-left-bg")
           .interrupt()
           .transition()
           .duration(350)
           .ease(d3.easeCubicInOut)
-          .attr("height", targetVisibleHeight);
+          .attr("height", minHeight);
       },
     },
     gLeft
   );
 
-  // ✅ viewBox inicial + zoom init/update
+  // ✅ viewBox inicial + zoom init/update (adapta ao container)
   const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
   initOrUpdateZoom(totalWidth, minHeight, settings);
+
+  // ✅ background esquerdo: usa a altura do viewBox (cobre o container inteiro)
+  gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", minHeight);
 }
 
 // 📩 Recebe dados do app pai
@@ -432,6 +414,18 @@ window.addEventListener("message", async (event) => {
     }
   }
 });
+
+// 📐 ResizeObserver: re-ajusta viewBox e zoom quando o container (iframe) é redimensionado
+const _boardResizeEl = document.getElementById("board");
+if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
+  new ResizeObserver(() => {
+    if (!lastRenderData) return;
+    const totalWidth = computeTotalWidth(lastRenderData.timelines);
+    const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
+    gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", minHeight);
+    initOrUpdateZoom(totalWidth, minHeight, lastRenderData.settings);
+  }).observe(_boardResizeEl);
+}
 
 // 🧪 Suporte Vite HMR
 if (import.meta.hot) {

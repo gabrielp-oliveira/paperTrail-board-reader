@@ -1,380 +1,360 @@
-Narrative Board (D3 / SVG)
+# PaperTrail Board Reader
 
-An interactive narrative visualization board built with TypeScript + D3.js, designed to run inside an iframe and be fully controlled by a parent application via postMessage.
+> ⚠️ This README reflects the **actual implementation based on the source code**, not previous documentation.
 
-The board visualizes Timelines, Storylines, and Chapters in a subway-map-like layout, supporting zoom, pan, grouping, collapsing, and contextual interactions.
+---
 
-📌 Project Purpose
+# Overview
 
-Render a high-performance SVG narrative board
+This project is a **narrative board renderer** built with:
 
-Be framework-agnostic (no React / Angular inside)
+* Vite
+* TypeScript
+* D3.js
+* SVG
 
-Run as an isolated iframe
+It is designed to run inside an **iframe/WebView** and receive data from a parent application via `postMessage`.
 
-Exchange data and events exclusively via postMessage
+The board visualizes:
 
-Support large datasets with collision-free layout
+* **Timelines** (horizontal progression, X axis)
+* **Storylines** (rows, Y axis)
+* **Chapters** (positioned blocks inside storylines)
+* **Chapter Groups** (collapsed aggregations of chapters sharing the same group)
 
-Provide a fixed left column with labels and controls
+The layout engine is deterministic and based on:
 
-Keep rendering logic deterministic and UI-state driven
+* Timeline `order` and `range`
+* Chapter `timeline_id`
+* Chapter `range`
+* Storyline `order`
 
-🧱 Tech Stack
+---
 
-TypeScript
+# Coordinate System
 
-D3.js
+The board uses an SVG with two main layers:
 
-Vite
+* `gWorld` → zoomable (timelines, storylines, chapters)
+* `gLeft` → fixed left column (labels and controls)
 
-SVG
+The coordinate system works as follows:
 
-No backend
+## X Axis (Horizontal – Time)
 
-No routing
+The X position of a chapter is determined by:
 
-No framework-level state manager
+1. The sum of all **timeline ranges to its left**
+2. Plus the chapter's own `range`
+3. Multiplied by a pixel multiplier
 
-📂 Project Structure
-.
-├── index.html          # Board entry point (iframe target)
-├── dev.html            # Dev sandbox (parent iframe page)
-├── data.json           # Example dataset for local testing
-├── src/
-│   ├── main.ts                 # Bootstrap, zoom/pan, messaging, render cycle
-│   ├── types.ts                # Core data contracts
-│   ├── globalVariables.ts      # Centralized layout constants
-│   ├── renderStoryline.ts      # Layout engine (rows, layers, collapse)
-│   ├── renderTimelines.ts      # Timeline headers + vertical grid
-│   ├── renderChapter.ts        # Chapter cards + grouping logic
-│   ├── expandChapterGroup.ts   # Group expand / collapse behavior
-│   ├── storylineControls.ts    # Left-column UI controls
-│   └── ui/
-│       └── contextMenu.ts      # HTML overlay context menu
+### Pixel multiplier
 
-🧠 Core Concepts
-Timeline
+Each unit of `range` equals:
 
-Represents time columns
+```
+20px
+```
 
-Ordered horizontally by order
+---
 
-Has a range that defines its visual width
+## Timeline Horizontal Offset Calculation
 
-Storyline
+For a chapter belonging to timeline T:
 
-Represents a horizontal narrative row
+```
+X = (
+    sum(timeline.range for all timelines where timeline.order < T.order)
+    + chapter.range
+) * 20
+```
 
-Ordered vertically
+This ensures:
 
-Can be expanded or collapsed
+* Timelines are laid sequentially
+* Chapters are positioned relative to their timeline's start
+* Timeline width is proportional to its `range`
 
-Chapter
+---
 
-Narrative unit rendered as a card
+# Timeline Rendering
 
-Positioned using:
+Timelines are rendered as:
 
-timeline_id
+* Vertical grid separators
+* Header labels at the top
 
-range
+The width of each timeline is:
 
-storyline_id
+```
+timeline.range * 20px
+```
 
-Can appear:
+The total board width is:
 
-As a solo chapter
+```
+sum(all timeline.range) * 20px
+```
 
-Inside a grouped bucket
+---
 
-📐 Coordinate System
-Horizontal (X axis)
+# Y Axis (Vertical – Storylines)
 
-Based on cumulative timeline ranges
+Storylines behave like table rows.
 
-Simplified formula:
+They are rendered in ascending order of:
 
-x =
-  LEFT_COLUMN_WIDTH +
-  (timelineOffset + chapter.range) * PIXELS_PER_RANGE
+```
+storyline.order
+```
 
+Each storyline occupies a vertical band.
+
+---
+
+# Storyline Height Calculation
+
+The height of a storyline is dynamic.
+
+It depends on:
+
+* Number of chapters inside it
+* Collision stacking (chapters that overlap horizontally)
+
+---
+
+## Chapter Collision and Vertical Layering
+
+Within a storyline:
+
+1. Chapters are sorted by X
+2. For each chapter:
+
+   * If it overlaps an existing chapter horizontally
+   * It is pushed to the next vertical "layer"
+
+Each layer increases Y offset by a fixed vertical spacing.
+
+So final Y for a chapter is:
+
+```
+Y = storylineBaseY + (layerIndex * verticalSpacing)
+```
 
 Where:
 
-PIXELS_PER_RANGE is the global scale factor (default: 20px)
+* `storylineBaseY` = top position of the storyline row
+* `layerIndex` = 0 for first layer, 1 for stacked, etc
 
-timelineOffset is the sum of previous timelines’ ranges
+The total storyline height is determined by the highest layer used.
 
-Vertical (Y axis)
+---
 
-Based on storyline row position
+# Chapter Rendering
 
-Uses layering to avoid overlaps:
+Chapters are rendered differently depending on whether they belong to a group.
 
-Chapters that collide horizontally are stacked vertically
+---
 
-Each chapter is assigned a layer index
+## 1️⃣ Solo Chapters
 
-This guarantees no visual overlap, even in dense timelines.
+A chapter is considered "solo" when:
 
-🧩 Rendering Pipeline
+```
+chapter.group starts with "__solo__"
+```
 
-Triggered when the board receives new data.
+Rendered as:
 
-1. Theme & cleanup
+* Colored rectangular card
+* Width proportional to chapter.range
+* Displays chapter title
 
-Apply theme (light / dark / system)
+### Width Calculation
 
-Clear previous SVG content
+```
+width = chapter.range * 20px
+```
 
-2. Initialize UI state
+### Position
 
-Restore collapsed/expanded state
+```
+x = calculated timeline offset
 
-Restore filtered storylines
+y = calculated storyline layer position
+```
 
-3. Render Storylines (layout engine)
+---
 
-Calculate row heights
+## 2️⃣ Chapter Groups (Collapsed State)
 
-Compute chapter X/Y positions
+If multiple chapters share the same `group` value:
 
-Resolve collisions via layering
+They are aggregated into a single "group block".
 
-Cache layout results for transitions
+Rendered as:
 
-4. Render Timelines
+* White rectangular card
+* Fixed width (collapsed state)
+* Displays number of chapters
 
-Draw timeline headers
+The group stores serialized chapter data inside:
 
-Draw vertical grid lines
+```
+data-chapters="title|||id|||color 🟰 ..."
+```
 
-Grid height adapts to visible layout
+Position of group block:
 
-5. Render Chapters
+* X = same calculation as individual chapters
+* Y = based on collision stacking
 
-Render solo chapters
+Group width does NOT represent the sum of child ranges.
 
-Render grouped chapters
+---
 
-Attach hover and click handlers
+# Expanded Group Rendering
 
-6. Render Controls
+When a group is clicked:
 
-Collapse toggle
+* It expands into a larger card (fixed expanded width)
+* Shows a vertical list of child chapters
+* Only one group can be expanded at a time
 
-Storyline selector
+Expansion does NOT recalculate layout.
+It overlays content within the same base position.
 
-7. Update zoom & viewBox
+---
 
-Preserve transform when possible
+# Collapsed Mode (Global Collapse)
 
-Enforce zoom and pan limits
+There is a special mode controlled by the "Collapse" toggle.
 
-📡 iframe Integration Contract
-Incoming Message (required)
+When enabled:
 
-The board never fetches data by itself.
+* All storylines fade out
+* All chapters move into a single collapsed lane
+* A single horizontal band is rendered
 
-window.postMessage({
-  type: "set-data",
-  data: {
-    timelines: Timeline[],
-    storylines: StoryLine[],
-    chapters: Chapter[],
-    settings?: {
-      zoom?: { x: number; y: number; k: number };
-      theme?: "light" | "dark" | "system";
-    }
-  }
-}, "*");
+Chapter Y transitions from:
 
-Data Types
-type Timeline = {
-  id: string;
-  name: string;
-  order: number;
-  range: number;
-};
+```
+yExpanded → yCollapsed
+```
 
-type StoryLine = {
-  id: string;
-  name: string;
-  order: number;
-};
+Where:
 
-type Chapter = {
-  id: string;
-  timeline_id: string;
-  storyline_id: string;
-  range: number;
-  color?: string;
-  paper_id?: string;
-};
+```
+yCollapsed = collapsedLaneBaseY
+```
 
-📤 Events Emitted by the Board
-Zoom / Pan Update
+This is animated using D3 transitions.
 
-Sent when user interaction finishes.
+No full re-render occurs — only transforms are animated.
 
-{
-  type: "board-transform-update",
-  data: {
-    transform: { x: number; y: number; k: number }
-  }
-}
+---
 
+# Storyline Ordering and Placement
 
-👉 Use this to persist zoom state in the parent app.
+Storylines are rendered sequentially:
 
-Chapter Hover (focus)
-{
-  type: "chapter-focus",
-  data: {
-    id: string;
-    focus: boolean;
-  }
-}
+```
+Sorted by storyline.order ascending
+```
 
+Each storyline base Y is:
 
-Useful for syncing hover with external UI (lists, tooltips, etc).
+```
+previousStorylineBottom + gap
+```
 
-Context Menu Action
-{
-  type: "chapter-option-selected",
-  data: {
-    chapterId: string;
-    option: string;
-  }
-}
+Gap is a fixed vertical spacing between rows.
 
+---
 
-Triggered when a user selects an option from the chapter menu.
+# Board Height Calculation
 
-🧰 Interactions
-Zoom & Pan
+Expanded mode height:
 
-Implemented via D3 zoom behavior
+```
+sum(all storyline heights + gaps)
+```
 
-Supports horizontal and vertical pan
+Collapsed mode height:
 
-Left column is X-fixed
+```
+collapsedLaneHeight
+```
 
-Y movement and scale stay synchronized
+The SVG viewBox and zoom translateExtent are recalculated accordingly.
 
-Grouped Chapters
+---
 
-Chapters sharing (timeline_id + range) are grouped
+# Zoom & Pan
 
-Click to expand
+Zoom scale range:
 
-Only one group can be expanded at a time
+```
+2x to 5x
+```
 
-Clicking outside collapses it
+* X and Y translation allowed within bounds
+* Left column does not move horizontally
+* Transform is persisted via postMessage
 
-Context Menu
+---
 
-Implemented as HTML overlay
+# Rendering Flow
 
-Not part of the SVG
+1. Parent sends `{ type: "set-data", data }`
+2. normalizeSettings()
+3. Render timelines
+4. Render storylines
+5. Calculate layout
+6. Render chapters
+7. Attach group interaction
+8. Setup zoom
 
-Positioned relative to the clicked chapter
+---
 
-🔽 Collapse Behavior
-Global Collapse
+# Required Data Fields
 
-Single checkbox in controls
+## Timeline
 
-Collapses all storylines into one unified row
+* id
+* order
+* range
 
-Uses animated transitions:
+## Storyline
 
-Storyline fade
+* id
+* order
+* name
 
-Chapter Y movement
+## Chapter
 
-Grid height adjustment
+* id
+* title
+* timeline_id
+* storyline_id
+* range
+* group
 
-Inline Storyline Collapse (Engine-ready)
+---
 
-Layout engine already supports collapsing individual storylines
+# Summary
 
-UI hooks exist
+The board layout is entirely deterministic and based on:
 
-Can be enabled later without layout refactoring
+* Timeline sequential range accumulation (X)
+* Storyline vertical stacking (Y)
+* Collision-based layering
+* 20px per range unit
 
-🎨 Theme Support
+Chapters and groups are positioned using calculated X/Y derived from timeline offsets and storyline stacking logic.
 
-Accepted formats:
+No automatic layout engine is used — everything is explicitly computed in the renderer.
 
-settings.theme = "light" | "dark" | "system";
+---
 
-
-Also supports legacy boolean formats.
-
-Applies CSS classes:
-
-body.light-mode
-
-body.dark-mode
-
-⚙️ Global Layout Constants
-
-All visual constants must live in:
-
-src/globalVariables.ts
-
-
-Examples:
-
-PIXELS_PER_RANGE
-
-LEFT_COLUMN_WIDTH
-
-STORYLINE_GAP
-
-CHAPTER_HEIGHT
-
-ZOOM_LIMITS
-
-⚠️ Avoid duplicating magic numbers inside render files.
-
-🚧 Known Constraints & Design Decisions
-
-No backend logic inside the board
-
-No direct DOM outside the SVG (except menus)
-
-All state is driven by:
-
-Incoming data
-
-Internal UI state
-
-Parent app owns:
-
-Data persistence
-
-Zoom persistence
-
-Navigation logic
-
-Business actions
-
-🧭 Recommended Parent App Responsibilities
-
-Persist zoom state
-
-Handle chapter actions
-
-Control data filtering
-
-Handle navigation and routing
-
-Provide user-specific settings
-
-📄 License
-
-Internal project / proprietary
-(Adjust as needed)
+End of documentation.

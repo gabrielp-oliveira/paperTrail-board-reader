@@ -1,71 +1,7 @@
 // renderStoryline.ts
 import * as d3 from "d3";
 import { Chapter, StoryLine, Timeline } from "./types";
-import { CONTROLS_HEIGHT, CONTROLS_BOTTOM_PADDING } from "./storylineControls";
-import { Layout } from "./globalVariables";
-
-// ---------------------------
-// Constantes de escala / base
-// ---------------------------
-const PIXELS_PER_RANGE = 20;
-const BASE_Y = 0;
-
-// ---------------------------
-// Layout vertical
-// ---------------------------
-const DEFAULT_ROW_HEIGHT_MIN = 50;
-const STORYLINE_GAP = 8;
-const CHAPTER_VERTICAL_MARGIN = 8;
-
-// ---------------------------
-// Coluna esquerda
-// ---------------------------
-const COL_ROW_MARGIN = 30;
-const LEFT_PADDING = 15;
-const LEFT_COL_WIDTH = Layout.LEFT_COLUMN_WIDTH - LEFT_PADDING;
-
-// ---------------------------
-// Collapsed row global ("storyline mãe")
-// ---------------------------
-const COLLAPSED_ROW_MIN_HEIGHT = 20;
-const COLLAPSED_ROW_EXPANDED_MIN_HEIGHT = 120;
-const COLLAPSED_MARGIN_BOTTOM = 8;
-
-const COLLAPSED_WORLD_FILL = "#d8ecff";
-const COLLAPSED_LEFT_FILL = "#eaf4ff";
-const COLLAPSED_STROKE = "#6aa6d8";
-
-// Inline collapsed (por storyline)
-const INLINE_COLLAPSED_WORLD_FILL = "#eef6ff";
-const INLINE_COLLAPSED_LEFT_FILL = "#f5fbff";
-const INLINE_COLLAPSED_STROKE = "#6aa6d8";
-
-// Animações
-const COLLAPSE_ANIM_MS = 450;
-const FADE_ANIM_MS = 420;
-const FADE_UP_PX = 40;
-
-// ---------------------------
-// Colisão horizontal
-// ---------------------------
-const CHAPTER_MIN_GAP = 8;
-
-// ---------------------------
-// ✅ Sizing (DEVE bater com renderChapter.ts)
-// ---------------------------
-const MAX_TITLE_CHARS = 20;
-const CHAR_WIDTH_PX = 6.5;
-
-const CHAPTER_PADDING = 6;
-const CHAPTER_MIN_WIDTH = 100;
-const CHAPTER_HEIGHT = 25;
-
-const GROUP_MIN_WIDTH = 80;
-const GROUP_HEIGHT = 28;
-const GROUP_PADDING_X = 20;
-
-// altura usada por layer (garante espaço pra solo e grupo)
-const STACK_ITEM_HEIGHT = Math.max(CHAPTER_HEIGHT, GROUP_HEIGHT);
+import { Layout, Controls, StorylinesUI, ChaptersUI } from "./globalVariables";
 
 // ---------------------------
 // Tipos auxiliares
@@ -78,7 +14,6 @@ type LayoutCache = {
   collapsedExpandedHeight: number;
   expandedChapterY: Map<string, number>;
   collapsedChapterY: Map<string, number>;
-  // ✅ novas: alturas de board (pra timelines/bg acompanharem)
   expandedBoardHeight: number;
   collapsedBoardHeight: number;
 };
@@ -98,27 +33,30 @@ function computeChapterX(
 
   return (
     Layout.LEFT_COLUMN_WIDTH +
-    (timelineOffset + (ch.range ?? 0)) * PIXELS_PER_RANGE
+    (timelineOffset + (ch.range ?? 0)) * StorylinesUI.PIXELS_PER_RANGE
   );
 }
 
 function clampTitleLikeRenderChapter(title: string) {
   const t = String(title ?? "").trim();
   if (!t) return "";
-  return t.length > MAX_TITLE_CHARS
-    ? t.slice(0, MAX_TITLE_CHARS - 3).trim() + "..."
+  return t.length > ChaptersUI.MAX_TITLE_CHARS
+    ? t.slice(0, ChaptersUI.MAX_TITLE_CHARS - 3).trim() + "..."
     : t;
 }
 
 function computeSoloBoxWidthLikeRenderChapter(displayTitle: string) {
-  const textWidth = displayTitle.length * CHAR_WIDTH_PX;
-  return Math.max(CHAPTER_MIN_WIDTH, textWidth + CHAPTER_PADDING * 2);
+  const textWidth = displayTitle.length * ChaptersUI.CHAR_WIDTH_ESTIMATE;
+  return Math.max(
+    StorylinesUI.CHAPTER_COLLISION_MIN_WIDTH,
+    textWidth + StorylinesUI.CHAPTER_COLLISION_PADDING * 2
+  );
 }
 
 function computeGroupBoxWidthLikeRenderChapter(count: number) {
   const label = String(count);
-  const textWidth = label.length * CHAR_WIDTH_PX;
-  return Math.max(GROUP_MIN_WIDTH, textWidth + GROUP_PADDING_X);
+  const textWidth = label.length * ChaptersUI.CHAR_WIDTH_ESTIMATE;
+  return Math.max(ChaptersUI.GROUP_MIN_BOX_WIDTH, textWidth + ChaptersUI.GROUP_PADDING_X);
 }
 
 function estimateSoloWidthFromChapter(ch: Chapter) {
@@ -130,13 +68,13 @@ function estimateSoloWidthFromChapter(ch: Chapter) {
     "";
 
   const display = clampTitleLikeRenderChapter(String(raw || ""));
-  if (!display) return CHAPTER_MIN_WIDTH;
+  if (!display) return StorylinesUI.CHAPTER_COLLISION_MIN_WIDTH;
 
   return computeSoloBoxWidthLikeRenderChapter(display);
 }
 
 function estimateBucketWidth(bucket: Chapter[]) {
-  if (!bucket || bucket.length === 0) return CHAPTER_MIN_WIDTH;
+  if (!bucket || bucket.length === 0) return StorylinesUI.CHAPTER_COLLISION_MIN_WIDTH;
   if (bucket.length > 1)
     return computeGroupBoxWidthLikeRenderChapter(bucket.length);
   return estimateSoloWidthFromChapter(bucket[0]);
@@ -170,8 +108,8 @@ function computeLayering(
   for (const item of ordered) {
     const halfW = item.w / 2;
 
-    const x1 = item.x - halfW - CHAPTER_MIN_GAP;
-    const x2 = item.x + halfW + CHAPTER_MIN_GAP;
+    const x1 = item.x - halfW - StorylinesUI.CHAPTER_MIN_GAP;
+    const x2 = item.x + halfW + StorylinesUI.CHAPTER_MIN_GAP;
 
     let layer = 0;
     while (
@@ -192,10 +130,10 @@ function computeRowHeightForLayers(maxLayer: number, minHeight: number) {
   const topPad = 10;
   const bottomPad = 10;
 
-  const step = STACK_ITEM_HEIGHT + CHAPTER_VERTICAL_MARGIN;
+  const step = StorylinesUI.STACK_ITEM_HEIGHT + StorylinesUI.CHAPTER_VERTICAL_MARGIN;
 
   const needed =
-    topPad + Math.max(0, maxLayer - 1) * step + STACK_ITEM_HEIGHT + bottomPad;
+    topPad + Math.max(0, maxLayer - 1) * step + StorylinesUI.STACK_ITEM_HEIGHT + bottomPad;
 
   return Math.max(minHeight, needed);
 }
@@ -204,7 +142,7 @@ function computeChapterYFromLayers(yBase: number, layers: Record<string, number>
   const chapterY: Record<string, number> = {};
 
   const topPad = 10;
-  const step = STACK_ITEM_HEIGHT + CHAPTER_VERTICAL_MARGIN;
+  const step = StorylinesUI.STACK_ITEM_HEIGHT + StorylinesUI.CHAPTER_VERTICAL_MARGIN;
 
   for (const id of Object.keys(layers)) {
     const layer = layers[id] ?? 0;
@@ -233,17 +171,17 @@ function drawCollapsedRow(
     .attr("class", "storyline-band storyline-band-collapsed")
     .attr("data-storyline-id", "__collapsed__")
     .attr("data-y", y)
-    .attr("data-min-height", COLLAPSED_ROW_MIN_HEIGHT)
+    .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
     .attr("data-expanded-height", expandedHeight)
-    .attr("x", xStart + COL_ROW_MARGIN)
+    .attr("x", xStart + StorylinesUI.COL_ROW_MARGIN)
     .attr("y", y)
     .attr("width", xEnd - xStart)
     .attr("height", height)
-    .attr("fill", COLLAPSED_WORLD_FILL)
-    .attr("stroke", COLLAPSED_STROKE)
-    .attr("stroke-width", 1.5)
-    .attr("rx", 8)
-    .attr("ry", 8)
+    .attr("fill", StorylinesUI.COLLAPSED_WORLD_FILL)
+    .attr("stroke", StorylinesUI.COLLAPSED_STROKE)
+    .attr("stroke-width", StorylinesUI.COLLAPSED_STROKE_WIDTH)
+    .attr("rx", StorylinesUI.COLLAPSED_RX)
+    .attr("ry", StorylinesUI.COLLAPSED_RX)
     .attr("opacity", 0.55);
 
   leftLayer
@@ -251,17 +189,17 @@ function drawCollapsedRow(
     .attr("class", "storyline-left-col storyline-left-col-collapsed")
     .attr("data-storyline-id", "__collapsed__")
     .attr("data-y", y)
-    .attr("data-min-height", COLLAPSED_ROW_MIN_HEIGHT)
+    .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
     .attr("data-expanded-height", expandedHeight)
-    .attr("x", LEFT_PADDING)
+    .attr("x", StorylinesUI.LEFT_PADDING)
     .attr("y", y)
-    .attr("width", LEFT_COL_WIDTH)
+    .attr("width", StorylinesUI.LEFT_COL_WIDTH)
     .attr("height", height)
-    .attr("fill", COLLAPSED_LEFT_FILL)
-    .attr("stroke", COLLAPSED_STROKE)
-    .attr("stroke-width", 1.5)
-    .attr("rx", 8)
-    .attr("ry", 8)
+    .attr("fill", StorylinesUI.COLLAPSED_LEFT_FILL)
+    .attr("stroke", StorylinesUI.COLLAPSED_STROKE)
+    .attr("stroke-width", StorylinesUI.COLLAPSED_STROKE_WIDTH)
+    .attr("rx", StorylinesUI.COLLAPSED_RX)
+    .attr("ry", StorylinesUI.COLLAPSED_RX)
     .attr("opacity", 1);
 
   const fo = leftLayer
@@ -269,11 +207,11 @@ function drawCollapsedRow(
     .attr("class", "storyline-left-label storyline-left-label-collapsed")
     .attr("data-storyline-id", "__collapsed__")
     .attr("data-y", y)
-    .attr("data-min-height", COLLAPSED_ROW_MIN_HEIGHT)
+    .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
     .attr("data-expanded-height", expandedHeight)
-    .attr("x", LEFT_PADDING)
+    .attr("x", StorylinesUI.LEFT_PADDING)
     .attr("y", y)
-    .attr("width", LEFT_COL_WIDTH)
+    .attr("width", StorylinesUI.LEFT_COL_WIDTH)
     .attr("height", height)
     .attr("opacity", 1);
 
@@ -283,10 +221,10 @@ function drawCollapsedRow(
     .style("align-items", "center")
     .style("justify-content", "center")
     .style("height", `${height}px`)
-    .style("width", `${LEFT_COL_WIDTH}px`)
-    .style("font-size", "12px")
-    .style("font-weight", "800")
-    .style("color", "#1f4f7a")
+    .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
+    .style("font-size", StorylinesUI.COLLAPSED_LABEL_FONT_SIZE)
+    .style("font-weight", StorylinesUI.COLLAPSED_LABEL_FONT_WEIGHT)
+    .style("color", StorylinesUI.COLLAPSED_LABEL_COLOR)
     .style("text-align", "center")
     .style("user-select", "none")
     .text("Collapsed");
@@ -300,25 +238,25 @@ export function getStorylinesLayoutCache() {
 }
 
 /**
- * ✅ “tamanho grande” determinístico da collapsed row (target)
+ * ✅ "tamanho grande" determinístico da collapsed row (target)
  */
 export function getCollapsedRowExpandedHeight(): number {
   return (
-    lastLayoutCache?.collapsedExpandedHeight ?? COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
+    lastLayoutCache?.collapsedExpandedHeight ?? StorylinesUI.COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
   );
 }
 
 /**
- * ✅ altura atual “real-time” (lida do DOM)
+ * ✅ altura atual "real-time" (lida do DOM)
  */
 export function getCollapsedRowCurrentHeight(): number {
   const el = d3.select<SVGRectElement, unknown>("rect.storyline-band-collapsed");
   if (el.empty()) {
-    return lastLayoutCache?.collapsedMinHeight ?? COLLAPSED_ROW_MIN_HEIGHT;
+    return lastLayoutCache?.collapsedMinHeight ?? StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT;
   }
   const h = parseFloat(el.attr("height") || "0");
   if (Number.isFinite(h) && h > 0) return h;
-  return lastLayoutCache?.collapsedMinHeight ?? COLLAPSED_ROW_MIN_HEIGHT;
+  return lastLayoutCache?.collapsedMinHeight ?? StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT;
 }
 
 // ---------------------------
@@ -335,7 +273,7 @@ export function animateCollapsedRow(
     ? lastLayoutCache.collapsedExpandedHeight
     : lastLayoutCache.collapsedMinHeight;
 
-  const dur = COLLAPSE_ANIM_MS;
+  const dur = StorylinesUI.COLLAPSE_ANIM_MS;
   const ease = d3.easeCubicInOut;
 
   worldLayer
@@ -399,7 +337,7 @@ export function applyCollapsedTransition(
 
   nodes
     .transition()
-    .duration(COLLAPSE_ANIM_MS)
+    .duration(StorylinesUI.COLLAPSE_ANIM_MS)
     .ease(d3.easeCubicInOut)
     .attrTween("transform", function () {
       const el = this as any;
@@ -433,7 +371,7 @@ export function applyStorylinesFadeTransition(
   if (!lastLayoutCache) return;
   const cache = lastLayoutCache;
 
-  const collapseTargetY = cache.collapsedY - FADE_UP_PX;
+  const collapseTargetY = cache.collapsedY - StorylinesUI.FADE_UP_PX;
 
   const band = worldLayer
     .selectAll<SVGRectElement, unknown>("rect.storyline-band")
@@ -465,7 +403,7 @@ export function applyStorylinesFadeTransition(
     sel
       .interrupt()
       .transition()
-      .duration(FADE_ANIM_MS)
+      .duration(StorylinesUI.FADE_ANIM_MS)
       .ease(d3.easeCubicInOut)
       .attr("y", function () {
         const el = this as any;
@@ -542,7 +480,7 @@ export function renderStorylines(
     totalRange += t.range;
   }
 
-  const boardWidthPx = totalRange * PIXELS_PER_RANGE;
+  const boardWidthPx = totalRange * StorylinesUI.PIXELS_PER_RANGE;
 
   // Ordenação das storylines
   const storylinePositionMap = new Map<string, number>();
@@ -559,11 +497,11 @@ export function renderStorylines(
   // ✅ 2 acumuladores:
   // - visibleHeight: altura que DEVE ser usada pra grid/timelines/bg (o que o usuário vê)
   // - expandedHeightAcc: altura real do layout expandido (pra yExpanded ficar certo)
-  let visibleHeight = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
-  let expandedHeightAcc = CONTROLS_HEIGHT + CONTROLS_BOTTOM_PADDING;
+  let visibleHeight = Controls.HEIGHT + Controls.BOTTOM_PADDING;
+  let expandedHeightAcc = Controls.HEIGHT + Controls.BOTTOM_PADDING;
 
   // Collapsed row global sempre existe, e sempre consome altura VISÍVEL
-  const collapsedY = BASE_Y + visibleHeight;
+  const collapsedY = StorylinesUI.BASE_Y + visibleHeight;
 
   const allChapters = chapters ?? [];
 
@@ -577,7 +515,7 @@ export function renderStorylines(
 
   const collapsedExpandedHeight = computeRowHeightForLayers(
     collapsedLayering.maxLayer,
-    COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
+    StorylinesUI.COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
   );
 
   // desenha row global collapsed (visível)
@@ -586,17 +524,17 @@ export function renderStorylines(
     left,
     collapsedY,
     boardWidthPx,
-    COLLAPSED_ROW_MIN_HEIGHT,
+    StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT,
     collapsedExpandedHeight
   );
 
   // reserva espaço VISÍVEL e EXPANDIDO (porque a row global sempre existe)
-  visibleHeight += COLLAPSED_ROW_MIN_HEIGHT + COLLAPSED_MARGIN_BOTTOM;
-  expandedHeightAcc += COLLAPSED_ROW_MIN_HEIGHT + COLLAPSED_MARGIN_BOTTOM;
+  visibleHeight += StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT + StorylinesUI.COLLAPSED_MARGIN_BOTTOM;
+  expandedHeightAcc += StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT + StorylinesUI.COLLAPSED_MARGIN_BOTTOM;
 
   const cache: LayoutCache = {
     collapsedY,
-    collapsedMinHeight: COLLAPSED_ROW_MIN_HEIGHT,
+    collapsedMinHeight: StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT,
     collapsedExpandedHeight,
     expandedChapterY: new Map(),
     collapsedChapterY: new Map(),
@@ -619,8 +557,8 @@ export function renderStorylines(
     const storyline = storylines.find((s) => s.id === storylineId);
     if (!storyline || !group || group.length === 0) return;
 
-    // ✅ y “real” do layout expandido (sempre avança)
-    const yExpandedRow = BASE_Y + expandedHeightAcc;
+    // ✅ y "real" do layout expandido (sempre avança)
+    const yExpandedRow = StorylinesUI.BASE_Y + expandedHeightAcc;
 
     const xStart = Layout.LEFT_COLUMN_WIDTH;
     const xEnd = boardWidthPx + Layout.LEFT_COLUMN_WIDTH;
@@ -639,7 +577,7 @@ export function renderStorylines(
       );
       const rowHeight = computeRowHeightForLayers(
         layeringExpanded.maxLayer,
-        DEFAULT_ROW_HEIGHT_MIN
+        StorylinesUI.DEFAULT_ROW_HEIGHT
       );
 
       const expandedYMap = computeChapterYFromLayers(
@@ -651,7 +589,7 @@ export function renderStorylines(
       }
 
       // ✅ só o layout expandido avança
-      expandedHeightAcc += rowHeight + STORYLINE_GAP;
+      expandedHeightAcc += rowHeight + StorylinesUI.STORYLINE_GAP;
 
       const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {
@@ -688,15 +626,15 @@ export function renderStorylines(
       );
       const rowHeight = computeRowHeightForLayers(
         layering.maxLayer,
-        COLLAPSED_ROW_MIN_HEIGHT
+        StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT
       );
 
       const yMap = computeChapterYFromLayers(yExpandedRow, layering.layers);
       for (const ch of group) cache.expandedChapterY.set(ch.id, yMap[ch.id]);
 
       // ✅ visível e expandido avançam
-      visibleHeight += rowHeight + STORYLINE_GAP;
-      expandedHeightAcc += rowHeight + STORYLINE_GAP;
+      visibleHeight += rowHeight + StorylinesUI.STORYLINE_GAP;
+      expandedHeightAcc += rowHeight + StorylinesUI.STORYLINE_GAP;
 
       worldLayer
         .append("rect")
@@ -704,15 +642,15 @@ export function renderStorylines(
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", 0.6)
-        .attr("x", xStart + COL_ROW_MARGIN)
+        .attr("x", xStart + StorylinesUI.COL_ROW_MARGIN)
         .attr("y", yExpandedRow)
         .attr("width", xEnd - xStart)
         .attr("height", rowHeight)
-        .attr("fill", INLINE_COLLAPSED_WORLD_FILL)
-        .attr("stroke", INLINE_COLLAPSED_STROKE)
-        .attr("stroke-width", 1.2)
-        .attr("rx", 6)
-        .attr("ry", 6)
+        .attr("fill", StorylinesUI.INLINE_COLLAPSED_WORLD_FILL)
+        .attr("stroke", StorylinesUI.INLINE_COLLAPSED_STROKE)
+        .attr("stroke-width", StorylinesUI.INLINE_COLLAPSED_STROKE_WIDTH)
+        .attr("rx", StorylinesUI.INLINE_COLLAPSED_RX)
+        .attr("ry", StorylinesUI.INLINE_COLLAPSED_RX)
         .attr("opacity", 0.6);
 
       left
@@ -721,15 +659,15 @@ export function renderStorylines(
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", 1)
-        .attr("x", LEFT_PADDING)
+        .attr("x", StorylinesUI.LEFT_PADDING)
         .attr("y", yExpandedRow)
-        .attr("width", LEFT_COL_WIDTH)
+        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
         .attr("height", rowHeight)
-        .attr("fill", INLINE_COLLAPSED_LEFT_FILL)
-        .attr("stroke", INLINE_COLLAPSED_STROKE)
-        .attr("stroke-width", 1.2)
-        .attr("rx", 6)
-        .attr("ry", 6)
+        .attr("fill", StorylinesUI.INLINE_COLLAPSED_LEFT_FILL)
+        .attr("stroke", StorylinesUI.INLINE_COLLAPSED_STROKE)
+        .attr("stroke-width", StorylinesUI.INLINE_COLLAPSED_STROKE_WIDTH)
+        .attr("rx", StorylinesUI.INLINE_COLLAPSED_RX)
+        .attr("ry", StorylinesUI.INLINE_COLLAPSED_RX)
         .attr("opacity", 1);
 
       left
@@ -741,9 +679,9 @@ export function renderStorylines(
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", 1)
-        .attr("x", LEFT_PADDING)
+        .attr("x", StorylinesUI.LEFT_PADDING)
         .attr("y", yExpandedRow)
-        .attr("width", LEFT_COL_WIDTH)
+        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
         .attr("height", rowHeight)
         .attr("opacity", 1)
         .append("xhtml:div")
@@ -752,10 +690,10 @@ export function renderStorylines(
         .style("align-items", "center")
         .style("justify-content", "center")
         .style("height", `${rowHeight}px`)
-        .style("width", `${LEFT_COL_WIDTH}px`)
-        .style("font-size", "12px")
-        .style("font-weight", "800")
-        .style("color", "#1f4f7a")
+        .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
+        .style("font-size", StorylinesUI.COLLAPSED_LABEL_FONT_SIZE)
+        .style("font-weight", StorylinesUI.COLLAPSED_LABEL_FONT_WEIGHT)
+        .style("color", StorylinesUI.COLLAPSED_LABEL_COLOR)
         .style("text-align", "center")
         .style("user-select", "none")
         .text(storyline.name);
@@ -794,32 +732,32 @@ export function renderStorylines(
     );
     const rowHeight = computeRowHeightForLayers(
       layering.maxLayer,
-      DEFAULT_ROW_HEIGHT_MIN
+      StorylinesUI.DEFAULT_ROW_HEIGHT
     );
 
     const expandedYMap = computeChapterYFromLayers(yExpandedRow, layering.layers);
     for (const ch of group) cache.expandedChapterY.set(ch.id, expandedYMap[ch.id]);
 
-    visibleHeight += rowHeight + STORYLINE_GAP;
-    expandedHeightAcc += rowHeight + STORYLINE_GAP;
+    visibleHeight += rowHeight + StorylinesUI.STORYLINE_GAP;
+    expandedHeightAcc += rowHeight + StorylinesUI.STORYLINE_GAP;
 
     worldLayer
       .append("rect")
       .attr("class", "storyline-band")
       .attr("data-storyline-id", storylineId)
       .attr("data-y", yExpandedRow)
-      .attr("data-opacity", 0.3)
-      .attr("x", xStart + COL_ROW_MARGIN)
+      .attr("data-opacity", StorylinesUI.BAND_OPACITY)
+      .attr("x", xStart + StorylinesUI.COL_ROW_MARGIN)
       .attr("y", yExpandedRow)
       .attr("width", xEnd - xStart)
       .attr("height", rowHeight)
-      .attr("fill", "#e5e5e5")
-      .attr("stroke", "#999")
-      .attr("stroke-dasharray", "4,4")
-      .attr("stroke-width", 1)
-      .attr("rx", 4)
-      .attr("ry", 4)
-      .attr("opacity", 0.3);
+      .attr("fill", StorylinesUI.BAND_FILL)
+      .attr("stroke", StorylinesUI.BAND_STROKE)
+      .attr("stroke-dasharray", StorylinesUI.BAND_STROKE_DASHARRAY)
+      .attr("stroke-width", StorylinesUI.BAND_STROKE_WIDTH)
+      .attr("rx", StorylinesUI.BAND_RX)
+      .attr("ry", StorylinesUI.BAND_RY)
+      .attr("opacity", StorylinesUI.BAND_OPACITY);
 
     left
       .append("rect")
@@ -827,13 +765,13 @@ export function renderStorylines(
       .attr("data-storyline-id", storylineId)
       .attr("data-y", yExpandedRow)
       .attr("data-opacity", 1)
-      .attr("x", LEFT_PADDING)
+      .attr("x", StorylinesUI.LEFT_PADDING)
       .attr("y", yExpandedRow)
-      .attr("width", LEFT_COL_WIDTH)
+      .attr("width", StorylinesUI.LEFT_COL_WIDTH)
       .attr("height", rowHeight)
-      .attr("fill", "#fafafa")
-      .attr("stroke", "#ccc")
-      .attr("stroke-dasharray", "4,4")
+      .attr("fill", StorylinesUI.LEFT_COL_FILL)
+      .attr("stroke", StorylinesUI.LEFT_COL_STROKE)
+      .attr("stroke-dasharray", StorylinesUI.LEFT_COL_STROKE_DASHARRAY)
       .attr("opacity", 1);
 
     left
@@ -842,9 +780,9 @@ export function renderStorylines(
       .attr("data-storyline-id", storylineId)
       .attr("data-y", yExpandedRow)
       .attr("data-opacity", 1)
-      .attr("x", LEFT_PADDING)
+      .attr("x", StorylinesUI.LEFT_PADDING)
       .attr("y", yExpandedRow)
-      .attr("width", LEFT_COL_WIDTH)
+      .attr("width", StorylinesUI.LEFT_COL_WIDTH)
       .attr("height", rowHeight)
       .attr("opacity", 1)
       .append("xhtml:div")
@@ -853,10 +791,10 @@ export function renderStorylines(
       .style("align-items", "center")
       .style("justify-content", "center")
       .style("height", `${rowHeight}px`)
-      .style("width", `${LEFT_COL_WIDTH}px`)
-      .style("font-size", "13px")
-      .style("font-weight", "700")
-      .style("color", "#333")
+      .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
+      .style("font-size", StorylinesUI.LABEL_FONT_SIZE)
+      .style("font-weight", StorylinesUI.LABEL_FONT_WEIGHT)
+      .style("color", StorylinesUI.LABEL_COLOR)
       .style("text-align", "center")
       .text(storyline.name);
 
@@ -886,14 +824,10 @@ export function renderStorylines(
 
   lastLayoutCache = cache;
 
-  // ✅ height = altura VISÍVEL atual (pra timelines line / bg acompanhar)
-  // - se collapsedAll: height deve ser visibleHeight
-  // - senão: height deve ser expandedHeightAcc
   return {
     chapters: updatedChapters,
     height: collapsedAll ? visibleHeight : expandedHeightAcc,
     expandedHeight: expandedHeightAcc,
     collapsedHeight: visibleHeight,
-    
   };
 }
