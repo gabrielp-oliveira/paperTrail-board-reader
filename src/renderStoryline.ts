@@ -518,18 +518,23 @@ export function renderStorylines(
     StorylinesUI.COLLAPSED_ROW_EXPANDED_MIN_HEIGHT
   );
 
-  // desenha row global collapsed (visível)
+  // Quando collapsedAll já é true (vindo do DB), desenha a row no tamanho expandido imediatamente
+  const initialCollapsedRowHeight = collapsedAll
+    ? collapsedExpandedHeight
+    : StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT;
+
   drawCollapsedRow(
     worldLayer,
     left,
     collapsedY,
     boardWidthPx,
-    StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT,
+    initialCollapsedRowHeight,
     collapsedExpandedHeight
   );
 
-  // reserva espaço VISÍVEL e EXPANDIDO (porque a row global sempre existe)
-  visibleHeight += StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT + StorylinesUI.COLLAPSED_MARGIN_BOTTOM;
+  // visibleHeight usa sempre collapsedExpandedHeight (viewbox correto ao colapsar)
+  // expandedHeightAcc usa min (a row colapsada ocupa pouco no modo expandido)
+  visibleHeight += collapsedExpandedHeight + StorylinesUI.COLLAPSED_MARGIN_BOTTOM;
   expandedHeightAcc += StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT + StorylinesUI.COLLAPSED_MARGIN_BOTTOM;
 
   const cache: LayoutCache = {

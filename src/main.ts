@@ -7,7 +7,6 @@ import {
   applyCollapsedTransition,
   applyStorylinesFadeTransition,
   animateCollapsedRow,
-  getCollapsedRowExpandedHeight,
   getCollapsedRowCurrentHeight,
 } from "./renderStoryline";
 import {
@@ -17,7 +16,7 @@ import {
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
 import { hideContextMenu } from "./ui/contextMenu";
-import { Layout, ZoomPan, LeftBg } from "./globalVariables";
+import { Layout, ZoomPan, LeftBg, StorylinesUI } from "./globalVariables";
 
 // 🎯 Cria SVG base
 const svgBase = d3
@@ -154,11 +153,25 @@ function computeTotalWidth(timelines: any[]): number {
   return Layout.LEFT_COLUMN_WIDTH + timelineWidth;
 }
 
-function applyViewBox(totalWidth: number, height: number) {
+function applyViewBox(totalWidth: number, height: number, animate: boolean = false) {
   const boardEl = document.getElementById("board");
   const containerH = boardEl ? boardEl.clientHeight : 0;
   const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height, containerH);
-  svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
+
+  if (animate) {
+    // ✅ Anima a mudança de viewBox em sincronia com as animações de colapso/expansão.
+    // Sem isso, a mudança instantânea de viewBox com preserveAspectRatio="xMinYMin meet"
+    // causa um "salto" de escala visual (ex: de 0.2 para 0.46) — o famoso "flick".
+    svgBase
+      .interrupt()
+      .transition()
+      .duration(StorylinesUI.COLLAPSE_ANIM_MS)
+      .ease(d3.easeCubicInOut)
+      .attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
+  } else {
+    svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
+  }
+
   return minHeight;
 }
 
@@ -249,18 +262,18 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
     return;
   }
 
-  // ✅ update de limites sem resetar o transform atual
+  // ✅ Atualiza apenas os limites de pan/zoom — sem re-bind e sem re-aplicar o transform.
+  // svg.call(zoomBehavior.transform, currentTransform) foi removido intencionalmente:
+  // quando translateExtent muda (ex: collapse/expand), o D3 constrangia o transform
+  // para o novo extent e disparava o evento zoom, causando um jump visual imediato.
+  // Os event listeners já estão attached do init; o constraint é aplicado
+  // naturalmente na próxima interação do usuário.
   zoomBehavior
     .scaleExtent([ZoomPan.MIN_ZOOM_SCALE, ZoomPan.MAX_ZOOM_SCALE])
     .translateExtent([
       [0, -ZoomPan.PAN_TOP_PADDING_PX],
       [width + ZoomPan.PAN_RIGHT_PADDING_PX, height + ZoomPan.PAN_BOTTOM_PADDING_PX],
     ]);
-
-  svg.call(zoomBehavior);
-
-  // ✅ reaplica o transform atual (mantém exatamente onde o usuário está)
-  svg.call(zoomBehavior.transform, currentTransform);
 }
 
 let lastHeights: { expandedHeight: number; collapsedHeight: number; visibleHeight: number } = {
@@ -270,6 +283,9 @@ let lastHeights: { expandedHeight: number; collapsedHeight: number; visibleHeigh
 };
 
 let lastRenderData: { timelines: any; storylines: any; chapters: any; settings: any } | null = null;
+
+// ✅ Fonte de verdade para collapsedAll — atualizada pelo set-data (DB) e pelo toggle do usuário
+let currentCollapsedAll: boolean = false;
 
 /**
  * ✅ Altura visível do modo atual (expanded vs collapsedAll).
@@ -300,9 +316,8 @@ function renderBoard(data: any) {
 
   const totalWidth = computeTotalWidth(timelines);
 
-  // ✅ Mantém state (não reseta): init só garante consistência com IDs novas/removidas
-  const normalized = normalizeSettings(settings);
-  initStorylineUIState(storylines, normalized.collapsedAll);
+  // ✅ Sempre aplica o collapsedAll mais recente (do DB ou do toggle do usuário)
+  initStorylineUIState(storylines, currentCollapsedAll);
 
   // ✅ pega estado atual (pra render inicial já sair no modo correto)
   const ui = getStorylineUIState();
@@ -358,6 +373,7 @@ function renderBoard(data: any) {
 
       // ✅ CHECKBOX: anima sem re-render completo
       onCollapseToggle: (checked: boolean) => {
+        currentCollapsedAll = checked;
         // aquiiii -> se ops valores desse metodo, de alguma forma, na animacao pra mudar a altura das timelines
         console.log(checked, getCollapsedRowCurrentHeight())
         // 1) anima row + fades do mundo
@@ -377,8 +393,9 @@ function renderBoard(data: any) {
           animate: true,
         });
 
-        // ✅ 4) viewBox + zoom extents reagem imediatamente (sem resetar transform)
-        const minHeight = applyViewBox(totalWidth, targetVisibleHeight);
+        // ✅ 4) viewBox anima junto com as transições (evita salto de escala)
+        // e zoom extents são atualizados imediatamente (sem resetar o transform).
+        const minHeight = applyViewBox(totalWidth, targetVisibleHeight, true);
         initOrUpdateZoom(totalWidth, minHeight, settings);
 
         // ✅ 5) anima background esquerdo (usa minHeight do container, não só o conteúdo)
@@ -408,6 +425,10 @@ window.addEventListener("message", async (event) => {
 
   if (type === "set-data" && data) {
     try {
+      // ✅ Sincroniza collapsedAll com o valor vindo do DB antes de renderizar
+      const normalized = normalizeSettings(data.settings);
+      console.log("[set-data] collapsedAll raw:", data.settings?.config?.collapsedAll ?? data.settings?.collapsedAll, "→ normalized:", normalized.collapsedAll);
+      currentCollapsedAll = normalized.collapsedAll;
       renderBoard(data);
     } catch (e) {
       console.error("❌ Erro ao renderizar board:", e);

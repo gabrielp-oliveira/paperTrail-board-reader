@@ -34,19 +34,15 @@ export function getStorylineUIState(): StorylineUIState {
   return uiState;
 }
 
-// ⚠️ NÃO reseta estado se já existir (importante pro toggle persistir)
 export function initStorylineUIState(storylines: StoryLine[], initialCollapsedAll = false) {
   const allIds = (storylines || []).map((s) => s.id);
 
-  if (uiState.selectedStorylines.size === 0 && !uiState.collapsedAll) {
-    uiState.collapsedAll = initialCollapsedAll;
-    uiState.selectedStorylines = initialCollapsedAll ? new Set() : new Set(allIds);
-    return;
-  }
+  uiState.collapsedAll = initialCollapsedAll;
 
-  if (!uiState.collapsedAll) {
+  if (!initialCollapsedAll) {
     uiState.selectedStorylines = new Set(allIds);
   } else {
+    // Mantém seleção existente mas filtra IDs que não existem mais
     const filtered = new Set<string>();
     for (const id of uiState.selectedStorylines) {
       if (allIds.includes(id)) filtered.add(id);
