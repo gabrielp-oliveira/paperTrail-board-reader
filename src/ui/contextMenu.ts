@@ -1,3 +1,6 @@
+let activeKeyHandler: ((e: KeyboardEvent) => void) | null = null;
+let activeClickHandler: ((e: MouseEvent) => void) | null = null;
+
 export function showContextMenu(
   x: number,
   y: number,
@@ -45,31 +48,46 @@ export function showContextMenu(
   menu.style.setProperty("--scale", `${zoomScale}`);
   menu.style.fontSize = `${14 / zoomScale}px`;
 
+  // Remove listeners anteriores para evitar acúmulo
+  if (activeClickHandler) {
+    document.removeEventListener("click", activeClickHandler);
+  }
+  if (activeKeyHandler) {
+    document.removeEventListener("keydown", activeKeyHandler);
+  }
+
   // ✅ Fecha ao clicar fora
   setTimeout(() => {
-    const handleOutsideClick = (e: MouseEvent) => {
+    activeClickHandler = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (!target.closest("#context-menu")) {
         hideContextMenu();
-        document.removeEventListener("click", handleOutsideClick);
       }
     };
-    document.addEventListener("click", handleOutsideClick);
+    document.addEventListener("click", activeClickHandler);
   });
 
   // ✅ Fecha com ESC
-  const handleKey = (e: KeyboardEvent) => {
+  activeKeyHandler = (e: KeyboardEvent) => {
     if (e.key === "Escape") {
       hideContextMenu();
-      document.removeEventListener("keydown", handleKey);
     }
   };
-  document.addEventListener("keydown", handleKey);
+  document.addEventListener("keydown", activeKeyHandler);
 }
 
 export function hideContextMenu() {
   const menu = document.getElementById("context-menu") as HTMLDivElement;
   if (menu) {
     menu.style.display = "none";
+  }
+
+  if (activeClickHandler) {
+    document.removeEventListener("click", activeClickHandler);
+    activeClickHandler = null;
+  }
+  if (activeKeyHandler) {
+    document.removeEventListener("keydown", activeKeyHandler);
+    activeKeyHandler = null;
   }
 }

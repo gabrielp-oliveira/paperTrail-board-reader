@@ -31,88 +31,112 @@ body, html {
   transition: all 0.3s ease;
 }
 
+/* Estilo base do card expandido */
 .chapter-group[aria-expanded="true"] rect {
-  /* fill: #ffffff !important; */
-  stroke: #999;
   stroke-width: 1.5;
-  rx: 12;
-  ry: 12;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.15));
+  filter: drop-shadow(0 4px 12px rgba(106, 127, 216, 0.2));
+  transition: all 0.25s ease;
 }
 
+/* Estilo base do badge colapsado */
 .chapter-group[aria-expanded="false"] rect {
-  fill: #ffffff;
-  stroke: #999;
   stroke-width: 1.5;
-  rx: 8;
-  ry: 8;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  transition: all 0.25s ease;
 }
 
-/* ==== TEXTOS ==== */
-.chapter-group text.group-label {
-  fill: #003366;
-  font-weight: 600;
-  font-size: 13px;
-}
-
-.chapter-group text.chapter-title {
-  fill: var(--chapter-text-color, #003366);
-  font-weight: 600;
-  font-size: 13px;
-  font-family: "Segoe UI", sans-serif;
+.chapter-group:hover[aria-expanded="false"] rect {
+  filter: drop-shadow(0 3px 10px rgba(106, 127, 216, 0.35));
 }
 
 /* Variáveis de tema */
 body.light-mode {
-  --chapter-text-color: #003366;
+  --chapter-text-color: #2a3a7a;
   --chapter-bg: #ffffff;
-  --chapter-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  --chapter-shadow: drop-shadow(0 2px 8px rgba(106, 127, 216, 0.18));
 }
 
 body.dark-mode {
-  --chapter-text-color: #f4f4f4;
-  --chapter-bg: #3b3b3b;
-  --chapter-shadow: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.6));
+  --chapter-text-color: #b0c4f8;
+  --chapter-bg: #2d3a5a;
+  --chapter-shadow: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
 }
 
-/* Estilo base */
+/* Estilo base: card usa var de tema */
 .chapter-group[aria-expanded="true"] rect,
 .chapter-group[aria-expanded="false"] rect {
   fill: var(--chapter-bg);
   filter: var(--chapter-shadow);
 }
 
-/* Texto de título do capítulo */
+/* === LIGHT MODE === */
+body.light-mode .chapter-group[aria-expanded="false"] rect {
+  fill: #e8eeff !important;
+  stroke: #6a7fd8 !important;
+  filter: drop-shadow(0 2px 6px rgba(106, 127, 216, 0.2)) !important;
+}
+
+body.light-mode .chapter-group[aria-expanded="false"] text {
+  fill: #2a3a7a !important;
+  font-weight: 700;
+}
+
+body.light-mode .chapter-group[aria-expanded="true"] rect {
+  stroke: #6a7fd8 !important;
+}
+
+/* === DARK MODE === */
+body.dark-mode .chapter-group[aria-expanded="false"] rect {
+  fill: #1f2d4d !important;
+  stroke: #5a70c8 !important;
+  filter: drop-shadow(0 2px 6px rgba(90, 112, 200, 0.3)) !important;
+}
+
+body.dark-mode .chapter-group[aria-expanded="false"] text {
+  fill: #a0b4f0 !important;
+  font-weight: 700;
+}
+
+body.dark-mode .chapter-group[aria-expanded="true"] rect {
+  stroke: #5a70c8 !important;
+}
+
+/* ==== TEXTOS ==== */
+.chapter-group text.group-label {
+  fill: var(--chapter-text-color);
+  font-weight: 700;
+  font-size: 14px;
+}
+
 .chapter-group text.chapter-title {
   fill: var(--chapter-text-color);
   font-weight: 600;
   font-size: 13px;
-  font-family: "Segoe UI", sans-serif;
+  font-family: "Segoe UI", system-ui, sans-serif;
 }
 
-/* Hover na bolinha */
+/* Hover no item da lista */
+g.chapter-item:hover {
+  opacity: 0.85;
+}
+
 g.chapter-item:hover rect.chapter-bullet {
-  filter: brightness(1.1) drop-shadow(0 0 4px rgba(0, 0, 0, 0.2));
+  filter: brightness(1.1) drop-shadow(0 0 4px rgba(106, 127, 216, 0.4));
 }
-
 
 .chapter-group line.separator {
-  stroke: rgba(0, 0, 0, 0.15);
+  stroke: rgba(106, 127, 216, 0.3);
   stroke-width: 1.2;
 }
 
 /* ==== BULLET COLORIDA ==== */
 rect.chapter-bullet {
-  rx: 2;
-  ry: 2;
-  transition: fill 0.2s ease;
+  transition: filter 0.15s ease;
   cursor: pointer;
 }
 
 /* Hover bullet */
 g.chapter-item:hover rect.chapter-bullet {
-  filter: brightness(0.9);
+  filter: brightness(1.15) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 /* ==== SOLO ==== */
@@ -120,6 +144,12 @@ g.chapter-item:hover rect.chapter-bullet {
   stroke-width: 1.5;
   rx: 8;
   ry: 8;
+  transition: all 0.2s ease;
+}
+
+.chapter-solo:hover rect {
+  filter: drop-shadow(0 2px 8px rgba(106, 127, 216, 0.3));
+  stroke-width: 2;
 }
 
 .chapter-solo.hovered .chapter-rect {

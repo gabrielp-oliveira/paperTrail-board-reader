@@ -10,6 +10,7 @@ import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 
 let expandedGroupId: string | null = null;
 let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
+let outsideClickHandler: ((e: MouseEvent) => void) | null = null;
 
 // ---------------------------
 // API: setup de interação
@@ -40,8 +41,11 @@ export function setupGroupInteraction(
       }
     });
 
-  // Fecha grupo ao clicar fora
-  document.addEventListener("click", (e) => {
+  // Fecha grupo ao clicar fora — remove handler anterior para evitar acúmulo
+  if (outsideClickHandler) {
+    document.removeEventListener("click", outsideClickHandler);
+  }
+  outsideClickHandler = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
 
     if (
@@ -54,7 +58,8 @@ export function setupGroupInteraction(
       collapseGroup(svgSelection, expandedGroupId);
       expandedGroupId = null;
     }
-  });
+  };
+  document.addEventListener("click", outsideClickHandler);
 
   // Clique em capítulo solo → menu
   svg.selectAll("g.chapter-solo").on("click.menu", function (event) {
@@ -90,9 +95,6 @@ function expandGroup(
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
   group.attr("aria-expanded", "true");
 
-  const x = +group.attr("data-x");
-  const y = +group.attr("data-y");
-
   const titlesIds = (group.attr("data-chapters") ?? "").split(ChaptersUI.CHAPTER_JOIN_SEP);
 
   const boxWidth = ChapterGroupExpandedUI.BOX_WIDTH;
@@ -101,11 +103,11 @@ function expandGroup(
     titlesIds.length * ChapterGroupExpandedUI.CHAPTER_ROW_HEIGHT +
     ChapterGroupExpandedUI.PADDING * 2;
 
-  // Caixa de fundo
+  // Caixa de fundo — coords relativas ao grupo (que já tem translate(x,y))
   group
     .select("rect")
-    .attr("x", x - boxWidth / 2)
-    .attr("y", y)
+    .attr("x", -boxWidth / 2)
+    .attr("y", 0)
     .attr("width", boxWidth)
     .attr("height", totalHeight)
     .attr("rx", ChapterGroupExpandedUI.RX)
@@ -120,13 +122,14 @@ function expandGroup(
   group.selectAll("line").remove();
   group.selectAll("rect.chapter-bullet").remove();
   group.selectAll("g.chapter-item").remove();
+  group.selectAll("g.chapter-close-btn").remove();
 
   // Cabeçalho de contagem
   group
     .append("text")
     .attr("class", "group-label")
-    .attr("x", x)
-    .attr("y", y + ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_TEXT_OFFSET_Y)
+    .attr("x", 0)
+    .attr("y", ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_TEXT_OFFSET_Y)
     .attr("text-anchor", "middle")
     .text(`${titlesIds.length}`)
     .style("fill", ChapterGroupExpandedUI.TEXT_COLOR_CSS_VAR)
@@ -138,12 +141,69 @@ function expandGroup(
   group
     .append("line")
     .attr("class", "separator")
-    .attr("x1", x - boxWidth / 2 + ChapterGroupExpandedUI.SEPARATOR_INSET)
-    .attr("x2", x + boxWidth / 2 - ChapterGroupExpandedUI.SEPARATOR_INSET)
-    .attr("y1", y + ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_SEPARATOR_Y)
-    .attr("y2", y + ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_SEPARATOR_Y)
+    .attr("x1", -boxWidth / 2 + ChapterGroupExpandedUI.SEPARATOR_INSET)
+    .attr("x2", boxWidth / 2 - ChapterGroupExpandedUI.SEPARATOR_INSET)
+    .attr("y1", ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_SEPARATOR_Y)
+    .attr("y2", ChapterGroupExpandedUI.PADDING + ChapterGroupExpandedUI.HEADER_SEPARATOR_Y)
     .attr("stroke", ChapterGroupExpandedUI.SEPARATOR_STROKE)
     .attr("stroke-width", ChapterGroupExpandedUI.SEPARATOR_STROKE_WIDTH);
+
+  // Close button (X no canto superior direito)
+  const closeBtn = group
+    .append("g")
+    .attr("class", "chapter-close-btn")
+    .attr("data-group-id", groupId)
+    .style("cursor", "pointer")
+    .on("click", (event) => {
+      event.stopPropagation();
+      collapseGroup(svg, groupId);
+    });
+
+  const closeBtnRadius = 8;
+  const closeBtnX = boxWidth / 2 - 14;
+  const closeBtnY = ChapterGroupExpandedUI.PADDING + 8;
+
+  closeBtn
+    .append("circle")
+    .attr("cx", closeBtnX)
+    .attr("cy", closeBtnY)
+    .attr("r", closeBtnRadius)
+    .style("fill", "rgba(106, 127, 216, 0.15)")
+    .style("stroke", "rgba(106, 127, 216, 0.4)")
+    .style("stroke-width", 1)
+    .style("transition", "all 0.2s ease");
+
+  closeBtn
+    .append("text")
+    .attr("x", closeBtnX)
+    .attr("y", closeBtnY)
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "middle")
+    .attr("font-size", "16px")
+    .attr("font-weight", "700")
+    .style("fill", "rgba(42, 58, 122, 0.7)")
+    .style("pointer-events", "none")
+    .text("×");
+
+  closeBtn.on("mouseenter", function () {
+    d3.select(this)
+      .select("circle")
+      .style("fill", "rgba(106, 127, 216, 0.3)")
+      .style("stroke", "rgba(106, 127, 216, 0.7)");
+    d3.select(this)
+      .select("text")
+      .style("fill", "rgba(42, 58, 122, 1)");
+  });
+
+  closeBtn.on("mouseleave", function () {
+    d3.select(this)
+      .select("circle")
+      .style("fill", "rgba(106, 127, 216, 0.15)")
+      .style("stroke", "rgba(106, 127, 216, 0.4)");
+    d3.select(this)
+      .select("text")
+      .style("fill", "rgba(42, 58, 122, 0.7)");
+  });
 
   // Lista de capítulos
   titlesIds.forEach((titleId, i) => {
@@ -160,8 +220,8 @@ function expandGroup(
         ? title.slice(0, ChapterGroupExpandedUI.MAX_TITLE_CHARS - 3).trim() + "..."
         : title;
 
+    // yOffset relativo à origem do grupo (sem somar y absoluto)
     const yOffset =
-      y +
       ChapterGroupExpandedUI.PADDING +
       ChapterGroupExpandedUI.LIST_START_Y +
       i * ChapterGroupExpandedUI.CHAPTER_ROW_HEIGHT;
@@ -170,13 +230,24 @@ function expandGroup(
       .append("g")
       .attr("class", "chapter-item")
       .style("cursor", "pointer")
-      .on("mouseenter", () => {
+      .on("mouseenter", function () {
+        // Highlight background do item no hover
+        d3.select(this)
+          .selectAll("rect.item-bg")
+          .style("fill", "rgba(106, 127, 216, 0.08)")
+          .style("opacity", 1);
+
         window.parent.postMessage(
           { type: "chapter-focus", data: { id, focus: true } },
           "*"
         );
       })
-      .on("mouseleave", () => {
+      .on("mouseleave", function () {
+        d3.select(this)
+          .selectAll("rect.item-bg")
+          .style("fill", "rgba(106, 127, 216, 0.0)")
+          .style("opacity", 0);
+
         window.parent.postMessage(
           { type: "chapter-focus", data: { id, focus: false } },
           "*"
@@ -187,27 +258,44 @@ function expandGroup(
         event.stopPropagation();
       });
 
-    // Bullet colorido
+    // Background do item (para hover)
+    itemGroup
+      .append("rect")
+      .attr("class", "item-bg")
+      .attr("x", -boxWidth / 2 + 4)
+      .attr("y", yOffset - ChapterGroupExpandedUI.CHAPTER_ROW_HEIGHT / 2 - 2)
+      .attr("width", boxWidth - 8)
+      .attr("height", ChapterGroupExpandedUI.CHAPTER_ROW_HEIGHT)
+      .attr("rx", 4)
+      .style("fill", "rgba(106, 127, 216, 0.0)")
+      .style("opacity", 0)
+      .style("transition", "all 0.15s ease")
+      .style("pointer-events", "none");
+
+    // Bullet colorido — aumentado de tamanho
     itemGroup
       .append("rect")
       .attr("class", "chapter-bullet")
-      .attr("x", x - boxWidth / 2 + ChapterGroupExpandedUI.BULLET_X_OFFSET)
-      .attr("y", yOffset - ChapterGroupExpandedUI.BULLET_SIZE)
-      .attr("width", ChapterGroupExpandedUI.BULLET_SIZE)
-      .attr("height", ChapterGroupExpandedUI.BULLET_SIZE)
-      .attr("rx", ChapterGroupExpandedUI.BULLET_RX)
-      .attr("ry", ChapterGroupExpandedUI.BULLET_RY)
+      .attr("x", -boxWidth / 2 + ChapterGroupExpandedUI.BULLET_X_OFFSET - 2)
+      .attr("y", yOffset - ChapterGroupExpandedUI.BULLET_SIZE / 2 - 1)
+      .attr("width", ChapterGroupExpandedUI.BULLET_SIZE + 2)
+      .attr("height", ChapterGroupExpandedUI.BULLET_SIZE + 2)
+      .attr("rx", ChapterGroupExpandedUI.BULLET_RX + 1)
+      .attr("ry", ChapterGroupExpandedUI.BULLET_RY + 1)
       .style("fill", color)
       .attr("stroke", ChapterGroupExpandedUI.BULLET_STROKE)
-      .attr("stroke-width", ChapterGroupExpandedUI.BULLET_STROKE_WIDTH);
+      .attr("stroke-width", ChapterGroupExpandedUI.BULLET_STROKE_WIDTH)
+      .style("transition", "all 0.15s ease")
+      .style("filter", "drop-shadow(0 1px 2px rgba(0,0,0,0.15))");
 
     // Texto do item
     itemGroup
       .append("text")
       .attr("class", "chapter-title")
-      .attr("x", x - boxWidth / 2 + ChapterGroupExpandedUI.TEXT_X_OFFSET)
+      .attr("x", -boxWidth / 2 + ChapterGroupExpandedUI.TEXT_X_OFFSET)
       .attr("y", yOffset)
       .attr("text-anchor", "start")
+      .attr("alignment-baseline", "middle")
       .text(truncated)
       .append("title")
       .text(title);
@@ -234,8 +322,6 @@ function collapseGroup(
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
   group.attr("aria-expanded", "false");
 
-  const x = +group.attr("data-x");
-  const y = +group.attr("data-y");
   const titlesIds = (group.attr("data-chapters") ?? "").split(ChaptersUI.CHAPTER_JOIN_SEP);
 
   const label = titlesIds.length === 1 ? "1" : `${titlesIds.length}`;
@@ -247,10 +333,11 @@ function collapseGroup(
 
   group.selectAll("*").remove();
 
+  // Coords relativas ao grupo (que já tem translate(x,y))
   group
     .append("rect")
-    .attr("x", x - boxWidth / 2)
-    .attr("y", y)
+    .attr("x", -boxWidth / 2)
+    .attr("y", 0)
     .attr("width", boxWidth)
     .attr("height", ChapterGroupExpandedUI.COLLAPSE_BOX_HEIGHT)
     .attr("rx", ChapterGroupExpandedUI.COLLAPSE_RX)
@@ -262,8 +349,8 @@ function collapseGroup(
 
   group
     .append("text")
-    .attr("x", x)
-    .attr("y", y + ChapterGroupExpandedUI.COLLAPSE_BOX_HEIGHT / 2)
+    .attr("x", 0)
+    .attr("y", ChapterGroupExpandedUI.COLLAPSE_BOX_HEIGHT / 2)
     .attr("text-anchor", "middle")
     .attr("alignment-baseline", "middle")
     .attr("font-size", ChapterGroupExpandedUI.COLLAPSE_FONT_SIZE)

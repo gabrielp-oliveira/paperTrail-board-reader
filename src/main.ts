@@ -7,7 +7,6 @@ import {
   applyCollapsedTransition,
   applyStorylinesFadeTransition,
   animateCollapsedRow,
-  getCollapsedRowCurrentHeight,
   setupCollapsedRowInteraction,
 } from "./renderStoryline";
 import {
@@ -177,7 +176,7 @@ function applyThemeFromSettings(settings: any) {
     return;
   }
 
-  document.body.classList.add(resolved === "dark" ? "light-mode" : "dark-mode");
+  document.body.classList.add(resolved === "dark" ? "dark-mode" : "light-mode");
 }
 
 function computeTotalWidth(timelines: any[]): number {
@@ -226,10 +225,6 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
     HTMLElement,
     any
   >;
-
-  // transform atual (se já existir)
-  const node = svg.node();
-  const currentTransform = node ? d3.zoomTransform(node) : d3.zoomIdentity;
 
   if (!zoomBehavior) {
     const normalized = normalizeSettings(settings);
@@ -405,8 +400,6 @@ function renderBoard(data: any) {
     {
       onCollapseToggle: (checked: boolean) => {
         currentCollapsedAll = checked;
-        // aquiiii -> se ops valores desse metodo, de alguma forma, na animacao pra mudar a altura das timelines
-        console.log(checked, getCollapsedRowCurrentHeight())
         // 1) anima row + fades do mundo
         animateCollapsedRow(gWorld, gLeft, checked);
         applyCollapsedTransition(gWorld, checked);
@@ -478,7 +471,6 @@ window.addEventListener("message", async (event) => {
     try {
       // ✅ Sincroniza collapsedAll com o valor vindo do DB antes de renderizar
       const normalized = normalizeSettings(data.settings);
-      console.log("[set-data] collapsedAll raw:", data.settings?.config?.collapsedAll ?? data.settings?.collapsedAll, "→ normalized:", normalized.collapsedAll);
       currentCollapsedAll = normalized.collapsedAll;
       renderBoard(data);
     } catch (e) {

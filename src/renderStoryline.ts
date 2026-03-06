@@ -260,25 +260,14 @@ export function getCollapsedRowCurrentHeight(): number {
 }
 
 // ---------------------------
-// ✅ PUBLIC: adiciona handler de clique na collapsed row global
+// ✅ PUBLIC: adiciona handler de clique na collapsed row global (DESABILITADO)
 // ---------------------------
 export function setupCollapsedRowInteraction(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   onClick: () => void
 ) {
-  const targets = [
-    worldLayer.select<SVGRectElement>("rect.storyline-band-collapsed"),
-    leftLayer.select<SVGRectElement>("rect.storyline-left-col-collapsed"),
-    leftLayer.select<SVGForeignObjectElement>("foreignObject.storyline-left-label-collapsed"),
-  ] as const;
-
-  targets.forEach((sel) => {
-    sel.style("cursor", "pointer").on("click.collapseRow", (event) => {
-      event.stopPropagation();
-      onClick();
-    });
-  });
+  // Clique na collapsed row foi desabilitado - apenas o checkbox toggle funciona agora
 }
 
 // ---------------------------

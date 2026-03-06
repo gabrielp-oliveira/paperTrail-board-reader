@@ -2,6 +2,7 @@
 import * as d3 from "d3";
 import { Chapter } from "./types";
 import { ChaptersUI } from "./globalVariables";
+import { getTextColor } from "./utils/colorUtils";
 
 // Fallbacks para dados ausentes
 const NO_TITLE = "NO_TITLE";
@@ -71,6 +72,53 @@ export function renderChapters(
     (ch) => ch.group ?? `group-${ch.timeline_id}-${ch.range}-${ch.color}`
   );
 
+  /**
+   * Helper: cria um gradiente ID único e retorna a referência
+   * para ser usada em fill="url(#...)"
+   */
+  function createGroupGradient(
+    groupId: string,
+    colors: string[]
+  ): string {
+    if (colors.length === 0) return "none";
+    if (colors.length === 1) return colors[0];
+
+    // Remove duplicatas mas mantém ordem
+    const uniqueColors = Array.from(new Set(colors));
+
+    // Cria ID único para o gradiente
+    const gradientId = `group-gradient-${groupId.replace(/[^a-z0-9]/gi, "-")}`;
+
+    // Verifica se defs já existe
+    let defs:any = svg.select("defs");
+    if (defs.empty()) {
+      defs = svg.insert("defs", ":first-child");
+    }
+
+    // Remove gradiente antigo se existir
+    defs.select(`#${gradientId}`).remove();
+
+    // Cria novo gradiente linear (esquerda para direita)
+    const gradient = defs
+      .append("linearGradient")
+      .attr("id", gradientId)
+      .attr("x1", "0%")
+      .attr("y1", "0%")
+      .attr("x2", "100%")
+      .attr("y2", "0%");
+
+    // Adiciona stops de cor
+    uniqueColors.forEach((color, i) => {
+      const percent = (i / (uniqueColors.length - 1)) * 100;
+      gradient
+        .append("stop")
+        .attr("offset", `${percent}%`)
+        .attr("stop-color", color);
+    });
+
+    return `url(#${gradientId})`;
+  }
+
   // ---------------------------
   // Render: capítulos SOLO
   // ---------------------------
@@ -88,8 +136,7 @@ export function renderChapters(
       g.selectAll("*").remove();
 
       const baseColor = d3.color(ch.color || NO_COLOR) || d3.color(NO_COLOR)!;
-      const luminance = d3.lab(baseColor).l;
-      const textColor = luminance > 50 ? "black" : "white";
+      const textColor = getTextColor(baseColor.toString());
 
       const displayTitle = getChapterTitleForDisplay(ch);
       const fullTitle = getChapterTitleFull(ch);
