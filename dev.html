@@ -1,116 +1,350 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <title>App Pai - Teste do Board</title>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev — Board Iframe</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 8px; }
-    #controls {
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
       display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 8px 0;
+      height: 100vh;
+      overflow: hidden;
+      font-family: "Segoe UI", sans-serif;
+      background: #111;
     }
-    #theme-btn {
-      padding: 6px 16px;
-      font-size: 13px;
-      font-family: inherit;
-      border: 1px solid #bbb;
-      border-radius: 6px;
-      background: #f4f4f4;
-      cursor: pointer;
+
+    /* ── Iframe ── */
+    #iframe-wrapper {
+      flex: 1;
+      min-width: 0;
+      overflow-y: auto;
+      background: #1a1a1a;
+      padding: 24px;
     }
-    #theme-btn:hover { background: #e8e8e8; }
+
     iframe {
       width: 100%;
-      height: calc(100vh - 60px);
-      border: 2px solid #ccc;
-      border-radius: 8px;
+      height: 300px;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
       display: block;
+      transition: height 400ms cubic-bezier(0.4, 0, 0.2, 1);
     }
+
+    /* ── Painel lateral ── */
+    #panel {
+      width: 280px;
+      flex-shrink: 0;
+      background: #161616;
+      color: #ddd;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid #2a2a2a;
+      overflow: hidden;
+    }
+
+    #panel-header {
+      padding: 10px 14px;
+      background: #1f1f1f;
+      border-bottom: 1px solid #2a2a2a;
+      font-size: 12px;
+      font-weight: 600;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+
+    .section {
+      padding: 10px 14px;
+      border-bottom: 1px solid #222;
+      flex-shrink: 0;
+    }
+
+    .section-title {
+      font-size: 10px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      margin-bottom: 8px;
+    }
+
+    .btn-row { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    button {
+      padding: 6px 12px;
+      border: 1px solid #333;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      background: #252525;
+      color: #ccc;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    button:hover { background: #303030; border-color: #444; }
+    button.primary { background: #1d4ed8; border-color: #2563eb; color: #fff; }
+    button.primary:hover { background: #2563eb; }
+    button.active { background: #164e2a; border-color: #16a34a; color: #86efac; }
+
+    /* ── State strip ── */
+    #board-state {
+      font-size: 11px;
+      color: #666;
+      margin-top: 8px;
+      line-height: 1.8;
+      font-family: monospace;
+    }
+    #board-state span { color: #aaa; }
+
+    /* ── Log ── */
+    #log-header {
+      padding: 8px 14px;
+      border-bottom: 1px solid #222;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+    #log-header span { font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.8px; }
+    #log-header button { padding: 3px 8px; font-size: 10px; }
+
+    #log {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    #log::-webkit-scrollbar { width: 4px; }
+    #log::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+    .log-entry {
+      padding: 6px 8px;
+      border-radius: 5px;
+      font-size: 11px;
+      font-family: monospace;
+      line-height: 1.5;
+    }
+    .log-entry.out   { background: #0f2a4a; border-left: 2px solid #2563eb; color: #93c5fd; }
+    .log-entry.in    { background: #0f2a1a; border-left: 2px solid #16a34a; color: #86efac; }
+    .log-entry.meta  { background: #1e1e1e; border-left: 2px solid #444;    color: #888; }
+    .log-entry.error { background: #2a0f0f; border-left: 2px solid #dc2626; color: #fca5a5; }
+    .log-dir  { font-size: 10px; opacity: 0.6; margin-bottom: 2px; }
+    .log-type { font-weight: bold; }
+    .log-payload { opacity: 0.75; white-space: pre-wrap; word-break: break-all; margin-top: 2px; }
+
+    .badge {
+      display: inline-block;
+      padding: 1px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 600;
+      background: #422006;
+      color: #fde68a;
+    }
+    .badge.live { background: #166534; color: #bbf7d0; }
   </style>
 </head>
 <body>
 
-  <div id="controls">
-    <button id="theme-btn">Tema: light</button>
+  <div id="iframe-wrapper">
+    <iframe id="board-frame" src="/index.html"></iframe>
   </div>
 
-  <!-- ✅ DEV: aponta pro index do Vite, NÃO pro dist -->
-  <iframe id="board-frame" src="/index.html"></iframe>
+  <div id="panel">
+    <div id="panel-header">
+      🧪 Dev Tools
+      <span class="badge" id="status-badge">carregando...</span>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Inicialização</div>
+      <div class="btn-row">
+        <button class="primary" onclick="reloadAndSend()">▶ Recarregar</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Tema</div>
+      <div class="btn-row">
+        <button id="theme-btn" onclick="cycleTheme()">light</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Colapso</div>
+      <div class="btn-row">
+        <button id="collapse-btn" onclick="toggleCollapse()">Collapse: off</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Estado do board</div>
+      <div id="board-state">—</div>
+    </div>
+
+    <div id="log-header">
+      <span>Log de eventos</span>
+      <button onclick="clearLog()">Limpar</button>
+    </div>
+    <div id="log"></div>
+  </div>
 
   <script type="module">
-    const iframe = document.getElementById("board-frame");
-    const themeBtn = document.getElementById("theme-btn");
+    const iframe   = document.getElementById("board-frame");
+    const badge    = document.getElementById("status-badge");
+    const stateEl  = document.getElementById("board-state");
 
     const THEMES = ["light", "dark", "system"];
     let themeIndex = 0;
-    let boardData = null;
+    let collapsed  = false;
+    let boardData  = null;
+    let lastSize   = null;
 
-    function sendData(themeMode) {
+    // ── Helpers ──────────────────────────────────────────────────
+    function send(type, data) {
+      iframe.contentWindow?.postMessage({ type, data }, "*");
+      addLog("out", type, data);
+    }
+
+    function addLog(direction, type, payload) {
+      const log = document.getElementById("log");
+      const entry = document.createElement("div");
+      entry.className = `log-entry ${direction}`;
+      const label = { out: "→ enviado", in: "← recebido", meta: "⚙ sistema", error: "✕ erro" }[direction];
+      let payloadStr = "";
+      if (payload !== undefined && payload !== null) {
+        const full = JSON.stringify(payload, null, 2);
+        payloadStr = full.length > 300 ? full.slice(0, 300) + "\n…" : full;
+      }
+      entry.innerHTML =
+        `<div class="log-dir">${label}</div>` +
+        `<span class="log-type">${type}</span>` +
+        (payloadStr ? `<div class="log-payload">${escapeHtml(payloadStr)}</div>` : "");
+      log.appendChild(entry);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function escapeHtml(s) {
+      return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    function updateState() {
+      if (!lastSize) { stateEl.innerHTML = "—"; return; }
+      stateEl.innerHTML =
+        `collapsed: <span>${collapsed}</span><br>` +
+        `vbW: <span>${lastSize.width}</span>  vbH: <span>${lastSize.height}</span><br>` +
+        `iframe h: <span>${iframe.style.height}</span>`;
+    }
+
+    // ── Dados ────────────────────────────────────────────────────
+    async function loadData() {
+      const res = await fetch("/data.json");
+      const world = await res.json();
+      const { timelines, storyLines, chapters, papers } = world;
+      const colorMap = new Map((papers || []).map(p => [p.id, p.color]));
+      boardData = {
+        timelines,
+        storylines: storyLines,
+        chapters: (chapters || []).map(ch => ({ ...ch, color: colorMap.get(ch.paper_id) || "#CCCCCC" })),
+      };
+      addLog("meta", "data.json carregado");
+    }
+
+    function sendData() {
       if (!boardData) return;
-      iframe.contentWindow.postMessage({
-        type: "set-data",
-        data: {
-          ...boardData,
-          settings: {
-            config: {
-              zoom: { x: 0, y: 0, k: 1 },
-              theme: { mode: themeMode },
-              collapsedAll: false,
-            }
+      const theme = THEMES[themeIndex];
+      send("set-data", {
+        ...boardData,
+        settings: {
+          config: {
+            zoom: { x: 0, y: 0, k: 1 },
+            theme: { mode: theme },
+            collapsedAll: collapsed,
           }
         }
-      }, "*");
+      });
     }
 
-    themeBtn.addEventListener("click", () => {
+    // ── Controles ────────────────────────────────────────────────
+    window.cycleTheme = function () {
       themeIndex = (themeIndex + 1) % THEMES.length;
-      const theme = THEMES[themeIndex];
-      themeBtn.textContent = `Tema: ${theme}`;
-      sendData(theme);
-    });
+      document.getElementById("theme-btn").textContent = THEMES[themeIndex];
+      sendData();
+    };
 
-    async function loadAndSendData() {
-      try {
-        const response = await fetch("/data.json");
-        const world = await response.json();
+    window.toggleCollapse = function () {
+      collapsed = !collapsed;
+      const btn = document.getElementById("collapse-btn");
+      btn.textContent = `Collapse: ${collapsed ? "on" : "off"}`;
+      btn.classList.toggle("active", collapsed);
+      send("set-collapse", { collapsed });
+    };
 
-        const { timelines, storyLines, chapters, papers } = world;
+    window.reloadAndSend = function () {
+      badge.textContent = "carregando...";
+      badge.className = "badge";
+      iframe.src = iframe.src;
+      addLog("meta", "iframe recarregado");
+    };
 
-        const paperColorMap = new Map(
-          (papers || []).map(p => [p.id, p.color])
-        );
+    window.clearLog = function () {
+      document.getElementById("log").innerHTML = "";
+    };
 
-        const coloredChapters = (chapters || []).map(ch => ({
-          ...ch,
-          color: paperColorMap.get(ch.paper_id) || "#CCCCCC"
-        }));
-
-        boardData = {
-          timelines,
-          storylines: storyLines,
-          chapters: coloredChapters,
-        };
-
-        sendData(THEMES[themeIndex]);
-
-      } catch (err) {
-        console.error("❌ Erro ao carregar ou enviar dados:", err);
+    // ── Captura erros do iframe ───────────────────────────────────
+    window.addEventListener("error", (e) => {
+      if (e.filename?.includes("index.html") || e.filename?.includes("/src/")) {
+        addLog("error", "runtime error", { message: e.message, file: e.filename, line: e.lineno });
       }
-    }
-
-    iframe.addEventListener("load", () => {
-      loadAndSendData();
+    });
+    window.addEventListener("unhandledrejection", (e) => {
+      addLog("error", "unhandledrejection", { reason: String(e.reason) });
     });
 
+    // ── Lifecycle ────────────────────────────────────────────────
+    iframe.addEventListener("load", async () => {
+      badge.textContent = "online";
+      badge.className = "badge live";
+      addLog("meta", "iframe carregado");
+      if (!boardData) await loadData();
+      sendData();
+    });
+
+    // ── Mensagens recebidas do board ──────────────────────────────
     window.addEventListener("message", (event) => {
       const { type, data } = event.data || {};
       if (!type) return;
-      console.log("📨", type, data);
+
+      addLog("in", type, data);
+
+      if (type === "board-size-update") {
+        lastSize = data;
+        const iframeWidth = iframe.clientWidth;
+        const cssHeight = Math.round(iframeWidth * data.height / data.width);
+        const minExpanded = data.collapsed ? 0 : 400;
+        iframe.style.height = Math.max(minExpanded, cssHeight) + "px";
+        updateState();
+      }
+
+      if (type === "board-settings-update" && typeof data?.collapsedAll === "boolean") {
+        collapsed = data.collapsedAll;
+        const btn = document.getElementById("collapse-btn");
+        btn.textContent = `Collapse: ${collapsed ? "on" : "off"}`;
+        btn.classList.toggle("active", collapsed);
+        updateState();
+      }
+
+      if (type === "board-transform-update") {
+        updateState();
+      }
     });
   </script>
-
 </body>
 </html>

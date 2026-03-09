@@ -16,7 +16,6 @@ import {
   triggerCollapseToggle,
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
-import { hideContextMenu } from "./ui/contextMenu";
 import { Layout, ZoomPan, LeftBg, StorylinesUI, TimelinesUI } from "./globalVariables";
 
 // 🎯 Cria SVG base
@@ -29,6 +28,15 @@ const svgBase = d3
   .style("margin", "0")
   .style("padding", "0")
   .style("display", "block");
+
+// Previne menu nativo do browser no SVG (right-click / long-press mobile)
+document.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// Previne browser zoom (Ctrl+scroll) sempre que o cursor estiver sobre o board,
+// mesmo quando o D3 está no limite do scaleExtent e não chama preventDefault.
+document.addEventListener("wheel", (e) => {
+  if (e.ctrlKey) e.preventDefault();
+}, { passive: false });
 
 // ClipPath para gTop: limita os headers à área à direita da coluna fixa esquerda
 svgBase
@@ -187,15 +195,17 @@ function computeTotalWidth(timelines: any[]): number {
   return Layout.LEFT_COLUMN_WIDTH + timelineWidth;
 }
 
+function emitSizeUpdate(width: number, height: number) {
+  window.parent.postMessage({
+    type: "board-size-update",
+    data: { width, height, collapsed: currentCollapsedAll },
+  }, "*");
+}
+
 function applyViewBox(totalWidth: number, height: number, animate: boolean = false) {
-  const boardEl = document.getElementById("board");
-  const containerH = boardEl ? boardEl.clientHeight : 0;
-  const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height, containerH);
+  const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height);
 
   if (animate) {
-    // ✅ Anima a mudança de viewBox em sincronia com as animações de colapso/expansão.
-    // Sem isso, a mudança instantânea de viewBox com preserveAspectRatio="xMinYMin meet"
-    // causa um "salto" de escala visual (ex: de 0.2 para 0.46) — o famoso "flick".
     svgBase
       .interrupt()
       .transition()
@@ -205,6 +215,11 @@ function applyViewBox(totalWidth: number, height: number, animate: boolean = fal
   } else {
     svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   }
+
+  // Sempre emite a altura expandida (o maior valor possível),
+  // para o pai dimensionar o container uma vez e não mudá-lo ao colapsar/expandir.
+  const emitHeight = Math.max(minHeight, lastHeights.expandedHeight || 0);
+  emitSizeUpdate(totalWidth, emitHeight);
 
   return minHeight;
 }
@@ -218,7 +233,7 @@ function applyViewBox(totalWidth: number, height: number, animate: boolean = fal
  */
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
-function initOrUpdateZoom(width: number, height: number, settings: any) {
+function initOrUpdateZoom(width: number, height: number, settings: any, minZoom: number = ZoomPan.MIN_ZOOM_SCALE) {
   const svg = svgBase as unknown as d3.Selection<
     SVGSVGElement,
     unknown,
@@ -238,13 +253,17 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
 
     zoomBehavior = d3
       .zoom<SVGSVGElement, unknown>()
-      .filter(
-        (event: any) =>
-          event.type === "wheel" ||
-          event.type === "mousedown" ||
-          event.type === "touchstart"
+      // Comportamento Figma: Ctrl+scroll = zoom, scroll normal passa pro pai (rola a página).
+      // Pinch mobile: browser envia wheel+ctrlKey=true nativamente → funciona igual.
+      .filter((event: any) => {
+        if (event.type === "wheel") return event.ctrlKey;
+        return event.type === "mousedown" || event.type === "touchstart";
+      })
+      // wheelDelta suave e uniforme (sem o salto 10× do padrão d3 com ctrlKey)
+      .wheelDelta((event: any) =>
+        -event.deltaY * (event.deltaMode === 1 ? 0.05 : event.deltaMode ? 1 : 0.002)
       )
-      .scaleExtent([ZoomPan.MIN_ZOOM_SCALE, ZoomPan.MAX_ZOOM_SCALE])
+      .scaleExtent([minZoom, ZoomPan.MAX_ZOOM_SCALE])
       .translateExtent([
         [0, -ZoomPan.PAN_TOP_PADDING_PX],
         [width + ZoomPan.PAN_RIGHT_PADDING_PX, height + ZoomPan.PAN_BOTTOM_PADDING_PX],
@@ -266,7 +285,6 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
         // ✅ toggle fixo (sem translate — apenas scale para manter o tamanho correto)
         gFixed.attr("transform", `scale(${k})`);
 
-        hideContextMenu();
       })
       .on("end", (event) => {
         const { x, y, k } = event.transform;
@@ -290,10 +308,6 @@ function initOrUpdateZoom(width: number, height: number, settings: any) {
         zoomBehavior.transform,
         d3.zoomIdentity.translate(initialX, initialY).scale(initialScale)
       );
-
-    svg.on("click.hideMenu", () => {
-      hideContextMenu();
-    });
 
     return;
   }
@@ -420,21 +434,25 @@ function renderBoard(data: any) {
         // ✅ 4) viewBox anima junto com as transições (evita salto de escala)
         // e zoom extents são atualizados imediatamente (sem resetar o transform).
         const minHeight = applyViewBox(totalWidth, targetVisibleHeight, true);
-        initOrUpdateZoom(totalWidth, minHeight, settings);
+        const minZoom = checked ? ZoomPan.MIN_ZOOM_SCALE_COLLAPSED : ZoomPan.MIN_ZOOM_SCALE;
+        initOrUpdateZoom(totalWidth, minHeight, settings, minZoom);
 
-        // ✅ 5) ao colapsar, anima câmera para y=0 para o usuário não ficar perdido abaixo
+        // ✅ 5) ao colapsar, anima câmera para y=0 e clamp de zoom se abaixo do novo mínimo
         if (checked) {
           const svgEl = svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
           const node = svgEl.node();
           const currentT = node ? d3.zoomTransform(node) : d3.zoomIdentity;
-          if (zoomBehavior && currentT.y < 0) {
+          const clampedK = Math.max(currentT.k, minZoom);
+          const needsZoomClamp = clampedK !== currentT.k;
+          const needsYReset = currentT.y < 0;
+          if (zoomBehavior && (needsYReset || needsZoomClamp)) {
             svgEl
               .transition()
               .duration(StorylinesUI.COLLAPSE_ANIM_MS)
               .ease(d3.easeCubicInOut)
               .call(
                 zoomBehavior.transform as any,
-                d3.zoomIdentity.translate(currentT.x, 0).scale(currentT.k)
+                d3.zoomIdentity.translate(currentT.x, 0).scale(clampedK)
               );
           }
         }
@@ -469,7 +487,6 @@ window.addEventListener("message", async (event) => {
 
   if (type === "set-data" && data) {
     try {
-      // ✅ Sincroniza collapsedAll com o valor vindo do DB antes de renderizar
       const normalized = normalizeSettings(data.settings);
       currentCollapsedAll = normalized.collapsedAll;
       renderBoard(data);
@@ -477,18 +494,66 @@ window.addEventListener("message", async (event) => {
       console.error("❌ Erro ao renderizar board:", e);
     }
   }
+
+  if (type === "set-collapse" && typeof data?.collapsed === "boolean") {
+    triggerCollapseToggle(data.collapsed);
+  }
 });
 
-// 📐 ResizeObserver: re-ajusta viewBox e zoom quando o container (iframe) é redimensionado
+// 📐 ResizeObserver: re-ajusta zoom quando a largura do container muda
+// (altura é controlada pelo viewBox + SVG height:auto, não pelo container)
 const _boardResizeEl = document.getElementById("board");
 if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
-  new ResizeObserver(() => {
+  let _lastObservedWidth = 0;
+  new ResizeObserver((entries) => {
     if (!lastRenderData) return;
+    const w = entries[0]?.contentRect.width ?? 0;
+    if (Math.abs(w - _lastObservedWidth) < 1) return; // ignora mudanças de altura (loop)
+    _lastObservedWidth = w;
     const totalWidth = computeTotalWidth(lastRenderData.timelines);
     const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
     gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", minHeight);
     initOrUpdateZoom(totalWidth, minHeight, lastRenderData.settings);
   }).observe(_boardResizeEl);
+}
+
+// 💡 Hint toast: mostra mensagem quando scroll sem Ctrl é detectado sobre o board
+{
+  let _hintTimeout: ReturnType<typeof setTimeout> | null = null;
+  let _hintEl: HTMLElement | null = null;
+
+  function showZoomHint() {
+    if (!_hintEl) {
+      _hintEl = document.createElement("div");
+      _hintEl.textContent = "Use Ctrl + scroll para dar zoom";
+      Object.assign(_hintEl.style, {
+        position: "fixed",
+        bottom: "20px",
+        left: "50%",
+        transform: "translateX(-50%)",
+        background: "rgba(0,0,0,0.72)",
+        color: "#fff",
+        padding: "8px 16px",
+        borderRadius: "20px",
+        fontSize: "13px",
+        pointerEvents: "none",
+        zIndex: "9999",
+        opacity: "0",
+        transition: "opacity 0.2s",
+        whiteSpace: "nowrap",
+      });
+      document.body.appendChild(_hintEl);
+    }
+    _hintEl.style.opacity = "1";
+    if (_hintTimeout) clearTimeout(_hintTimeout);
+    _hintTimeout = setTimeout(() => {
+      if (_hintEl) _hintEl.style.opacity = "0";
+    }, 1800);
+  }
+
+  document.addEventListener("wheel", (e) => {
+    if (!e.ctrlKey) showZoomHint();
+  }, { passive: true });
 }
 
 // 🧪 Suporte Vite HMR

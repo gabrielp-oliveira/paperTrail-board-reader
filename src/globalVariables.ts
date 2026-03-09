@@ -51,7 +51,7 @@ export const Layout = {
   CHAPTER_MIN_GAP_X: 8,
 
   /** Altura mínima do viewBox */
-  MIN_VIEWBOX_HEIGHT: 500,
+  MIN_VIEWBOX_HEIGHT: 100,
 } as const;
 
 // =========================================================
@@ -67,7 +67,8 @@ export const Controls = {
 // Zoom / Pan
 // =========================================================
 export const ZoomPan = {
-  MIN_ZOOM_SCALE: 2,
+  MIN_ZOOM_SCALE: 1,
+  MIN_ZOOM_SCALE_COLLAPSED: 2,
   MAX_ZOOM_SCALE: 5,
   PAN_TOP_PADDING_PX: 0,
   PAN_RIGHT_PADDING_PX: 200,

@@ -19,11 +19,7 @@ const uiState: StorylineUIState = {
 };
 
 let isCollapseAnimating = false;
-let _triggerToggle: (() => void) | null = null;
-
-export function triggerCollapseToggle() {
-  _triggerToggle?.();
-}
+let registeredEvents: StorylineControlsEvents | undefined;
 
 export function getStorylineUIState(): StorylineUIState {
   return uiState;
@@ -33,117 +29,31 @@ export function initStorylineUIState(_storylines: StoryLine[], initialCollapsedA
   uiState.collapsedAll = initialCollapsedAll;
 }
 
-function setCollapsedAll(value: boolean) {
-  uiState.collapsedAll = value;
-}
+// Chamado internamente (collapsed row click) ou externamente (mensagem do pai)
+export function triggerCollapseToggle(forcedValue?: boolean) {
+  if (isCollapseAnimating) return;
 
-export function renderStorylineControls(
-  svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  _storylines: StoryLine[],
-  events?: StorylineControlsEvents,
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  const layer = leftLayer ?? svg;
-
-  layer.selectAll("g.storyline-controls-ui").remove();
-
-  const gUi = layer
-    .append("g")
-    .attr("class", "storyline-controls-ui")
-    .style("pointer-events", "all");
-
-  const colW = Layout.LEFT_COLUMN_WIDTH;
-
-  const fo = gUi
-    .append("foreignObject")
-    .attr("x", 0)
-    .attr("y", Controls.Y)
-    .attr("width", colW)
-    .attr("height", Controls.HEIGHT)
-    .style("pointer-events", "all");
-
-  const root = fo
-    .append("xhtml:div")
-    .attr("class", "storyline-controls-root")
-    .style("width", `${colW}px`)
-    .style("height", `${Controls.HEIGHT}px`)
-    .style("display", "flex")
-    .style("align-items", "center")
-    .style("justify-content", "center")
-    .style("padding", "0 14px")
-    .style("box-sizing", "border-box")
-    .style("font-family", "'Segoe UI', Arial, sans-serif")
-    .style("user-select", "none")
-    .style("pointer-events", "all");
-
-  // Toggle row
-  const collapseRow = root
-    .append("xhtml:div")
-    .style("display", "flex")
-    .style("align-items", "center")
-    .style("justify-content", "center")
-    .style("gap", "10px")
-    .style("cursor", "pointer");
-
-  // Track
-  const track = collapseRow
-    .append("xhtml:div")
-    .style("width", "52px")
-    .style("height", "28px")
-    .style("border-radius", "14px")
-    .style("background", uiState.collapsedAll ? "#4a90d9" : "rgba(0,0,0,0.15)")
-    .style("position", "relative")
-    .style("flex-shrink", "0")
-    .style("transition", "background 0.22s ease")
-    .style("box-shadow", "inset 0 1px 4px rgba(0,0,0,0.18)");
-
-  // Thumb
-  const thumb = track
-    .append("xhtml:div")
-    .style("width", "22px")
-    .style("height", "22px")
-    .style("border-radius", "50%")
-    .style("background", "#ffffff")
-    .style("position", "absolute")
-    .style("top", "3px")
-    .style("left", uiState.collapsedAll ? "27px" : "3px")
-    .style("transition", "left 0.22s ease")
-    .style("box-shadow", "0 1px 5px rgba(0,0,0,0.28)");
-
-  // Label
-  collapseRow
-    .append("xhtml:span")
-    .style("font-size", "13px")
-    .style("font-weight", "500")
-    .style("letter-spacing", "0.3px")
-    .attr("class", "collapse-label")
-    .text("Collapse");
+  const next = forcedValue !== undefined ? forcedValue : !uiState.collapsedAll;
+  if (next === uiState.collapsedAll) return;
 
   const ANIM_LOCK_MS = Math.max(StorylinesUI.COLLAPSE_ANIM_MS, StorylinesUI.FADE_ANIM_MS) + 50;
 
-  const onToggle = () => {
-    if (isCollapseAnimating) return;
+  uiState.collapsedAll = next;
+  isCollapseAnimating = true;
+  setTimeout(() => { isCollapseAnimating = false; }, ANIM_LOCK_MS);
 
-    const next = !uiState.collapsedAll;
-    track.style("background", next ? "#4a90d9" : "rgba(0,0,0,0.15)");
-    thumb.style("left", next ? "27px" : "3px");
-    setCollapsedAll(next);
+  registeredEvents?.onCollapseToggle?.(next);
+  window.parent.postMessage(
+    { type: "board-settings-update", data: { collapsedAll: next } },
+    "*"
+  );
+}
 
-    isCollapseAnimating = true;
-    setTimeout(() => { isCollapseAnimating = false; }, ANIM_LOCK_MS);
-
-    events?.onCollapseToggle?.(next);
-    window.parent.postMessage(
-      { type: "board-settings-update", data: { collapsedAll: next } },
-      "*"
-    );
-  };
-
-  _triggerToggle = onToggle;
-
-  collapseRow.on("click", (ev: any) => { ev.stopPropagation(); onToggle(); });
-
-  fo.on("mousedown", (ev: any) => ev.stopPropagation());
-  fo.on("touchstart", (ev: any) => ev.stopPropagation());
-  fo.on("click", (ev: any) => ev.stopPropagation());
+export function renderStorylineControls(
+  _svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
+  _storylines: StoryLine[],
+  events?: StorylineControlsEvents,
+  _leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
+) {
+  registeredEvents = events;
 }

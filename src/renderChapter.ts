@@ -228,7 +228,8 @@ export function renderChapters(
         const title = (ch as any).title || (ch as any).name || NO_TITLE;
         const id = ch.id || NO_ID;
         const color = ch.color || NO_COLOR;
-        return `${title}${ChaptersUI.CHAPTER_FIELD_SEP}${id}${ChaptersUI.CHAPTER_FIELD_SEP}${color}`;
+        const cover = (ch as any).cover_url || '';
+        return `${title}${ChaptersUI.CHAPTER_FIELD_SEP}${id}${ChaptersUI.CHAPTER_FIELD_SEP}${color}${ChaptersUI.CHAPTER_FIELD_SEP}${cover}`;
       })
       .join(ChaptersUI.CHAPTER_JOIN_SEP);
 

@@ -1,6 +1,5 @@
 // expandChapterGroup.ts
 import * as d3 from "d3";
-import { showContextMenu } from "./ui/contextMenu";
 import { Selection } from "d3-selection";
 import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 
@@ -8,9 +7,7 @@ import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 // Estado interno (apenas 1 expandido)
 // ---------------------------
 
-let expandedGroupId: string | null = null;
 let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
-let outsideClickHandler: ((e: MouseEvent) => void) | null = null;
 
 // ---------------------------
 // API: setup de interação
@@ -20,73 +17,55 @@ export function setupGroupInteraction(
 ) {
   svgSelection = svg;
 
-  // Interação em grupos (expansão)
+  // Grupos: apenas emite evento ao pai — expansão gerenciada no Angular
   svg.selectAll<SVGGElement, unknown>("g.chapter-group")
     .attr("tabindex", "0")
     .attr("role", "button")
-    .attr("aria-expanded", "false")
     .style("cursor", "pointer")
     .on("click", function (event) {
       event.stopPropagation();
       const group = d3.select(this);
       const groupId = group.attr("data-group-id") ?? "";
-      toggleExclusiveGroup(groupId);
+      const rawChapters = group.attr("data-chapters") ?? "";
+      const ids = rawChapters
+        .split(ChaptersUI.CHAPTER_JOIN_SEP)
+        .map((entry: string) => entry.split(ChaptersUI.CHAPTER_FIELD_SEP)[1])
+        .filter(Boolean);
+      window.parent.postMessage({
+        type: "group-click",
+        data: { groupId, ids, clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY },
+      }, "*");
     })
     .on("keydown", function (event) {
       if (event.key === "Enter" || event.key === " ") {
         event.preventDefault();
         const group = d3.select(this);
         const groupId = group.attr("data-group-id") ?? "";
-        toggleExclusiveGroup(groupId);
+        const rawChapters = group.attr("data-chapters") ?? "";
+        const ids = rawChapters
+          .split(ChaptersUI.CHAPTER_JOIN_SEP)
+          .map((entry: string) => entry.split(ChaptersUI.CHAPTER_FIELD_SEP)[1])
+          .filter(Boolean);
+        window.parent.postMessage({
+          type: "group-click",
+          data: { groupId, ids, clientX: 0, clientY: 0 },
+        }, "*");
       }
     });
 
-  // Fecha grupo ao clicar fora — remove handler anterior para evitar acúmulo
-  if (outsideClickHandler) {
-    document.removeEventListener("click", outsideClickHandler);
-  }
-  outsideClickHandler = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-
-    if (
-      expandedGroupId &&
-      !target.closest(`g.chapter-group[data-group-id="${expandedGroupId}"]`) &&
-      !target.closest(".context-menu") &&
-      !target.closest(".chapter-title") &&
-      !target.closest(".chapter-bullet")
-    ) {
-      collapseGroup(svgSelection, expandedGroupId);
-      expandedGroupId = null;
-    }
-  };
-  document.addEventListener("click", outsideClickHandler);
-
-  // Clique em capítulo solo → menu
+  // Clique em capítulo solo → emite para o pai
   svg.selectAll("g.chapter-solo").on("click.menu", function (event) {
     const chapter = (this as any).__data__;
-    showChapterMenu(event, chapter.id, svg);
+    event.stopPropagation();
+    window.parent.postMessage({
+      type: "chapter-click",
+      data: { id: chapter.id, clientX: event.clientX, clientY: event.clientY, kind: "solo" },
+    }, "*");
   });
 }
 
 // ---------------------------
-// Toggle exclusivo (apenas 1 aberto)
-// ---------------------------
-function toggleExclusiveGroup(groupId: string) {
-  if (expandedGroupId && expandedGroupId !== groupId) {
-    collapseGroup(svgSelection, expandedGroupId);
-  }
-
-  if (expandedGroupId === groupId) {
-    collapseGroup(svgSelection, groupId);
-    expandedGroupId = null;
-  } else {
-    expandGroup(svgSelection, groupId);
-    expandedGroupId = groupId;
-  }
-}
-
-// ---------------------------
-// Expand
+// Expand (não utilizado — expansão gerenciada no Angular)
 // ---------------------------
 function expandGroup(
   svg: Selection<SVGGElement, unknown, HTMLElement, any>,
@@ -208,7 +187,7 @@ function expandGroup(
   // Lista de capítulos
   titlesIds.forEach((titleId, i) => {
     const parts = titleId.split(ChaptersUI.CHAPTER_FIELD_SEP);
-    if (parts.length !== 3) {
+    if (parts.length < 3) {
       console.warn("❌ Entrada malformada em titleId:", titleId);
       return;
     }
@@ -254,8 +233,11 @@ function expandGroup(
         );
       })
       .on("click", (event) => {
-        showChapterMenu(event, id, svg);
         event.stopPropagation();
+        window.parent.postMessage({
+          type: "chapter-click",
+          data: { id, clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY, kind: "group-item" },
+        }, "*");
       });
 
     // Background do item (para hover)
@@ -360,34 +342,6 @@ function collapseGroup(
 }
 
 // ---------------------------
-// Context menu (solo + items)
+// API: fechar grupo expandido (no-op — expansão no Angular)
 // ---------------------------
-function showChapterMenu(
-  event: MouseEvent,
-  chapterId: string,
-  svg: Selection<SVGGElement, unknown, HTMLElement, any>
-) {
-  event.preventDefault();
-  event.stopPropagation();
-
-  const transform = d3.zoomTransform(svg.node()!);
-  const k = transform.k;
-
-  showContextMenu(
-    event.clientX,
-    event.clientY,
-    ["Chapter Details", "Read Chapter"],
-    chapterId,
-    k
-  );
-}
-
-// ---------------------------
-// API: fechar grupo expandido
-// ---------------------------
-export function hideGroup() {
-  if (expandedGroupId) {
-    collapseGroup(svgSelection, expandedGroupId);
-    expandedGroupId = null;
-  }
-}
+export function hideGroup() {}

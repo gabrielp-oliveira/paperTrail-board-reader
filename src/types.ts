@@ -103,6 +103,7 @@ export type Chapter = {
     range: number,
     order: number,
     color: string,
+    cover_url?: string,
     selected?: boolean,
     focus?: boolean,
     last_update?: any,
