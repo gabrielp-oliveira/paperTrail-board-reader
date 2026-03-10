@@ -318,12 +318,11 @@ export function animateCollapsedRow(
     })
     .tween("innerHeight", function () {
       const fo = d3.select(this);
-      const div = fo.select("div");
+      const div = fo.select<HTMLDivElement>("div");   // cached fora do loop de frames
       const h0 = parseFloat(fo.attr("height") || `${targetH}`) || targetH;
       const interp = d3.interpolateNumber(h0, targetH);
       return (t: number) => {
-        const h = interp(t);
-        div.style("height", `${h}px`);
+        div.style("height", `${interp(t)}px`);
       };
     });
 }
@@ -343,6 +342,9 @@ export function applyCollapsedTransition(
   );
   if (nodes.empty()) return;
 
+  // Hint ao compositor para preparar camadas antes da animação
+  nodes.style("will-change", "transform");
+
   const toY = (id: string) =>
     collapsedAll ? cache.collapsedChapterY.get(id) : cache.expandedChapterY.get(id);
 
@@ -353,21 +355,30 @@ export function applyCollapsedTransition(
     .attrTween("transform", function () {
       const el = this as any;
       const id = el?.getAttribute?.("data-chapter-id") as string | null;
-      if (!id) return () => null;
+      const targetY = id ? toY(id) : undefined;
 
-      const targetY = toY(id);
-      if (typeof targetY !== "number") return () => null;
+      if (typeof targetY !== "number") {
+        // sem animação — retorna interpolador identity
+        const cur = el.getAttribute("transform") || "translate(0,0)";
+        return () => cur;
+      }
 
-      const current = el.getAttribute("transform") || "";
-      const match = /translate\(\s*([-\d.]+)[ ,]\s*([-\d.]+)\s*\)/.exec(current);
-      if (!match) return () => null;
-
-      const x0 = parseFloat(match[1]);
-      const y0 = parseFloat(match[2]);
+      // Usa data-x / data-y para evitar parse de regex por frame
+      const x0 = parseFloat(el.getAttribute("data-x") || "0");
+      const y0 = parseFloat(el.getAttribute("data-y") || "0");
       const interpY = d3.interpolateNumber(y0, targetY);
 
-      return (t: number) =>
-        current.replace(match[0], `translate(${x0},${interpY(t)})`);
+      return (t: number) => `translate(${x0},${interpY(t)})`;
+    })
+    .on("end", function () {
+      const el = this as any;
+      // Remove hint após animação — libera memória de composição
+      el.style.willChange = "auto";
+      // Atualiza data-y para manter consistência com o novo estado
+      const id = el?.getAttribute?.("data-chapter-id") as string | null;
+      if (!id) return;
+      const targetY = toY(id);
+      if (typeof targetY === "number") el.setAttribute("data-y", String(targetY));
     });
 }
 
@@ -824,6 +835,8 @@ export function renderStorylines(
       .attr("data-storyline-id", storylineId)
       .attr("data-y", yExpandedRow)
       .attr("data-opacity", StorylinesUI.BAND_OPACITY)
+      .attr("role", "row")
+      .attr("aria-label", `Storyline: ${storyline.name}`)
       .attr("x", xStart + StorylinesUI.COL_ROW_MARGIN)
       .attr("y", yExpandedRow)
       .attr("width", xEnd - xStart)

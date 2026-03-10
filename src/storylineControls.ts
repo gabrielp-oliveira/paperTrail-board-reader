@@ -3,9 +3,6 @@ import * as d3 from "d3";
 import { StoryLine } from "./types";
 import { Controls, Layout, StorylinesUI } from "./globalVariables";
 
-export const CONTROLS_HEIGHT = Controls.HEIGHT;
-export const CONTROLS_BOTTOM_PADDING = Controls.BOTTOM_PADDING;
-
 export type StorylineControlsEvents = {
   onCollapseToggle?: (checked: boolean) => void;
 };

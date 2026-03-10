@@ -36,7 +36,7 @@ export const Layout = {
   BOARD_BASE_Y: 0,
 
   /** Altura mínima de uma storyline row (sem empilhamento) */
-  STORYLINE_DEFAULT_ROW_HEIGHT: 50,
+  STORYLINE_DEFAULT_ROW_HEIGHT: 60,
 
   /** Gap vertical entre storyline rows */
   STORYLINE_GAP_Y: 8,
@@ -69,11 +69,23 @@ export const Controls = {
 export const ZoomPan = {
   MIN_ZOOM_SCALE: 1,
   MIN_ZOOM_SCALE_COLLAPSED: 2,
-  MAX_ZOOM_SCALE: 5,
+  MAX_ZOOM_SCALE: 8,
   PAN_TOP_PADDING_PX: 0,
   PAN_RIGHT_PADDING_PX: 200,
   PAN_BOTTOM_PADDING_PX: 100,
 } as const;
+
+/**
+ * Retorna o zoom mínimo adaptado ao viewport.
+ * Em telas menores (mobile/tablet) permite mais zoom out para ver mais conteúdo.
+ * collapsed=true usa limites menos restritivos ainda.
+ */
+export function getAdaptiveMinZoom(collapsed = false): number {
+  const vw = window.innerWidth;
+  // Mobile (<= 480px): 0.4 | Tablet (<= 768px): 0.6 | Desktop: valor padrão
+  const base = vw <= 480 ? 0.4 : vw <= 768 ? 0.6 : ZoomPan.MIN_ZOOM_SCALE;
+  return collapsed ? Math.max(base, ZoomPan.MIN_ZOOM_SCALE_COLLAPSED * (base / ZoomPan.MIN_ZOOM_SCALE)) : base;
+}
 
 // =========================================================
 // Timelines (headers + grid)
@@ -104,15 +116,15 @@ export const TimelinesUI = {
 export const StorylinesUI = {
   PIXELS_PER_RANGE: 20,
   BASE_Y: 0,
-  DEFAULT_ROW_HEIGHT: 50,
+  DEFAULT_ROW_HEIGHT: 60,
   STORYLINE_GAP: 8,
   LABEL_WIDTH: 200,
   COL_ROW_MARGIN: 0,
   CHAPTER_VERTICAL_MARGIN: 8,
   CHAPTER_MIN_GAP: 8,
 
-  /** Altura de cada layer de empilhamento: max(SOLO_BOX_HEIGHT=25, GROUP_BOX_HEIGHT=28) */
-  STACK_ITEM_HEIGHT: 28,
+  /** Altura de cada layer de empilhamento: max(SOLO_BOX_HEIGHT=40, GROUP_BOX_HEIGHT=40) */
+  STACK_ITEM_HEIGHT: 40,
 
   LEFT_PADDING: 0,
 
@@ -146,9 +158,9 @@ export const StorylinesUI = {
   COLLAPSED_ROW_MIN_HEIGHT: 20,
   COLLAPSED_ROW_EXPANDED_MIN_HEIGHT: 120,
   COLLAPSED_MARGIN_BOTTOM: 8,
-  COLLAPSED_WORLD_FILL: "#d8ecff",
-  COLLAPSED_LEFT_FILL: "#eaf4ff",
-  COLLAPSED_STROKE: "#6aa6d8",
+  COLLAPSED_WORLD_FILL: "rgba(216, 236, 255, 0.82)",
+  COLLAPSED_LEFT_FILL: "rgba(234, 244, 255, 0.82)",
+  COLLAPSED_STROKE: "rgba(106, 166, 216, 0.6)",
   COLLAPSED_STROKE_WIDTH: 1.5,
   COLLAPSED_RX: 8,
   COLLAPSED_LABEL_FONT_SIZE: "12px",
@@ -156,9 +168,9 @@ export const StorylinesUI = {
   COLLAPSED_LABEL_COLOR: "#1f4f7a",
 
   // Inline collapsed (por storyline)
-  INLINE_COLLAPSED_WORLD_FILL: "#eef6ff",
-  INLINE_COLLAPSED_LEFT_FILL: "#f5fbff",
-  INLINE_COLLAPSED_STROKE: "#6aa6d8",
+  INLINE_COLLAPSED_WORLD_FILL: "rgba(238, 246, 255, 0.82)",
+  INLINE_COLLAPSED_LEFT_FILL: "rgba(245, 251, 255, 0.82)",
+  INLINE_COLLAPSED_STROKE: "rgba(106, 166, 216, 0.6)",
   INLINE_COLLAPSED_STROKE_WIDTH: 1.2,
   INLINE_COLLAPSED_RX: 6,
 
@@ -200,30 +212,34 @@ export const StorylineMenu = {
 // Chapters (solo + grupo colapsado)
 // =========================================================
 export const ChaptersUI = {
-  MAX_TITLE_CHARS: 20,
+  MAX_TITLE_CHARS: 22,
   CHAR_WIDTH_ESTIMATE: 6.5,
 
   // Solo chapter
-  SOLO_PADDING_X: 10,       // padding CSS por lado (usado tb no cálculo de largura)
-  SOLO_MIN_BOX_WIDTH: 60,
-  SOLO_BOX_HEIGHT: 26,
-  SOLO_BOX_RX: 13,
-  SOLO_BOX_RY: 13,
+  SOLO_PADDING_LEFT: 10,    // padding esquerdo (após accent bar)
+  SOLO_PADDING_RIGHT: 8,    // padding direito
+  SOLO_MIN_BOX_WIDTH: 90,
+  SOLO_BOX_HEIGHT: 40,
+  SOLO_BOX_RX: 8,
+  SOLO_BOX_RY: 8,
   SOLO_STROKE_WIDTH: 1,
   SOLO_FONT_SIZE: "12px",
   SOLO_FONT_FAMILY: "Segoe UI, system-ui, sans-serif",
+  SOLO_ACCENT_WIDTH: 4,     // barra lateral de accent
 
   // Group collapsed
-  GROUP_MIN_BOX_WIDTH: 80,
-  GROUP_PADDING_X: 20,
-  GROUP_BOX_HEIGHT: 28,
-  GROUP_RX: 10,
-  GROUP_RY: 10,
+  GROUP_MIN_BOX_WIDTH: 72,
+  GROUP_PADDING_X: 16,
+  GROUP_BOX_HEIGHT: 40,
+  GROUP_RX: 8,
+  GROUP_RY: 8,
   GROUP_FILL: "#e8eeff",
   GROUP_STROKE: "#6a7fd8",
   GROUP_FONT_SIZE: "13px",
   GROUP_FONT_FAMILY: "Segoe UI, system-ui, sans-serif",
   GROUP_TEXT_FILL: "#2a3a7a",
+  GROUP_DOT_RADIUS: 5,      // raio dos dots coloridos no badge
+  GROUP_DOT_GAP: 13,        // espaçamento entre dots
 
   // Separadores de serialização (compartilhados entre renderChapter e expandChapterGroup)
   CHAPTER_FIELD_SEP: "|||",

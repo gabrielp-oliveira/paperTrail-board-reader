@@ -1,24 +1,22 @@
 {
-  "name": "subway-viewer",
+  "name": "papertrail-board",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Board de narrativa interativo — PaperTrail",
+  "private": true,
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "vite",
-    "build": "vite build"
+    "build": "vite build",
+    "preview": "vite preview"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "sideEffects": false,
   "dependencies": {
-    "d3": "^7.9.0",
-    "typescript": "^5.8.3",
-    "undici-types": "^7.9.0"
+    "d3": "^7.9.0"
   },
   "devDependencies": {
     "@types/d3": "^7.4.3",
     "@types/node": "^22.15.21",
+    "typescript": "^5.8.3",
+    "undici-types": "^7.9.0",
     "vite": "^6.3.5"
   }
-} 
+}

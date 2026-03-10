@@ -7,24 +7,26 @@ export default defineConfig({
   build: {
     outDir: "../portal/src/assets/board",
     emptyOutDir: true,
+    minify: "esbuild",
+    target: "es2020",
+    cssMinify: true,
 
     rollupOptions: {
-      // 🔹 MULTI-ENTRY: index.html + dev.html
       input: {
         index: resolve(__dirname, "index.html"),
-        dev: resolve(__dirname, "dev.html"),
       },
 
       output: {
-        // mantém nomes previsíveis
         entryFileNames: "[name].js",
         chunkFileNames: "chunks/[name]-[hash].js",
         assetFileNames: "assets/[name]-[hash][extname]",
+        manualChunks: {
+          d3: ["d3"],
+        },
       },
     },
   },
 
-  // 🔹 Dev server (opcional, mas ajuda muito)
   server: {
     port: 5173,
     strictPort: true,

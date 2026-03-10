@@ -29,3 +29,8 @@ logs/
 # Backup
 *~
 *-cwd
+
+# Arquivos de desenvolvimento local (não vão ao build nem ao repositório)
+data.json
+data.mjs
+dev.html

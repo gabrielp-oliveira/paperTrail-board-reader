@@ -214,6 +214,11 @@ export function renderTimelines(
 
       const { x0, width } = pos;
 
+      // Acessibilidade: cabeçalho de coluna para leitores de tela
+      group
+        .attr("role", "columnheader")
+        .attr("aria-label", `Timeline: ${tl.name}`);
+
       const rect = group
         .selectAll<SVGRectElement, Timeline>("rect.timeline-header")
         .data([tl]);

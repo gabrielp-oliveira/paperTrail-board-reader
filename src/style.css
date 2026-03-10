@@ -1,4 +1,7 @@
-body, html {
+/* ===== RESET & BASE ===== */
+
+body,
+html {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -7,373 +10,159 @@ body, html {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-#board {
+#board-main {
   display: block;
-  position: relative;
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
 }
 
+#board {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
 #board svg {
   display: block;
-  margin: 0;
-  padding: 0;
-  border-radius: 12px;
+  width: 100%;
   touch-action: none;
 }
 
-/* ==== GRUPOS ==== */
-.chapter-group {
-  outline: none;
-  transition: all 0.3s ease;
-}
+/* ===== VARIÁVEIS DE TEMA ===== */
 
-/* Estilo base do card expandido */
-.chapter-group[aria-expanded="true"] rect {
-  stroke-width: 1.5;
-  filter: drop-shadow(0 4px 12px rgba(106, 127, 216, 0.2));
-  transition: all 0.25s ease;
-}
-
-/* Estilo base do badge colapsado */
-.chapter-group[aria-expanded="false"] rect {
-  stroke-width: 1.5;
-  transition: all 0.25s ease;
-}
-
-.chapter-group:hover[aria-expanded="false"] rect {
-  filter: drop-shadow(0 3px 10px rgba(106, 127, 216, 0.35));
-}
-
-/* Variáveis de tema */
 body.light-mode {
+  background-color: #fff;
   --chapter-text-color: #2a3a7a;
-  --chapter-bg: #ffffff;
+  --chapter-bg: #fff;
   --chapter-shadow: drop-shadow(0 2px 8px rgba(106, 127, 216, 0.18));
+  --timeline-header-fill: #fcdec2;
+  --timeline-txt-fill: #222;
+  --board-left-fill: rgba(250, 250, 250, 0.82);
+  --board-left-stroke: rgba(221, 221, 221, 0.6);
+  --board-top-fill: #fcdec2;
+  --board-top-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
+  --storyline-band-fill: #e5e5e5;
+  --storyline-band-stroke: #999;
+  --storyline-left-fill: #fafafa;
+  --storyline-left-stroke: #ccc;
+  --storyline-label-color: #333;
+  --controls-bg: #fafafa;
+  --controls-border: #ddd;
+  --controls-span-color: #666;
+  --controls-btn-bg: #f4f4f4;
+  --controls-btn-color: #444;
+  --controls-btn-border: #d5d5d5;
+  --menu-bg: #fff;
+  --menu-color: #333;
+  --menu-btn-bg: #f4f4f4;
+  --menu-btn-border: #d5d5d5;
+  --group-collapsed-fill: #e8eeff;
+  --group-collapsed-stroke: #6a7fd8;
+  --group-collapsed-text: #2a3a7a;
+  --group-expanded-stroke: #6a7fd8;
+  --collapsed-band-fill: rgba(219, 234, 254, 0.82);
+  --collapsed-band-stroke: rgba(106, 166, 216, 0.6);
+  --collapsed-left-fill: rgba(239, 246, 255, 0.82);
+  --collapsed-label-color: #1e4d7a;
 }
 
 body.dark-mode {
+  background-color: #1e1e1e;
   --chapter-text-color: #b0c4f8;
   --chapter-bg: #2d3a5a;
   --chapter-shadow: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+  --timeline-header-fill: #2d2d2d;
+  --timeline-txt-fill: #e8e8e8;
+  --board-left-fill: rgba(37, 37, 37, 0.82);
+  --board-left-stroke: rgba(58, 58, 58, 0.6);
+  --board-top-fill: #2d2d2d;
+  --board-top-shadow: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  --storyline-band-fill: #323232;
+  --storyline-band-stroke: #4a4a4a;
+  --storyline-left-fill: #2a2a2a;
+  --storyline-left-stroke: #3d3d3d;
+  --storyline-label-color: #d8d8d8;
+  --controls-bg: #252525;
+  --controls-border: #3a3a3a;
+  --controls-span-color: #aaa;
+  --controls-btn-bg: #333;
+  --controls-btn-color: #ccc;
+  --controls-btn-border: #4a4a4a;
+  --menu-bg: #2a2a2a;
+  --menu-color: #d8d8d8;
+  --menu-btn-bg: #333;
+  --menu-btn-border: #555;
+  --group-collapsed-fill: #1f2d4d;
+  --group-collapsed-stroke: #5a70c8;
+  --group-collapsed-text: #a0b4f0;
+  --group-expanded-stroke: #5a70c8;
+  --collapsed-band-fill: rgba(30, 58, 95, 0.82);
+  --collapsed-band-stroke: rgba(74, 120, 170, 0.6);
+  --collapsed-left-fill: rgba(22, 47, 77, 0.82);
+  --collapsed-label-color: #7eb8e8;
 }
 
-/* Estilo base: card usa var de tema */
-.chapter-group[aria-expanded="true"] rect,
-.chapter-group[aria-expanded="false"] rect {
-  fill: var(--chapter-bg);
-  filter: var(--chapter-shadow);
+/* ===== COMPONENTES SVG TEMÁTICOS ===== */
+
+.board-top-bg {
+  fill: var(--board-top-fill);
+  filter: var(--board-top-shadow);
 }
 
-/* === LIGHT MODE === */
-body.light-mode .chapter-group[aria-expanded="false"] rect {
-  fill: #e8eeff !important;
-  stroke: #6a7fd8 !important;
-  filter: drop-shadow(0 2px 6px rgba(106, 127, 216, 0.2)) !important;
+rect.board-left-bg {
+  fill: var(--board-left-fill);
+  stroke: var(--board-left-stroke);
 }
 
-body.light-mode .chapter-group[aria-expanded="false"] text {
-  fill: #2a3a7a !important;
-  font-weight: 700;
+.timeline-header {
+  fill: var(--timeline-header-fill);
 }
 
-body.light-mode .chapter-group[aria-expanded="true"] rect {
-  stroke: #6a7fd8 !important;
+.timeline-txt {
+  fill: var(--timeline-txt-fill);
 }
 
-/* === DARK MODE === */
-body.dark-mode .chapter-group[aria-expanded="false"] rect {
-  fill: #1f2d4d !important;
-  stroke: #5a70c8 !important;
-  filter: drop-shadow(0 2px 6px rgba(90, 112, 200, 0.3)) !important;
+rect.storyline-band {
+  fill: var(--storyline-band-fill);
+  stroke: var(--storyline-band-stroke);
 }
 
-body.dark-mode .chapter-group[aria-expanded="false"] text {
-  fill: #a0b4f0 !important;
-  font-weight: 700;
+rect.storyline-left-col {
+  fill: var(--storyline-left-fill);
+  stroke: var(--storyline-left-stroke);
 }
 
-body.dark-mode .chapter-group[aria-expanded="true"] rect {
-  stroke: #5a70c8 !important;
+foreignObject.storyline-left-label div {
+  color: var(--storyline-label-color) !important;
 }
 
-/* ==== TEXTOS ==== */
-.chapter-group text.group-label {
-  fill: var(--chapter-text-color);
-  font-weight: 700;
-  font-size: 14px;
-}
-
-.chapter-group text.chapter-title {
-  fill: var(--chapter-text-color);
-  font-weight: 600;
-  font-size: 13px;
-  font-family: "Segoe UI", system-ui, sans-serif;
-}
-
-/* Hover no item da lista */
-g.chapter-item:hover {
-  opacity: 0.85;
-}
-
-g.chapter-item:hover rect.chapter-bullet {
-  filter: brightness(1.1) drop-shadow(0 0 4px rgba(106, 127, 216, 0.4));
-}
-
-.chapter-group line.separator {
-  stroke: rgba(106, 127, 216, 0.3);
-  stroke-width: 1.2;
-}
-
-/* ==== BULLET COLORIDA ==== */
-rect.chapter-bullet {
-  transition: filter 0.15s ease;
-  cursor: pointer;
-}
-
-/* Hover bullet */
-g.chapter-item:hover rect.chapter-bullet {
-  filter: brightness(1.15) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-/* ==== SOLO ==== */
-.chapter-solo rect {
-  stroke-width: 1.5;
-  rx: 8;
-  ry: 8;
-  transition: all 0.2s ease;
-}
-
-.chapter-solo:hover rect {
-  filter: drop-shadow(0 2px 8px rgba(106, 127, 216, 0.3));
-  stroke-width: 2;
-}
-
-.chapter-solo.hovered .chapter-rect {
-  filter: drop-shadow(5px 5px 5px rgb(0, 0, 0, 0.4));
-  stroke-width: 2;
-  fill-opacity: 0.95;
-}
-
-.chapter-solo.focused .chapter-rect {
-  stroke: #f39c12;
-  stroke-width: 2;
-  filter: drop-shadow(0px 3px 5px rgba(0, 0, 0, 0.3));
-}
-
-.chapter-rect {
-  transition: all 0.3s ease;
-  filter: drop-shadow(3px 3px 3px rgba(0, 0, 0, 0.5));
-  box-shadow: 5px 5px 5px black;
-  stroke-width: 1;
-  padding: 20px;
-}
-
-/* ==== ANIMAÇÃO DE ENTRADA ==== */
-.chapter-group text,
-.chapter-group line,
-.chapter-group rect.chapter-bullet {
-  opacity: 0;
-  transform: translateY(-5px);
-  animation: fadeSlideIn 0.25s ease-out forwards;
-  animation-delay: 0.1s;
-}
-
-@keyframes fadeSlideIn {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-
-/* ===== COLLAPSED ROW GLOBAL (clicável) ===== */
+/* Collapsed row global */
 rect.storyline-band-collapsed,
 rect.storyline-left-col-collapsed,
 foreignObject.storyline-left-label-collapsed {
   cursor: pointer;
 }
 
-body.light-mode rect.storyline-band-collapsed {
-  fill: #dbeafe !important;
-  stroke: #6aa6d8 !important;
+rect.storyline-band-collapsed {
+  fill: var(--collapsed-band-fill) !important;
+  stroke: var(--collapsed-band-stroke) !important;
   stroke-width: 1.5 !important;
   opacity: 0.85 !important;
 }
 
-body.light-mode rect.storyline-left-col-collapsed {
-  fill: #eff6ff !important;
-  stroke: #6aa6d8 !important;
+rect.storyline-left-col-collapsed {
+  fill: var(--collapsed-left-fill) !important;
+  stroke: var(--collapsed-band-stroke) !important;
   stroke-width: 1.5 !important;
 }
 
-body.light-mode foreignObject.storyline-left-label-collapsed div {
-  color: #1e4d7a !important;
+foreignObject.storyline-left-label-collapsed div {
+  color: var(--collapsed-label-color) !important;
 }
 
-body.dark-mode rect.storyline-band-collapsed {
-  fill: #1e3a5f !important;
-  stroke: #4a78aa !important;
-  stroke-width: 1.5 !important;
-  opacity: 0.85 !important;
-}
-
-body.dark-mode rect.storyline-left-col-collapsed {
-  fill: #162f4d !important;
-  stroke: #4a78aa !important;
-  stroke-width: 1.5 !important;
-}
-
-body.dark-mode foreignObject.storyline-left-label-collapsed div {
-  color: #7eb8e8 !important;
-}
-
-/* ===== PREVENT TEXT SELECTION na coluna esquerda ===== */
-foreignObject.storyline-left-label div,
-foreignObject.storyline-left-label-collapsed div,
-foreignObject.storyline-left-label-collapsed-inline div {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.storyline-controls-root,
-.storyline-controls-root * {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.storyline-menu-root,
-.storyline-menu-root div,
-.storyline-menu-root span,
-.storyline-menu-root button {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-/* ===== HEADER FIXO DAS TIMELINES (gTopBg) ===== */
-body.light-mode .board-top-bg {
-  fill: #fcdec2;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.08));
-}
-
-body.dark-mode .board-top-bg {
-  fill: #2d2d2d;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
-}
-
-/* ===== MODO CLARO ===== */
-body.light-mode {
-  background-color: #ffffff;
-}
-
-body.light-mode .timeline-rect {
-  fill: #ffffff;
-  stroke: #d0d0d0;
-}
-
-body.light-mode .timeline-header {
-  fill: #fcdec2;
-}
-
-body.light-mode .timeline-txt {
-  fill: #222222;
-}
-
-/* Left column */
-body.light-mode rect.board-left-bg {
-  fill: #fafafa;
-  stroke: #ddd;
-}
-
-/* Storyline bands & labels */
-body.light-mode rect.storyline-band {
-  fill: #e5e5e5;
-  stroke: #999;
-}
-
-body.light-mode rect.storyline-left-col {
-  fill: #fafafa;
-  stroke: #ccc;
-}
-
-body.light-mode foreignObject.storyline-left-label div {
-  color: #333 !important;
-}
-
-/* Controls */
-body.light-mode .storyline-controls-root {
-  background: #fafafa !important;
-  border-bottom: 1px solid #ddd;
-  border-right: 1px solid #ddd;
-}
-
-body.light-mode .storyline-controls-root span {
-  color: #666 !important;
-}
-
-body.light-mode .storyline-controls-root button {
-  background: #f4f4f4 !important;
-  color: #444 !important;
-  border-color: #d5d5d5 !important;
-}
-
-/* Dropdown menu */
-body.light-mode g.storyline-controls-menu rect {
-  fill: #ffffff;
-  stroke: #bbb;
-}
-
-body.light-mode .storyline-menu-root {
-  background: #ffffff !important;
-  color: #333 !important;
-}
-
-body.light-mode .storyline-menu-root div {
-  color: #333 !important;
-}
-
-/* ===== MODO ESCURO ===== */
-body.dark-mode {
-  background-color: #1e1e1e;
-}
-
-body.dark-mode .timeline-rect {
-  fill: #2d2d2d;
-  stroke: #555;
-}
-
-body.dark-mode .timeline-header {
-  fill: #2d2d2d;
-}
-
-body.dark-mode .timeline-txt {
-  fill: #e8e8e8;
-}
-
-/* Left column */
-body.dark-mode rect.board-left-bg {
-  fill: #252525;
-  stroke: #3a3a3a;
-}
-
-/* Storyline bands & labels */
-body.dark-mode rect.storyline-band {
-  fill: #323232;
-  stroke: #4a4a4a;
-}
-
-body.dark-mode rect.storyline-left-col {
-  fill: #2a2a2a;
-  stroke: #3d3d3d;
-}
-
-body.dark-mode foreignObject.storyline-left-label div {
-  color: #d8d8d8 !important;
-}
-
-/* Inline collapsed storyline */
+/* Inline collapsed (dark mode only override) */
 body.dark-mode rect.storyline-band-collapsed-inline {
   fill: #1a3a5e !important;
   stroke: #4a78aa !important;
@@ -388,46 +177,243 @@ body.dark-mode foreignObject.storyline-left-label-collapsed-inline div {
   color: #8fc4f0 !important;
 }
 
-/* Controls */
-body.dark-mode .storyline-controls-root {
-  background: #252525 !important;
-  border-bottom: 1px solid #3a3a3a;
-  border-right: 1px solid #3a3a3a;
+/* ===== CONTROLS & MENU ===== */
+
+.storyline-controls-root {
+  background: var(--controls-bg) !important;
+  border-bottom: 1px solid var(--controls-border);
+  border-right: 1px solid var(--controls-border);
 }
 
-body.dark-mode .storyline-controls-root span {
-  color: #aaa !important;
+.storyline-controls-root span {
+  color: var(--controls-span-color) !important;
 }
 
-body.dark-mode .storyline-controls-root button {
-  background: #333 !important;
-  color: #ccc !important;
-  border-color: #4a4a4a !important;
+.storyline-controls-root button {
+  background: var(--controls-btn-bg) !important;
+  color: var(--controls-btn-color) !important;
+  border-color: var(--controls-btn-border) !important;
 }
 
-/* Dropdown menu */
-body.dark-mode g.storyline-controls-menu rect {
-  fill: #2a2a2a;
-  stroke: #4a4a4a;
+.storyline-menu-root {
+  background: var(--menu-bg) !important;
+  color: var(--menu-color) !important;
 }
 
-body.dark-mode .storyline-menu-root {
-  background: #2a2a2a !important;
-  color: #d8d8d8 !important;
+.storyline-menu-root div {
+  color: var(--menu-color) !important;
 }
 
-body.dark-mode .storyline-menu-root div {
-  color: #d8d8d8 !important;
+.storyline-menu-root button {
+  background: var(--menu-btn-bg) !important;
+  color: var(--menu-color) !important;
+  border-color: var(--menu-btn-border) !important;
 }
 
-body.dark-mode .storyline-menu-root button {
-  background: #333 !important;
-  color: #ccc !important;
-  border-color: #555 !important;
+/* ===== CHAPTER GROUPS ===== */
+
+.chapter-group {
+  outline: none;
 }
 
-/* Chapter group separator line */
+.chapter-group[aria-expanded] rect {
+  fill: var(--chapter-bg);
+  filter: var(--chapter-shadow);
+  stroke-width: 1.5;
+  transition: filter 0.25s ease;
+}
+
+.chapter-group[aria-expanded="true"] rect {
+  filter: drop-shadow(0 4px 12px rgba(106, 127, 216, 0.2));
+}
+
+.chapter-group[aria-expanded="false"] rect {
+  fill: var(--group-collapsed-fill) !important;
+  stroke: var(--group-collapsed-stroke) !important;
+  filter: drop-shadow(0 2px 6px rgba(106, 127, 216, 0.2)) !important;
+}
+
+.chapter-group[aria-expanded="false"]:hover rect {
+  filter: drop-shadow(0 3px 10px rgba(106, 127, 216, 0.35)) !important;
+}
+
+.chapter-group[aria-expanded="true"] rect {
+  stroke: var(--group-expanded-stroke) !important;
+}
+
+.chapter-group[aria-expanded="false"] text {
+  fill: var(--group-collapsed-text) !important;
+  font-weight: 700;
+}
+
+.chapter-group text.group-label {
+  fill: var(--chapter-text-color);
+  font-weight: 700;
+  font-size: 14px;
+}
+
+.chapter-group text.chapter-title {
+  fill: var(--chapter-text-color);
+  font-weight: 600;
+  font-size: 13px;
+  font-family: "Segoe UI", system-ui, sans-serif;
+}
+
+.chapter-group line.separator {
+  stroke: rgba(106, 127, 216, 0.3);
+  stroke-width: 1.2;
+}
+
 body.dark-mode .chapter-group line.separator {
   stroke: rgba(255, 255, 255, 0.12);
 }
 
+/* ===== CHAPTER ITEMS (expandidos) ===== */
+
+g.chapter-item:hover {
+  opacity: 0.85;
+}
+
+rect.chapter-bullet {
+  transition: filter 0.15s ease;
+  cursor: pointer;
+}
+
+g.chapter-item:hover rect.chapter-bullet {
+  filter: brightness(1.15) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+/* ===== CHAPTER SOLO ===== */
+
+.chapter-rect {
+  transition: filter 0.2s ease, stroke-width 0.2s ease;
+  filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28));
+}
+
+.chapter-solo.hovered .chapter-rect {
+  filter: drop-shadow(0 4px 14px rgba(0, 0, 0, 0.45));
+  stroke-width: 1.5 !important;
+}
+
+/* ===== ANIMAÇÃO DE ENTRADA (groups) ===== */
+
+.chapter-group text,
+.chapter-group line,
+.chapter-group rect.chapter-bullet {
+  opacity: 0;
+  transform: translateY(-5px);
+  animation: fadeSlideIn 0.25s ease-out 0.1s forwards;
+}
+
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ===== USER-SELECT ===== */
+
+foreignObject.storyline-left-label div,
+foreignObject.storyline-left-label-collapsed div,
+foreignObject.storyline-left-label-collapsed-inline div,
+.storyline-controls-root,
+.storyline-controls-root *,
+.storyline-menu-root,
+.storyline-menu-root div,
+.storyline-menu-root span,
+.storyline-menu-root button {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ===== ACESSIBILIDADE ===== */
+
+/* Visualmente oculto, mas acessível a leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Skip link — visível apenas no foco por teclado */
+.skip-link {
+  position: fixed;
+  top: -100%;
+  left: 8px;
+  z-index: 10000;
+  padding: 8px 16px;
+  background: #0070f3;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-decoration: none;
+  transition: top 0.15s;
+}
+
+.skip-link:focus {
+  top: 8px;
+}
+
+/* Foco por teclado — SVG não suporta outline nativo, usamos drop-shadow */
+g.chapter-solo:focus-visible .chapter-rect,
+g.chapter-group:focus-visible rect:first-of-type {
+  filter: drop-shadow(0 0 0 3px #0070f3) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.28)) !important;
+}
+
+.storyline-controls-root :is(button, input):focus-visible,
+.storyline-menu-root button:focus-visible {
+  outline: 3px solid #0070f3;
+  outline-offset: 2px;
+}
+
+/* ===== MOVIMENTO REDUZIDO ===== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ===== ALTO CONTRASTE (Windows HCM / forced-colors) ===== */
+@media (forced-colors: active) {
+  .chapter-rect,
+  rect.board-left-bg,
+  rect.storyline-band,
+  rect.storyline-left-col {
+    forced-color-adjust: none;
+    stroke: ButtonText !important;
+    stroke-width: 2px !important;
+  }
+
+  .skip-link {
+    forced-color-adjust: none;
+    background: Highlight;
+    color: HighlightText;
+  }
+}
+
+/* ===== CONTRASTE ELEVADO ===== */
+@media (prefers-contrast: more) {
+  body.light-mode .chapter-rect,
+  body.light-mode rect.storyline-band {
+    stroke: #000 !important;
+    stroke-width: 2px !important;
+  }
+
+  body.dark-mode .chapter-rect,
+  body.dark-mode rect.storyline-band {
+    stroke: #fff !important;
+    stroke-width: 2px !important;
+  }
+}

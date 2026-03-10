@@ -1,17 +1,48 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>Board</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, user-scalable=yes" />
+  <meta name="description" content="Board de narrativa interativo — organize capítulos, storylines e timelines da sua história." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#1e1e1e" media="(prefers-color-scheme: dark)" />
 
-  <!-- ✅ CSS correto (será resolvido pelo Vite no build) -->
+  <!-- Open Graph (útil quando o board for embeddado ou compartilhado) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Board — PaperTrail" />
+  <meta property="og:description" content="Board de narrativa interativo para organizar capítulos e storylines." />
+
+  <title>Board — PaperTrail</title>
   <link rel="stylesheet" href="/src/style.css" />
 </head>
 <body>
+  <!-- Skip link: permite usuários de teclado pular direto ao conteúdo principal -->
+  <a class="skip-link" href="#board">Ir para o board de narrativa</a>
 
-  <!-- Board principal -->
-  <div id="board"></div>
+  <!-- Região de anúncios para leitores de tela (aria-live) -->
+  <div
+    id="board-live"
+    role="status"
+    aria-live="polite"
+    aria-atomic="true"
+    class="sr-only"
+  ></div>
+
+  <main id="board-main" aria-label="Aplicação de narrativa">
+    <div
+      id="board"
+      role="application"
+      aria-label="Board de narrativa interativo"
+      aria-describedby="board-desc"
+    ></div>
+  </main>
+
+  <!-- Descrição para leitores de tela -->
+  <p id="board-desc" class="sr-only">
+    Use Tab para navegar entre os capítulos, Enter ou Espaço para abrir o menu de um capítulo,
+    e Ctrl + scroll para dar zoom no board.
+  </p>
 
   <script type="module" src="/src/main"></script>
 </body>

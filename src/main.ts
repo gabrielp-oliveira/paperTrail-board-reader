@@ -16,13 +16,25 @@ import {
   triggerCollapseToggle,
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
-import { Layout, ZoomPan, LeftBg, StorylinesUI, TimelinesUI } from "./globalVariables";
+import { Layout, ZoomPan, LeftBg, StorylinesUI, TimelinesUI, getAdaptiveMinZoom } from "./globalVariables";
+import { animDuration } from "./utils/motion";
+
+/** Anuncia uma mensagem para leitores de tela via aria-live */
+function announceToScreenReader(message: string) {
+  const el = document.getElementById("board-live");
+  if (!el) return;
+  el.textContent = "";
+  requestAnimationFrame(() => { el.textContent = message; });
+}
 
 // 🎯 Cria SVG base
 const svgBase = d3
   .select("#board")
   .append("svg")
   .attr("preserveAspectRatio", "xMinYMin meet")
+  .attr("role", "application")
+  .attr("aria-label", "Board de narrativa interativo")
+  .attr("focusable", "true")
   .style("width", "100%")
   .style("height", "100%")
   .style("margin", "0")
@@ -85,8 +97,7 @@ gLeft
   .attr("y", LeftBg.Y)
   .attr("width", Layout.LEFT_COLUMN_WIDTH)
   .attr("height", Layout.MIN_VIEWBOX_HEIGHT)
-  .attr("fill", LeftBg.FILL)
-  .attr("stroke", LeftBg.STROKE)
+  .style("stroke", LeftBg.STROKE)
   .attr("stroke-width", LeftBg.STROKE_WIDTH)
   .attr("filter", LeftBg.SHADOW_FILTER);
 
@@ -118,10 +129,10 @@ function normalizeSettings(input: any): {
       ? zoomObj.k
       : typeof raw?.k === "number"
       ? raw.k
-      : ZoomPan.MIN_ZOOM_SCALE;
+      : getAdaptiveMinZoom();
 
   // ✅ garante que nunca inicia abaixo do "zoom out mínimo"
-  const k = Math.max(ZoomPan.MIN_ZOOM_SCALE, kRaw);
+  const k = Math.max(getAdaptiveMinZoom(), kRaw);
 
   const x =
     typeof zoomObj?.x === "number"
@@ -205,21 +216,42 @@ function emitSizeUpdate(width: number, height: number) {
 function applyViewBox(totalWidth: number, height: number, animate: boolean = false) {
   const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height);
 
-  if (animate) {
+  // A coluna esquerda deve sempre cobrir a altura máxima possível do board
+  // (maior entre expanded e collapsed), para nunca ficar curta em nenhum modo.
+  const leftBgHeight = Math.max(
+    minHeight,
+    lastHeights.expandedHeight,
+    lastHeights.collapsedHeight
+  );
+
+  const dur = animDuration(StorylinesUI.COLLAPSE_ANIM_MS);
+
+  if (animate && dur > 0) {
     svgBase
       .interrupt()
       .transition()
-      .duration(StorylinesUI.COLLAPSE_ANIM_MS)
+      .duration(dur)
       .ease(d3.easeCubicInOut)
       .attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   } else {
     svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   }
 
-  // Sempre emite a altura expandida (o maior valor possível),
-  // para o pai dimensionar o container uma vez e não mudá-lo ao colapsar/expandir.
-  const emitHeight = Math.max(minHeight, lastHeights.expandedHeight || 0);
-  emitSizeUpdate(totalWidth, emitHeight);
+  // Inclui o header fixo das timelines na altura reportada ao pai
+  emitSizeUpdate(totalWidth, minHeight + TimelinesUI.HEADER_HEIGHT);
+
+  // Coluna esquerda cobre sempre a altura total máxima do board
+  if (animate && dur > 0) {
+    gLeft
+      .select<SVGRectElement>("rect.board-left-bg")
+      .interrupt()
+      .transition()
+      .duration(dur)
+      .ease(d3.easeCubicInOut)
+      .attr("height", leftBgHeight);
+  } else {
+    gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", leftBgHeight);
+  }
 
   return minHeight;
 }
@@ -233,7 +265,7 @@ function applyViewBox(totalWidth: number, height: number, animate: boolean = fal
  */
 let zoomBehavior: d3.ZoomBehavior<SVGSVGElement, unknown> | null = null;
 
-function initOrUpdateZoom(width: number, height: number, settings: any, minZoom: number = ZoomPan.MIN_ZOOM_SCALE) {
+function initOrUpdateZoom(width: number, height: number, settings: any, minZoom: number = getAdaptiveMinZoom()) {
   const svg = svgBase as unknown as d3.Selection<
     SVGSVGElement,
     unknown,
@@ -245,7 +277,7 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
     const normalized = normalizeSettings(settings);
 
     const initialScale =
-      typeof normalized.zoom.k === "number" ? normalized.zoom.k : ZoomPan.MIN_ZOOM_SCALE;
+      typeof normalized.zoom.k === "number" ? normalized.zoom.k : getAdaptiveMinZoom();
     const initialX =
       typeof normalized.zoom.x === "number" ? normalized.zoom.x : 0;
     const initialY =
@@ -319,7 +351,7 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
   // Os event listeners já estão attached do init; o constraint é aplicado
   // naturalmente na próxima interação do usuário.
   zoomBehavior
-    .scaleExtent([ZoomPan.MIN_ZOOM_SCALE, ZoomPan.MAX_ZOOM_SCALE])
+    .scaleExtent([minZoom, ZoomPan.MAX_ZOOM_SCALE])
     .translateExtent([
       [0, -ZoomPan.PAN_TOP_PADDING_PX],
       [width + ZoomPan.PAN_RIGHT_PADDING_PX, height + ZoomPan.PAN_BOTTOM_PADDING_PX],
@@ -434,37 +466,44 @@ function renderBoard(data: any) {
         // ✅ 4) viewBox anima junto com as transições (evita salto de escala)
         // e zoom extents são atualizados imediatamente (sem resetar o transform).
         const minHeight = applyViewBox(totalWidth, targetVisibleHeight, true);
-        const minZoom = checked ? ZoomPan.MIN_ZOOM_SCALE_COLLAPSED : ZoomPan.MIN_ZOOM_SCALE;
+        const minZoom = checked ? getAdaptiveMinZoom(true) : getAdaptiveMinZoom();
         initOrUpdateZoom(totalWidth, minHeight, settings, minZoom);
 
-        // ✅ 5) ao colapsar, anima câmera para y=0 e clamp de zoom se abaixo do novo mínimo
+        const svgEl = svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
+        const node = svgEl.node();
+        const currentT = node ? d3.zoomTransform(node) : d3.zoomIdentity;
+
+        // ✅ 5) anima câmera conforme o modo
+        const camDur = animDuration(StorylinesUI.COLLAPSE_ANIM_MS);
         if (checked) {
-          const svgEl = svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
-          const node = svgEl.node();
-          const currentT = node ? d3.zoomTransform(node) : d3.zoomIdentity;
-          const clampedK = Math.max(currentT.k, minZoom);
-          const needsZoomClamp = clampedK !== currentT.k;
-          const needsYReset = currentT.y < 0;
-          if (zoomBehavior && (needsYReset || needsZoomClamp)) {
+          announceToScreenReader("Board colapsado. Todos os capítulos agora estão na faixa compacta.");
+          if (zoomBehavior) {
+            const clampedK = Math.max(currentT.k, minZoom);
             svgEl
               .transition()
-              .duration(StorylinesUI.COLLAPSE_ANIM_MS)
+              .duration(camDur)
               .ease(d3.easeCubicInOut)
               .call(
                 zoomBehavior.transform as any,
                 d3.zoomIdentity.translate(currentT.x, 0).scale(clampedK)
               );
           }
+        } else {
+          announceToScreenReader("Board expandido. Todas as storylines estão visíveis.");
+          if (zoomBehavior) {
+            const targetK = Math.max(ZoomPan.MIN_ZOOM_SCALE, currentT.k * 0.82);
+            if (targetK < currentT.k) {
+              svgEl
+                .transition()
+                .duration(camDur)
+                .ease(d3.easeCubicInOut)
+                .call(
+                  zoomBehavior.transform as any,
+                  d3.zoomIdentity.translate(currentT.x, currentT.y).scale(targetK)
+                );
+            }
+          }
         }
-
-        // ✅ 6) anima background esquerdo (usa minHeight do container, não só o conteúdo)
-        gLeft
-          .select<SVGRectElement>("rect.board-left-bg")
-          .interrupt()
-          .transition()
-          .duration(350)
-          .ease(d3.easeCubicInOut)
-          .attr("height", minHeight);
       },
     },
     gFixed
@@ -474,11 +513,9 @@ function renderBoard(data: any) {
   setupCollapsedRowInteraction(gWorld, gLeft, triggerCollapseToggle);
 
   // ✅ viewBox inicial + zoom init/update (adapta ao container)
+  // applyViewBox já atualiza o bg esquerdo internamente
   const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
   initOrUpdateZoom(totalWidth, minHeight, settings);
-
-  // ✅ background esquerdo: usa a altura do viewBox (cobre o container inteiro)
-  gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", minHeight);
 }
 
 // 📩 Recebe dados do app pai
@@ -512,7 +549,6 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
     _lastObservedWidth = w;
     const totalWidth = computeTotalWidth(lastRenderData.timelines);
     const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
-    gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", minHeight);
     initOrUpdateZoom(totalWidth, minHeight, lastRenderData.settings);
   }).observe(_boardResizeEl);
 }

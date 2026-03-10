@@ -107,7 +107,11 @@ export type Chapter = {
     selected?: boolean,
     focus?: boolean,
     last_update?: any,
-    yCollapsed?: number;
+    yCollapsed?: number,
+    favorite?: boolean,
+    has_notes?: boolean,
+    notes_count?: number,
+    favorited_excerpts_count?: number,
 
 }
 

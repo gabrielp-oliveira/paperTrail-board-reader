@@ -9,6 +9,16 @@ import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 
 let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
 
+// Debounce para chapter-focus postMessage — evita flood ao mover mouse rápido
+let _focusTimer: ReturnType<typeof setTimeout> | null = null;
+function emitChapterFocus(id: string, focus: boolean) {
+  if (_focusTimer) clearTimeout(_focusTimer);
+  _focusTimer = setTimeout(() => {
+    window.parent.postMessage({ type: "chapter-focus", data: { id, focus } }, "*");
+    _focusTimer = null;
+  }, 80);
+}
+
 // ---------------------------
 // API: setup de interação
 // ---------------------------
@@ -216,10 +226,7 @@ function expandGroup(
           .style("fill", "rgba(106, 127, 216, 0.08)")
           .style("opacity", 1);
 
-        window.parent.postMessage(
-          { type: "chapter-focus", data: { id, focus: true } },
-          "*"
-        );
+        emitChapterFocus(id, true);
       })
       .on("mouseleave", function () {
         d3.select(this)
@@ -227,10 +234,7 @@ function expandGroup(
           .style("fill", "rgba(106, 127, 216, 0.0)")
           .style("opacity", 0);
 
-        window.parent.postMessage(
-          { type: "chapter-focus", data: { id, focus: false } },
-          "*"
-        );
+        emitChapterFocus(id, false);
       })
       .on("click", (event) => {
         event.stopPropagation();
@@ -340,8 +344,3 @@ function collapseGroup(
     .attr("fill", ChapterGroupExpandedUI.COLLAPSE_TEXT_FILL)
     .text(titlesIds.length);
 }
-
-// ---------------------------
-// API: fechar grupo expandido (no-op — expansão no Angular)
-// ---------------------------
-export function hideGroup() {}

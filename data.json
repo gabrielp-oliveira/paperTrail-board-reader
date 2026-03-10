@@ -20,12 +20,19 @@
             "order": 13,
             "path": "",
             "range": 10,
-            "last_update": null
+            "last_update": null,
+            "group": "__solo__-06e30a3a",
+            "favorite": true,
+            "has_notes": true,
+            "notes_count": 4,
+            "favorited_excerpts_count": 12
         },
         {
             "id": "b9df2341-3049-45c8-9b47-e002662cdb86",
             "world_id": "louisa-alcott-world",
             "title": "Jo Meets Apollyon.",
+            "group": "__solo__-b9df2341",
+            "favorite": true,
             "description": "In the heart of a bustling household, where sisterly bonds are as fragile as they are fierce, Jo March finds herself at the crossroads of anger and forgiveness. A secret outing to the theater with her sister Meg and their friend Laurie incites a bitter feud with their youngest sibling, Amy. Denied the joys of the evening, Amy's retaliation is swift and devastating—she destroys Jo's cherished manuscript, a collection of fairy tales born from years of labor and love.\n\nThe loss ignites Jo's fiery temper, setting off a storm of emotions that threatens to fracture the delicate harmony of their home. As the sisters grapple with the aftermath, a skating accident on the treacherous ice becomes a catalyst for redemption. In a moment of peril, Jo's anger melts away, replaced by a desperate need to save her sister and mend their broken bond.\n\nGuided by the gentle wisdom of their mother, Jo embarks on a journey of self-discovery, learning the art of self-control and the power of forgiveness. Amidst the trials of youth and the warmth of familial love, Jo must confront her inner demons and embrace the strength of a love that transcends even the deepest of grievances.\n\nIn this poignant chapter of \"Little Women,\" the March sisters navigate the tumultuous waters of sibling rivalry and reconciliation, weaving a tale of growth, understanding, and the unbreakable ties that bind.",
             "created_at": "2025-05-26T05:34:27.569377Z",
             "paper_id": "37106",
