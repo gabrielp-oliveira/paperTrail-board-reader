@@ -107,6 +107,10 @@ const gFixed = gRoot
   .attr("class", "board-fixed")
   .style("pointer-events", "all");
 
+// Cache de seleções usadas a cada frame no zoom handler (evita DOM query repetida)
+const _clipRect = svgBase.select<SVGRectElement>("#board-top-clip rect");
+const _topBgRect = gTopBg.select<SVGRectElement>("rect.board-top-bg");
+
 /**
  * ✅ Normaliza settings para suportar:
  * - settings antigo (flat): { k, x, y }
@@ -215,8 +219,8 @@ function emitSizeUpdate(width: number, height: number) {
 
 function applyViewBox(totalWidth: number, height: number, animate: boolean = false) {
   // Garante que o clipPath e o fundo do header cobrem toda a largura do board
-  svgBase.select<SVGRectElement>("#board-top-clip rect").attr("width", totalWidth);
-  gTopBg.select<SVGRectElement>("rect.board-top-bg").attr("width", totalWidth);
+  _clipRect.attr("width", totalWidth);
+  _topBgRect.attr("width", totalWidth);
 
   const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height);
 
@@ -321,8 +325,8 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
         // ✅ clipPath e background do header escalam junto com k,
         // evitando que o conteúdo de gWorld "passe por cima" do header
         const scaledHeaderH = TimelinesUI.HEADER_HEIGHT * k;
-        svgBase.select<SVGRectElement>("#board-top-clip rect").attr("height", scaledHeaderH);
-        gTopBg.select<SVGRectElement>("rect.board-top-bg").attr("height", scaledHeaderH);
+        _clipRect.attr("height", scaledHeaderH);
+        _topBgRect.attr("height", scaledHeaderH);
 
         // ✅ toggle fixo (sem translate — apenas scale para manter o tamanho correto)
         gFixed.attr("transform", `scale(${k})`);

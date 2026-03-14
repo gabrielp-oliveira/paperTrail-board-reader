@@ -191,7 +191,10 @@
 
     <div id="log-header">
       <span>Log de eventos</span>
-      <button onclick="clearLog()">Limpar</button>
+      <div style="display:flex;gap:6px">
+        <button onclick="copyLog()">Copiar</button>
+        <button onclick="clearLog()">Limpar</button>
+      </div>
     </div>
     <div id="log"></div>
   </div>
@@ -296,6 +299,22 @@
 
     window.clearLog = function () {
       document.getElementById("log").innerHTML = "";
+    };
+
+    window.copyLog = function () {
+      const entries = document.querySelectorAll("#log .log-entry");
+      const lines = Array.from(entries).map(el => {
+        const dir  = el.querySelector(".log-dir")?.textContent ?? "";
+        const type = el.querySelector(".log-type")?.textContent ?? "";
+        const payload = el.querySelector(".log-payload")?.textContent ?? "";
+        return payload ? `${dir} ${type}\n${payload}` : `${dir} ${type}`;
+      });
+      navigator.clipboard.writeText(lines.join("\n\n")).then(() => {
+        const btn = document.querySelector("#log-header button");
+        const prev = btn.textContent;
+        btn.textContent = "Copiado!";
+        setTimeout(() => { btn.textContent = prev; }, 1500);
+      });
     };
 
     // ── Captura erros do iframe ───────────────────────────────────

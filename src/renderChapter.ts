@@ -379,23 +379,6 @@ export function renderChapters(
 
       g.append("title").text(fullTitle || displayTitle);
 
-      g.on("mouseenter", function () {
-        ch.focus = true;
-        g.classed("hovered", true);
-        window.parent.postMessage(
-          { type: "chapter-focus", data: { id: ch.id, focus: true } },
-          "*"
-        );
-      });
-
-      g.on("mouseleave", function () {
-        window.parent.postMessage(
-          { type: "chapter-focus", data: { id: ch.id, focus: false } },
-          "*"
-        );
-        g.classed("hovered", false);
-      });
-
       // Teclado: Enter ou Espaço ativa o mesmo comportamento do clique
       g.on("keydown", function (event: KeyboardEvent) {
         if (event.key === "Enter" || event.key === " ") {

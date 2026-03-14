@@ -9,16 +9,6 @@ import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 
 let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
 
-// Debounce para chapter-focus postMessage — evita flood ao mover mouse rápido
-let _focusTimer: ReturnType<typeof setTimeout> | null = null;
-function emitChapterFocus(id: string, focus: boolean) {
-  if (_focusTimer) clearTimeout(_focusTimer);
-  _focusTimer = setTimeout(() => {
-    window.parent.postMessage({ type: "chapter-focus", data: { id, focus } }, "*");
-    _focusTimer = null;
-  }, 80);
-}
-
 // ---------------------------
 // API: setup de interação
 // ---------------------------
@@ -220,21 +210,16 @@ function expandGroup(
       .attr("class", "chapter-item")
       .style("cursor", "pointer")
       .on("mouseenter", function () {
-        // Highlight background do item no hover
         d3.select(this)
           .selectAll("rect.item-bg")
           .style("fill", "rgba(106, 127, 216, 0.08)")
           .style("opacity", 1);
-
-        emitChapterFocus(id, true);
       })
       .on("mouseleave", function () {
         d3.select(this)
           .selectAll("rect.item-bg")
           .style("fill", "rgba(106, 127, 216, 0.0)")
           .style("opacity", 0);
-
-        emitChapterFocus(id, false);
       })
       .on("click", (event) => {
         event.stopPropagation();
