@@ -69,10 +69,12 @@ export function renderTimelines(
     targetGridHeight = options.gridHeight;
   }
 
-  // Pré-computa as posições X de cada timeline (pelo id, seguro contra reordenação do DOM)
+  // Pré-computa as posições X de cada timeline ordenando por .order,
+  // idêntico ao que renderStoryline faz — garante alinhamento header ↔ grid
+  const sortedTimelines = timelines.slice().sort((a, b) => a.order - b.order);
   const positionMap = new Map<string, { x0: number; xEnd: number; width: number }>();
   let posX = Layout.LEFT_COLUMN_WIDTH + TimelinesUI.COL_ROW_MARGIN;
-  timelines.forEach((tl) => {
+  sortedTimelines.forEach((tl) => {
     const w = (tl.range ?? 0) * TimelinesUI.RANGE_GAP;
     positionMap.set(tl.id, { x0: posX, xEnd: posX + w, width: w });
     posX += w;
@@ -82,7 +84,7 @@ export function renderTimelines(
 
   const groups = svg
     .selectAll<SVGGElement, Timeline>("g.timeline-group")
-    .data(timelines, (d: any) => d.id)
+    .data(sortedTimelines, (d: any) => d.id)
     .join(
       (enter) =>
         enter
@@ -200,7 +202,7 @@ export function renderTimelines(
 
     const headerGroups = topLayer
       .selectAll<SVGGElement, Timeline>("g.timeline-header-group")
-      .data(timelines, (d: any) => d.id)
+      .data(sortedTimelines, (d: any) => d.id)
       .join(
         (enter) => enter.append("g").attr("class", "timeline-header-group"),
         (update) => update,
