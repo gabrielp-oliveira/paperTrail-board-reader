@@ -6,8 +6,6 @@ import { Controls, StorylinesUI, ChaptersUI } from "./globalVariables";
 // ---------------------------
 // Tipos auxiliares
 // ---------------------------
-type PlacedRect = { x1: number; x2: number; layer: number };
-
 type LayoutCache = {
   collapsedY: number;
   collapsedMinHeight: number;
@@ -88,7 +86,6 @@ function computeLayering(
   cumulativeRanges: number[],
   bucketKeyFn: (ch: Chapter) => string
 ): { layers: Record<string, number>; maxLayer: number } {
-  const placedRects: PlacedRect[] = [];
   const layers: Record<string, number> = {};
 
   const buckets = d3.groups(group, bucketKeyFn);
@@ -102,25 +99,22 @@ function computeLayering(
     })
     .sort((a, b) => a.x - b.x);
 
+  // O(n·L) instead of O(n²): track only the rightmost x2 per layer
+  const layerMaxX: number[] = [];
+
   for (const item of ordered) {
     const halfW = item.w / 2;
-
     const x1 = item.x - halfW - StorylinesUI.CHAPTER_MIN_GAP;
     const x2 = item.x + halfW + StorylinesUI.CHAPTER_MIN_GAP;
 
     let layer = 0;
-    while (
-      placedRects.some((r) => !(r.x2 < x1 || r.x1 > x2) && r.layer === layer)
-    ) {
-      layer++;
-    }
+    while (layerMaxX[layer] !== undefined && layerMaxX[layer] > x1) layer++;
+    layerMaxX[layer] = x2;
 
-    placedRects.push({ x1, x2, layer });
     item.bucket.forEach((ch) => (layers[ch.id] = layer));
   }
 
-  const maxLayer = placedRects.reduce((m, r) => Math.max(m, r.layer), 0) + 1;
-  return { layers, maxLayer };
+  return { layers, maxLayer: layerMaxX.length };
 }
 
 function computeRowHeightForLayers(maxLayer: number, minHeight: number) {
@@ -251,54 +245,61 @@ export function animateCollapsedRow(
 // ---------------------------
 export function applyCollapsedTransition(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  collapsedAll: boolean
+  collapsedAll: boolean,
+  onEnd?: () => void,
+  cachedEls?: SVGGElement[]
 ) {
   if (!lastLayoutCache) return;
   const cache = lastLayoutCache;
 
-  const nodes = worldLayer.selectAll<SVGGElement, unknown>(
-    "g.chapter-solo[data-chapter-id], g.chapter-group[data-chapter-id]"
-  );
-  if (nodes.empty()) return;
-
-  // Hint ao compositor para preparar camadas antes da animação
-  nodes.style("will-change", "transform");
-
   const toY = (id: string) =>
     collapsedAll ? cache.collapsedChapterY.get(id) : cache.expandedChapterY.get(id);
 
-  nodes
-    .transition()
-    .duration(StorylinesUI.COLLAPSE_ANIM_MS)
-    .ease(d3.easeCubicInOut)
-    .attrTween("transform", function () {
-      const el = this as any;
-      const id = el?.getAttribute?.("data-chapter-id") as string | null;
-      const targetY = id ? toY(id) : undefined;
+  // P2: usa array pré-cacheado se disponível — evita selectAll no DOM
+  const els: SVGGElement[] = cachedEls ??
+    Array.from(worldLayer.node()!.querySelectorAll<SVGGElement>(
+      "g.chapter-solo[data-chapter-id], g.chapter-group[data-chapter-id]"
+    ));
 
-      if (typeof targetY !== "number") {
-        // sem animação — retorna interpolador identity
-        const cur = el.getAttribute("transform") || "translate(0,0)";
-        return () => cur;
+  if (!els.length) return;
+
+  const dur = StorylinesUI.COLLAPSE_ANIM_MS;
+  const ease = d3.easeCubicInOut;
+
+  // C1: pré-computa animações e usa um único RAF loop central (evita N RAFs paralelos)
+  type AnimItem = { el: SVGGElement; x0: number; interpY: (t: number) => number; targetY: number };
+  const animations: AnimItem[] = [];
+
+  for (const el of els) {
+    const id = el.getAttribute("data-chapter-id");
+    const targetY = id ? toY(id) : undefined;
+    if (typeof targetY !== "number") continue;
+    el.style.willChange = "transform";
+    const x0 = parseFloat(el.getAttribute("data-x") || "0");
+    const y0 = parseFloat(el.getAttribute("data-y") || "0");
+    animations.push({ el, x0, interpY: d3.interpolateNumber(y0, targetY), targetY });
+  }
+
+  if (!animations.length) { onEnd?.(); return; }
+
+  const startTime = performance.now();
+
+  const tick = (now: number) => {
+    const t = ease(Math.min((now - startTime) / dur, 1));
+    for (const { el, x0, interpY } of animations) {
+      el.setAttribute("transform", `translate(${x0},${interpY(t)})`);
+    }
+    if (t < 1) {
+      requestAnimationFrame(tick);
+    } else {
+      for (const { el, targetY } of animations) {
+        el.style.willChange = "auto";
+        el.setAttribute("data-y", String(targetY));
       }
-
-      // Usa data-x / data-y para evitar parse de regex por frame
-      const x0 = parseFloat(el.getAttribute("data-x") || "0");
-      const y0 = parseFloat(el.getAttribute("data-y") || "0");
-      const interpY = d3.interpolateNumber(y0, targetY);
-
-      return (t: number) => `translate(${x0},${interpY(t)})`;
-    })
-    .on("end", function () {
-      const el = this as any;
-      // Remove hint após animação — libera memória de composição
-      el.style.willChange = "auto";
-      // Atualiza data-y para manter consistência com o novo estado
-      const id = el?.getAttribute?.("data-chapter-id") as string | null;
-      if (!id) return;
-      const targetY = toY(id);
-      if (typeof targetY === "number") el.setAttribute("data-y", String(targetY));
-    });
+      onEnd?.();
+    }
+  };
+  requestAnimationFrame(tick);
 }
 
 // ---------------------------
@@ -409,6 +410,8 @@ export function renderStorylines(
   const storylinePositionMap = new Map<string, number>();
   storylines.forEach((s, index) => storylinePositionMap.set(s.id, index));
 
+  const storylineById = new Map<string, StoryLine>(storylines.map((s) => [s.id, s]));
+
   const groupedByStoryline = d3
     .groups(chapters ?? [], (ch) => ch.storyline_id)
     .sort(([aId], [bId]) => {
@@ -493,7 +496,7 @@ export function renderStorylines(
   };
 
   groupedByStoryline.forEach(([storylineId, group]) => {
-    const storyline = storylines.find((s) => s.id === storylineId);
+    const storyline = storylineById.get(storylineId);
     if (!storyline || !group || group.length === 0) return;
 
     // ✅ y "real" do layout expandido (sempre avança)
@@ -503,6 +506,9 @@ export function renderStorylines(
     const xEnd = boardWidthPx;
 
     const isCollapsedThisOne = collapsedStorylineIds.has(storylineId);
+
+    // M1: computar buckets 1× antes do if/else — reutilizado nos três caminhos
+    const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
 
     // ---------------------------------------------------------
     // 1) collapsedAll: NÃO aumenta visibleHeight (só expandedHeightAcc)
@@ -554,8 +560,6 @@ export function renderStorylines(
         .attr("opacity", 0);
 
       leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
-
-      const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {
         const isGrouped = bucket.length > 1;
         const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
@@ -596,7 +600,6 @@ export function renderStorylines(
       const yMap = computeChapterYFromLayers(yExpandedRow, layering.layers);
       for (const ch of group) cache.expandedChapterY.set(ch.id, yMap[ch.id]);
 
-      // ✅ visível e expandido avançam
       visibleHeight += rowHeight + StorylinesUI.STORYLINE_GAP;
       expandedHeightAcc += rowHeight + StorylinesUI.STORYLINE_GAP;
 
@@ -620,16 +623,13 @@ export function renderStorylines(
 
       leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
 
-      const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {
         const isGrouped = bucket.length > 1;
         const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
-
         bucket.forEach((ch) => {
           const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
           const yExpanded = cache.expandedChapterY.get(ch.id) ?? yExpandedRow;
           const yCollapsed = cache.collapsedChapterY.get(ch.id) ?? collapsedY;
-
           updatedChapters.push({
             ...ch,
             width: x,
@@ -686,16 +686,13 @@ export function renderStorylines(
 
     leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
 
-    const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
     buckets.forEach(([key, bucket]) => {
       const isGrouped = bucket.length > 1;
       const groupId = isGrouped ? `group-${storylineId}-${key}` : null;
-
       bucket.forEach((ch) => {
         const x = computeChapterX(ch, timelineOrderMap, cumulativeRanges);
         const yExpanded = cache.expandedChapterY.get(ch.id) ?? yExpandedRow;
         const yCollapsed = cache.collapsedChapterY.get(ch.id) ?? collapsedY;
-
         updatedChapters.push({
           ...ch,
           width: x,

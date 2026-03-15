@@ -60,16 +60,55 @@ function buildChapterAriaLabel(ch: Chapter): string {
 // ---------------------------
 // Render principal
 // ---------------------------
+// M8: cache de cores — evita d3.color() + getTextColor() repetidos por capítulo
+const _colorCache = new Map<string, {
+  gradTop: string; gradBottom: string; gradAccent: string;
+  stroke: string; divider: string; textColor: string;
+}>();
+
+function getColorData(rawColor: string) {
+  const key = rawColor || NO_COLOR;
+  let cached = _colorCache.get(key);
+  if (!cached) {
+    const base = d3.color(key) || d3.color(NO_COLOR)!;
+    cached = {
+      gradTop: base.brighter(0.15).toString(),
+      gradBottom: base.darker(2.2).toString(),
+      gradAccent: base.darker(1.2).toString(),
+      stroke: base.darker(0.6).toString(),
+      divider: base.darker(0.5).toString(),
+      textColor: getTextColor(base.toString()),
+    };
+    _colorCache.set(key, cached);
+  }
+  return cached;
+}
+
+// Cache para evitar querySelector por capítulo no hot loop de render
+let _cachedDefs: SVGDefsElement | null = null;
+let _cachedDefsRoot: SVGSVGElement | null = null;
+const _existingGradIds = new Set<string>();
+
 /** Cria (ou reutiliza) um gradiente vertical no <defs> do SVG raiz */
 function ensureCardGradient(svgRoot: SVGSVGElement | null, id: string, colorTop: string, colorBottom: string): string {
   if (!svgRoot) return colorTop;
-  let defs = svgRoot.querySelector("defs");
-  if (!defs) {
-    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
-    svgRoot.prepend(defs);
+
+  // Rebuild cache when svgRoot changes (new render)
+  if (_cachedDefsRoot !== svgRoot) {
+    _cachedDefsRoot = svgRoot;
+    _cachedDefs = svgRoot.querySelector("defs");
+    if (!_cachedDefs) {
+      _cachedDefs = document.createElementNS("http://www.w3.org/2000/svg", "defs") as SVGDefsElement;
+      svgRoot.prepend(_cachedDefs);
+    }
+    _existingGradIds.clear();
+    _cachedDefs.querySelectorAll("[id]").forEach((el) => _existingGradIds.add(el.id));
   }
-  let grad = defs.querySelector(`#${id}`);
+
+  const defs = _cachedDefs!;
+  let grad = _existingGradIds.has(id) ? defs.querySelector(`#${id}`) : null;
   if (!grad) {
+    _existingGradIds.add(id);
     grad = document.createElementNS("http://www.w3.org/2000/svg", "linearGradient");
     grad.setAttribute("id", id);
     grad.setAttribute("x1", "0%");
@@ -97,12 +136,9 @@ export function renderChapters(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   chapters: Chapter[],
   func: any
-) {
+): Array<{ el: SVGGElement; x: number; y: number; groupId: string | null }> {
+  const cullEntries: Array<{ el: SVGGElement; x: number; y: number; groupId: string | null }> = [];
   const svgRoot = (svg.node()?.ownerSVGElement ?? null) as SVGSVGElement | null;
-  // Limpa elementos anteriores (solo, grupos, itens expandidos)
-  svg
-    .selectAll("g.chapter-solo, g.chapter-group, g.chapter-expanded-item")
-    .remove();
 
   const soloChapters = (chapters ?? []).filter(
     (ch) => isValidPos(ch) && (!ch.group || ch.group.startsWith("__solo__"))
@@ -138,10 +174,15 @@ export function renderChapters(
     .each(function (ch) {
       const g = d3.select(this);
 
+      // C4: só re-renderiza filhos se algo relevante mudou
+      const rk = `${ch.color}|${(ch as any).title ?? (ch as any).name ?? ""}|${ch.order}|${ch.favorite ? 1 : 0}|${ch.notes_count ?? 0}|${ch.favorited_excerpts_count ?? 0}|${ch.width}|${ch.height}`;
+      if (g.attr("data-rk") === rk) return;
+      g.attr("data-rk", rk);
+
       g.selectAll("*").remove();
 
-      const baseColor = d3.color(ch.color || NO_COLOR) || d3.color(NO_COLOR)!;
-      const textColor = getTextColor(baseColor.toString());
+      // M8: usa cache de cores — zero d3.color() desnecessário
+      const { gradTop, gradBottom, gradAccent, stroke, divider, textColor } = getColorData(ch.color || NO_COLOR);
 
       const displayTitle = getChapterTitleForDisplay(ch);
       const fullTitle = getChapterTitleFull(ch);
@@ -149,18 +190,11 @@ export function renderChapters(
       const boxWidth = computeSoloBoxWidth(displayTitle);
       const boxHeight = ChaptersUI.SOLO_BOX_HEIGHT;
       const accentW = ChaptersUI.SOLO_ACCENT_WIDTH;
-      const ox = -boxWidth / 2; // x de origem do card
+      const ox = -boxWidth / 2;
 
-      // Gradiente vertical: topo claro, base bem escura para destacar ícones brancos
       const gradId = `ch-grad-${ch.id.replace(/[^a-z0-9]/gi, "")}`;
-      const gradFill = ensureCardGradient(
-        svgRoot,
-        gradId,
-        baseColor.brighter(0.15).toString(),
-        baseColor.darker(2.2).toString()
-      );
+      const gradFill = ensureCardGradient(svgRoot, gradId, gradTop, gradBottom);
 
-      // Rect principal com gradiente
       g.append("rect")
         .classed("chapter-rect", true)
         .attr("data-chapter-id", ch.id)
@@ -171,63 +205,50 @@ export function renderChapters(
         .attr("rx", ChaptersUI.SOLO_BOX_RX)
         .attr("ry", ChaptersUI.SOLO_BOX_RY)
         .attr("fill", gradFill)
-        .attr("stroke", baseColor.darker(0.6).toString())
+        .attr("stroke", stroke)
         .attr("stroke-width", ChaptersUI.SOLO_STROKE_WIDTH)
         .style("cursor", "pointer");
 
-      // Accent bar esquerda (clipada pelo rx do card via clipPath inline)
       g.append("rect")
         .attr("x", ox)
         .attr("y", 0)
-        .attr("width", accentW + ChaptersUI.SOLO_BOX_RX) // cobre o arredondamento
+        .attr("width", accentW + ChaptersUI.SOLO_BOX_RX)
         .attr("height", boxHeight)
         .attr("rx", ChaptersUI.SOLO_BOX_RX)
         .attr("ry", ChaptersUI.SOLO_BOX_RY)
-        .attr("fill", baseColor.darker(1.2).toString())
+        .attr("fill", gradAccent)
         .style("pointer-events", "none");
 
-      // Retângulo para cobrir a parte direita do accent (fica quadrado no lado direito)
       g.append("rect")
         .attr("x", ox + accentW)
         .attr("y", 0)
         .attr("width", ChaptersUI.SOLO_BOX_RX)
         .attr("height", boxHeight)
-        .attr("fill", baseColor.darker(1.2).toString())
+        .attr("fill", gradAccent)
         .style("pointer-events", "none");
 
-      // Área do título (top ~60% do card)
       const titleAreaX = ox + accentW + ChaptersUI.SOLO_PADDING_LEFT;
       const titleAreaW = boxWidth - accentW - ChaptersUI.SOLO_PADDING_LEFT - ChaptersUI.SOLO_PADDING_RIGHT;
-      const ICON_ROW_H = 14; // altura reservada para ícones na base
+      const ICON_ROW_H = 14;
       const titleAreaH = boxHeight - ICON_ROW_H - 2;
 
-      g.append("foreignObject")
+      g.append("text")
         .attr("x", titleAreaX)
-        .attr("y", 3)
-        .attr("width", titleAreaW)
-        .attr("height", titleAreaH)
-        .style("pointer-events", "none")
-        .append("xhtml:div")
-        .style("width", "100%")
-        .style("height", "100%")
-        .style("display", "flex")
-        .style("align-items", "center")
-        .style("font-family", ChaptersUI.SOLO_FONT_FAMILY)
-        .style("font-size", ChaptersUI.SOLO_FONT_SIZE)
-        .style("font-weight", "700")
-        .style("color", textColor)
-        .style("white-space", "nowrap")
-        .style("overflow", "hidden")
-        .style("text-overflow", "ellipsis")
+        .attr("y", 3 + titleAreaH / 2)
+        .attr("dominant-baseline", "middle")
+        .attr("font-family", ChaptersUI.SOLO_FONT_FAMILY)
+        .attr("font-size", ChaptersUI.SOLO_FONT_SIZE)
+        .attr("font-weight", "700")
+        .attr("fill", textColor)
         .style("user-select", "none")
+        .style("pointer-events", "none")
         .text(displayTitle);
 
-      // Linha divisória sutil
       const iconStripY = boxHeight - ICON_ROW_H;
       g.append("line")
         .attr("x1", ox + accentW + 4).attr("x2", ox + boxWidth - 4)
         .attr("y1", iconStripY).attr("y2", iconStripY)
-        .attr("stroke", baseColor.darker(0.5).toString())
+        .attr("stroke", divider)
         .attr("stroke-width", 0.5).attr("opacity", 0.35)
         .style("pointer-events", "none");
 
@@ -389,120 +410,123 @@ export function renderChapters(
     });
 
   // ---------------------------
-  // Render: grupos (collapsed)
+  // Render: grupos — C4: data join por groupKey (evita append por render)
   // ---------------------------
+  type GroupDatum = { groupKey: string; groupChapters: Chapter[]; base: Chapter };
+  const groupDataArray: GroupDatum[] = [];
   for (const [groupKeyRaw, groupChapters] of groupedChapters) {
     const base = groupChapters[0];
     if (!base || base.width == null || base.height == null) continue;
-
-    const groupKey = groupKeyRaw ?? `group-${base.timeline_id}-${base.range}`;
-    const x = base.width;
-    const y = base.height;
-
-    const count = groupChapters.length;
-
-    const boxWidth = computeGroupBoxWidth(count);
-    const boxHeight = ChaptersUI.GROUP_BOX_HEIGHT;
-
-    // Serializa capítulos do grupo em um atributo (para expandir depois)
-    const dataChapters = groupChapters
-      .map((ch) => {
-        const title = (ch as any).title || (ch as any).name || NO_TITLE;
-        const id = ch.id || NO_ID;
-        const color = ch.color || NO_COLOR;
-        const cover = (ch as any).cover_url || '';
-        return `${title}${ChaptersUI.CHAPTER_FIELD_SEP}${id}${ChaptersUI.CHAPTER_FIELD_SEP}${color}${ChaptersUI.CHAPTER_FIELD_SEP}${cover}`;
-      })
-      .join(ChaptersUI.CHAPTER_JOIN_SEP);
-
-    const groupTitles = groupChapters
-      .map((ch) => getChapterTitleFull(ch) || getChapterTitleForDisplay(ch))
-      .join(", ");
-    const groupAriaLabel = `Grupo com ${count} capítulos: ${groupTitles}. Pressione Enter ou Espaço para expandir.`;
-
-    const g = svg
-      .append("g")
-      .datum(base as any)
-      .attr("class", "chapter-group")
-      .attr("data-group-id", groupKey)
-      .attr("data-chapter-id", base.id)
-      .attr("data-storyline-id", base.storyline_id ?? "")
-      .attr("data-x", x)
-      .attr("data-y", y)
-      .attr("data-chapters", dataChapters)
-      .attr("transform", `translate(${x},${y})`)
-      .attr("role", "button")
-      .attr("tabindex", "0")
-      .attr("aria-label", groupAriaLabel)
-      .attr("aria-expanded", "false")
-      .style("cursor", "pointer");
-
-    // ✅ fallback extra (caso alguma lib/padrão externo remova datum)
-    (g.node() as any).__data__ = base;
-
-    g.selectAll("*").remove();
-
-    // Cores únicas dos capítulos (máx 4 dots)
-    const uniqueColors = Array.from(new Set(groupChapters.map(ch => ch.color || NO_COLOR)));
-    const dotColors = uniqueColors.slice(0, 4);
-    const dotR = ChaptersUI.GROUP_DOT_RADIUS;
-    const dotGap = ChaptersUI.GROUP_DOT_GAP;
-    const dotsTotal = dotColors.length * dotGap - (dotGap - dotR * 2);
-    const bw2 = boxWidth / 2;
-
-    // Rect principal
-    g.append("rect")
-      .attr("x", -bw2)
-      .attr("y", 0)
-      .attr("width", boxWidth)
-      .attr("height", boxHeight)
-      .attr("rx", ChaptersUI.GROUP_RX)
-      .attr("ry", ChaptersUI.GROUP_RY)
-      .attr("fill", ChaptersUI.GROUP_FILL)
-      .attr("stroke", ChaptersUI.GROUP_STROKE)
-      .attr("stroke-width", 1.5);
-
-    // Dots coloridos centrados horizontalmente na parte superior
-    const dotsStartX = -dotsTotal / 2 + dotR;
-    dotColors.forEach((col, i) => {
-      g.append("circle")
-        .attr("cx", dotsStartX + i * dotGap)
-        .attr("cy", boxHeight * 0.38)
-        .attr("r", dotR)
-        .attr("fill", col)
-        .attr("stroke", d3.color(col)?.darker(0.8)?.toString() ?? "rgba(0,0,0,0.2)")
-        .attr("stroke-width", 0.8)
-        .style("pointer-events", "none");
-    });
-
-    // Contador de capítulos na parte inferior
-    g.append("text")
-      .attr("x", 0)
-      .attr("y", boxHeight - 8)
-      .attr("text-anchor", "middle")
-      .attr("font-size", "11px")
-      .attr("font-family", ChaptersUI.GROUP_FONT_FAMILY)
-      .attr("font-weight", "700")
-      .attr("fill", ChaptersUI.GROUP_TEXT_FILL)
-      .style("pointer-events", "none")
-      .text(`${count} cap.`);
-
-    // tooltip do grupo
-    g.append("title").text(
-      groupChapters
-        .map((ch) => getChapterTitleFull(ch) || getChapterTitleForDisplay(ch))
-        .join("\n")
-    );
-
-    // Teclado: Enter ou Espaço expande o grupo
-    g.on("keydown", function (event: KeyboardEvent) {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        (this as SVGGElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
-      }
+    groupDataArray.push({
+      groupKey: groupKeyRaw ?? `group-${base.timeline_id}-${base.range}`,
+      groupChapters,
+      base,
     });
   }
 
+  svg
+    .selectAll<SVGGElement, GroupDatum>("g.chapter-group")
+    .data(groupDataArray, (d) => d.groupKey)
+    .join(
+      (enter) => enter.append("g").attr("class", "chapter-group"),
+      (update) => update,
+      (exit) => exit.remove()
+    )
+    .each(function (d) {
+      const { groupKey, groupChapters, base } = d;
+      const g = d3.select(this);
+      const x = base.width!;
+      const y = base.height!;
+      const count = groupChapters.length;
+
+      // Sempre atualiza posição e attrs estruturais
+      const dataChapters = groupChapters
+        .map((ch) => {
+          const title = (ch as any).title || (ch as any).name || NO_TITLE;
+          const id = ch.id || NO_ID;
+          const color = ch.color || NO_COLOR;
+          const cover = (ch as any).cover_url || '';
+          return `${title}${ChaptersUI.CHAPTER_FIELD_SEP}${id}${ChaptersUI.CHAPTER_FIELD_SEP}${color}${ChaptersUI.CHAPTER_FIELD_SEP}${cover}`;
+        })
+        .join(ChaptersUI.CHAPTER_JOIN_SEP);
+
+      const groupTitles = groupChapters.map((ch) => getChapterTitleFull(ch) || getChapterTitleForDisplay(ch)).join(", ");
+
+      g.attr("data-group-id", groupKey)
+        .attr("data-chapter-id", base.id)
+        .attr("data-storyline-id", base.storyline_id ?? "")
+        .attr("data-x", x)
+        .attr("data-y", y)
+        .attr("data-chapters", dataChapters)
+        .attr("transform", `translate(${x},${y})`)
+        .attr("role", "button")
+        .attr("tabindex", "0")
+        .attr("aria-label", `Grupo com ${count} capítulos: ${groupTitles}. Pressione Enter ou Espaço para expandir.`)
+        .attr("aria-expanded", "false")
+        .style("cursor", "pointer");
+
+      // C4: render key — só recria filhos se visual mudou
+      const rk = `${count}|${groupChapters.map(ch => ch.color || NO_COLOR).join(",")}|${x}|${y}`;
+      if (g.attr("data-rk") === rk) return;
+      g.attr("data-rk", rk);
+
+      g.selectAll("*").remove();
+
+      const boxWidth = computeGroupBoxWidth(count);
+      const boxHeight = ChaptersUI.GROUP_BOX_HEIGHT;
+      const uniqueColors = Array.from(new Set(groupChapters.map(ch => ch.color || NO_COLOR)));
+      const dotColors = uniqueColors.slice(0, 4);
+      const dotR = ChaptersUI.GROUP_DOT_RADIUS;
+      const dotGap = ChaptersUI.GROUP_DOT_GAP;
+      const dotsTotal = dotColors.length * dotGap - (dotGap - dotR * 2);
+      const bw2 = boxWidth / 2;
+
+      g.append("rect")
+        .attr("x", -bw2).attr("y", 0)
+        .attr("width", boxWidth).attr("height", boxHeight)
+        .attr("rx", ChaptersUI.GROUP_RX).attr("ry", ChaptersUI.GROUP_RY)
+        .attr("fill", ChaptersUI.GROUP_FILL)
+        .attr("stroke", ChaptersUI.GROUP_STROKE)
+        .attr("stroke-width", 1.5);
+
+      const dotsStartX = -dotsTotal / 2 + dotR;
+      dotColors.forEach((col, i) => {
+        g.append("circle")
+          .attr("cx", dotsStartX + i * dotGap).attr("cy", boxHeight * 0.38)
+          .attr("r", dotR).attr("fill", col)
+          .attr("stroke", d3.color(col)?.darker(0.8)?.toString() ?? "rgba(0,0,0,0.2)")
+          .attr("stroke-width", 0.8).style("pointer-events", "none");
+      });
+
+      g.append("text")
+        .attr("x", 0).attr("y", boxHeight - 8)
+        .attr("text-anchor", "middle").attr("font-size", "11px")
+        .attr("font-family", ChaptersUI.GROUP_FONT_FAMILY)
+        .attr("font-weight", "700").attr("fill", ChaptersUI.GROUP_TEXT_FILL)
+        .style("pointer-events", "none").text(`${count} cap.`);
+
+      g.append("title").text(groupChapters.map((ch) => getChapterTitleFull(ch) || getChapterTitleForDisplay(ch)).join("\n"));
+
+      g.on("keydown", function (event: KeyboardEvent) {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault();
+          (this as SVGGElement).dispatchEvent(new MouseEvent("click", { bubbles: true }));
+        }
+      });
+    });
+
+  // C3: coleta entradas de culling para grupos
+  svg.selectAll<SVGGElement, GroupDatum>("g.chapter-group").each(function (d) {
+    cullEntries.push({ el: this, x: d.base.width!, y: d.base.height!, groupId: d.groupKey });
+  });
+
+  // C3: coleta entradas de culling para solos
+  svg.selectAll<SVGGElement, Chapter>("g.chapter-solo").each(function (ch) {
+    cullEntries.push({ el: this, x: ch.width!, y: ch.height!, groupId: null });
+  });
+
   // Hook externo (ex: expand/collapse)
   func(svg, chapters);
+
+  return cullEntries;
 }

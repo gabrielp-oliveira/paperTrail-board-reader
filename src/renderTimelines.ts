@@ -37,13 +37,20 @@ type RenderTimelineOptions = {
  * (fixos no topo), e apenas as grid lines ficam em `svg` (gWorld).
  * Sem `topLayer`, tudo vai para `svg` como antes.
  */
+export type TLUIGroup = {
+  tlId: string; tlName: string;
+  g: d3.Selection<SVGGElement, unknown, any, any>;
+  rect: d3.Selection<SVGRectElement, unknown, any, any>;
+  text: d3.Selection<SVGTextElement, unknown, any, any>;
+};
+
 export function renderTimelines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   timelines: Timeline[],
   gridHeight: number,
   opts: RenderTimelineOptions | boolean = false,
   topLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-): Map<string, { x0: number; xEnd: number; width: number }> {
+): { positionMap: Map<string, { x0: number; xEnd: number; width: number }>; tlUIGroups: TLUIGroup[] } {
   const options: RenderTimelineOptions =
     typeof opts === "boolean" ? { animate: opts } : (opts ?? {});
 
@@ -197,76 +204,84 @@ export function renderTimelines(
   // ─── topLayer (gTop / gUITopPan): headers fixos no topo ───
 
   if (!topLayer) {
-    return positionMap;
+    return { positionMap, tlUIGroups: [] };
   }
 
-  if (topLayer) {
-    const headerGroups = topLayer
-      .selectAll<SVGGElement, Timeline>("g.timeline-header-group")
-      .data(sortedTimelines, (d: any) => d.id)
-      .join(
-        (enter) => enter.append("g").attr("class", "timeline-header-group").attr("data-tl-id", (d: any) => d.id),
-        (update) => update,
-        (exit) => exit.remove()
-      );
+  const headerGroups = topLayer
+    .selectAll<SVGGElement, Timeline>("g.timeline-header-group")
+    .data(sortedTimelines, (d: any) => d.id)
+    .join(
+      (enter) => enter.append("g").attr("class", "timeline-header-group").attr("data-tl-id", (d: any) => d.id),
+      (update) => update,
+      (exit) => exit.remove()
+    );
 
-    headerGroups.each(function (tl: Timeline) {
-      const group = d3.select(this);
-      const pos = positionMap.get(tl.id);
-      if (!pos) return;
+  headerGroups.each(function (tl: Timeline) {
+    const group = d3.select(this);
+    const pos = positionMap.get(tl.id);
+    if (!pos) return;
 
-      const { width } = pos;
+    const { width } = pos;
 
-      // Acessibilidade: cabeçalho de coluna para leitores de tela
-      group
-        .attr("role", "columnheader")
-        .attr("aria-label", `Timeline: ${tl.name}`);
+    group
+      .attr("role", "columnheader")
+      .attr("aria-label", `Timeline: ${tl.name}`);
 
-      const rect = group
-        .selectAll<SVGRectElement, Timeline>("rect.timeline-header")
-        .data([tl]);
+    const rect = group
+      .selectAll<SVGRectElement, Timeline>("rect.timeline-header")
+      .data([tl]);
 
-      // x=0: posição relativa ao grupo (grupo é reposicionado por applyUIPositions em CSS px)
-      rect
-        .join((enter) =>
-          enter
-            .append("rect")
-            .attr("class", "timeline-header")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", width)
-            .attr("height", TimelinesUI.HEADER_HEIGHT)
-            .style("stroke", TimelinesUI.HEADER_STROKE)
-            .style("stroke-width", TimelinesUI.HEADER_STROKE_WIDTH)
-        )
-        .call((sel) => {
-          const upd = sel as d3.Selection<SVGRectElement, Timeline, any, any>;
-          upd.attr("x", 0).attr("width", width);
-        });
+    rect
+      .join((enter) =>
+        enter
+          .append("rect")
+          .attr("class", "timeline-header")
+          .attr("x", 0)
+          .attr("y", 0)
+          .attr("width", width)
+          .attr("height", TimelinesUI.HEADER_HEIGHT)
+          .style("stroke", TimelinesUI.HEADER_STROKE)
+          .style("stroke-width", TimelinesUI.HEADER_STROKE_WIDTH)
+      )
+      .call((sel) => {
+        const upd = sel as d3.Selection<SVGRectElement, Timeline, any, any>;
+        upd.attr("x", 0).attr("width", width);
+      });
 
-      const txt = group
-        .selectAll<SVGTextElement, Timeline>("text.timeline-txt")
-        .data([tl]);
+    const txt = group
+      .selectAll<SVGTextElement, Timeline>("text.timeline-txt")
+      .data([tl]);
 
-      // x relativo ao centro do grupo
-      txt
-        .join((enter) =>
-          enter
-            .append("text")
-            .attr("class", "timeline-txt")
-            .attr("x", width / 2)
-            .attr("y", TimelinesUI.HEADER_TEXT_Y)
-            .attr("text-anchor", "middle")
-            .attr("font-family", TimelinesUI.LABEL_FONT_FAMILY)
-            .attr("font-size", TimelinesUI.LABEL_FONT_SIZE)
-            .text(tl.name)
-        )
-        .call((sel) => {
-          const upd = sel as d3.Selection<SVGTextElement, Timeline, any, any>;
-          upd.attr("x", width / 2).text(tl.name);
-        });
+    txt
+      .join((enter) =>
+        enter
+          .append("text")
+          .attr("class", "timeline-txt")
+          .attr("x", width / 2)
+          .attr("y", TimelinesUI.HEADER_TEXT_Y)
+          .attr("text-anchor", "middle")
+          .attr("font-family", TimelinesUI.LABEL_FONT_FAMILY)
+          .attr("font-size", TimelinesUI.LABEL_FONT_SIZE)
+          .text(tl.name)
+      )
+      .call((sel) => {
+        const upd = sel as d3.Selection<SVGTextElement, Timeline, any, any>;
+        upd.attr("x", width / 2).text(tl.name);
+      });
+  });
+
+  // M5/M9: coleta referências dos grupos para applyUIPositions — elimina scan pós-render
+  const tlUIGroups: TLUIGroup[] = [];
+  headerGroups.each(function (tl: Timeline) {
+    const g = d3.select(this) as d3.Selection<SVGGElement, unknown, any, any>;
+    tlUIGroups.push({
+      tlId: String(tl.id),
+      tlName: String(tl.name ?? ""),
+      g,
+      rect: g.select<SVGRectElement>("rect.timeline-header"),
+      text: g.select<SVGTextElement>("text.timeline-txt"),
     });
-  }
+  });
 
-  return positionMap;
+  return { positionMap, tlUIGroups };
 }

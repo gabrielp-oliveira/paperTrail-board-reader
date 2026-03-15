@@ -9,6 +9,28 @@ import { ChaptersUI, ChapterGroupExpandedUI } from "./globalVariables";
 
 let svgSelection: Selection<SVGGElement, unknown, HTMLElement, any>;
 
+// P2: event delegation — um único listener no gWorld em vez de N listeners por elemento
+let _delegationBound = false;
+
+function getGroupData(target: Element): { groupId: string; ids: string[] } | null {
+  const g = target.closest("g.chapter-group") as SVGGElement | null;
+  if (!g) return null;
+  const groupId = g.getAttribute("data-group-id") ?? "";
+  const rawChapters = g.getAttribute("data-chapters") ?? "";
+  const ids = rawChapters
+    .split(ChaptersUI.CHAPTER_JOIN_SEP)
+    .map((entry: string) => entry.split(ChaptersUI.CHAPTER_FIELD_SEP)[1])
+    .filter(Boolean);
+  return { groupId, ids };
+}
+
+function getSoloData(target: Element): { id: string } | null {
+  const g = target.closest("g.chapter-solo") as SVGGElement | null;
+  if (!g) return null;
+  const data = (g as any).__data__;
+  return data?.id ? { id: data.id } : null;
+}
+
 // ---------------------------
 // API: setup de interação
 // ---------------------------
@@ -17,50 +39,54 @@ export function setupGroupInteraction(
 ) {
   svgSelection = svg;
 
-  // Grupos: apenas emite evento ao pai — expansão gerenciada no Angular
+  // Atributos de acessibilidade nos grupos (necessário mesmo com delegation)
   svg.selectAll<SVGGElement, unknown>("g.chapter-group")
     .attr("tabindex", "0")
     .attr("role", "button")
-    .style("cursor", "pointer")
-    .on("click", function (event) {
+    .style("cursor", "pointer");
+
+  // P2: bind apenas uma vez no nó pai — não rebinda a cada render
+  if (_delegationBound) return;
+  _delegationBound = true;
+
+  const svgNode = svg.node();
+  if (!svgNode) return;
+
+  svgNode.addEventListener("click", (event) => {
+    const target = event.target as Element;
+
+    const groupData = getGroupData(target);
+    if (groupData) {
       event.stopPropagation();
-      const group = d3.select(this);
-      const groupId = group.attr("data-group-id") ?? "";
-      const rawChapters = group.attr("data-chapters") ?? "";
-      const ids = rawChapters
-        .split(ChaptersUI.CHAPTER_JOIN_SEP)
-        .map((entry: string) => entry.split(ChaptersUI.CHAPTER_FIELD_SEP)[1])
-        .filter(Boolean);
       window.parent.postMessage({
         type: "group-click",
-        data: { groupId, ids, clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY },
+        data: { ...groupData, clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY },
       }, "*");
-    })
-    .on("keydown", function (event) {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        const group = d3.select(this);
-        const groupId = group.attr("data-group-id") ?? "";
-        const rawChapters = group.attr("data-chapters") ?? "";
-        const ids = rawChapters
-          .split(ChaptersUI.CHAPTER_JOIN_SEP)
-          .map((entry: string) => entry.split(ChaptersUI.CHAPTER_FIELD_SEP)[1])
-          .filter(Boolean);
-        window.parent.postMessage({
-          type: "group-click",
-          data: { groupId, ids, clientX: 0, clientY: 0 },
-        }, "*");
-      }
-    });
+      return;
+    }
 
-  // Clique em capítulo solo → emite para o pai
-  svg.selectAll("g.chapter-solo").on("click.menu", function (event) {
-    const chapter = (this as any).__data__;
-    event.stopPropagation();
-    window.parent.postMessage({
-      type: "chapter-click",
-      data: { id: chapter.id, clientX: event.clientX, clientY: event.clientY, kind: "solo" },
-    }, "*");
+    const soloData = getSoloData(target);
+    if (soloData) {
+      event.stopPropagation();
+      window.parent.postMessage({
+        type: "chapter-click",
+        data: { id: soloData.id, clientX: (event as MouseEvent).clientX, clientY: (event as MouseEvent).clientY, kind: "solo" },
+      }, "*");
+    }
+  });
+
+  svgNode.addEventListener("keydown", (event) => {
+    const ke = event as KeyboardEvent;
+    if (ke.key !== "Enter" && ke.key !== " ") return;
+    const target = ke.target as Element;
+    const groupData = getGroupData(target);
+    if (groupData) {
+      ke.preventDefault();
+      window.parent.postMessage({
+        type: "group-click",
+        data: { ...groupData, clientX: 0, clientY: 0 },
+      }, "*");
+    }
   });
 }
 
@@ -72,7 +98,9 @@ function expandGroup(
   groupId: string
 ) {
   const group = svg.select(`g.chapter-group[data-group-id="${groupId}"]`);
-  group.attr("aria-expanded", "true");
+  group.attr("aria-expanded", "true").attr("data-new", "1");
+  // Remove data-new após a animação para não re-animar em futuras atualizações
+  setTimeout(() => group.attr("data-new", null), 400);
 
   const titlesIds = (group.attr("data-chapters") ?? "").split(ChaptersUI.CHAPTER_JOIN_SEP);
 
@@ -93,8 +121,7 @@ function expandGroup(
     .attr("ry", ChapterGroupExpandedUI.RY)
     .attr("fill", ChapterGroupExpandedUI.BG_CSS_VAR)
     .attr("stroke", ChapterGroupExpandedUI.STROKE)
-    .attr("stroke-width", ChapterGroupExpandedUI.STROKE_WIDTH)
-    .style("filter", ChapterGroupExpandedUI.SHADOW_CSS_VAR);
+    .attr("stroke-width", ChapterGroupExpandedUI.STROKE_WIDTH);
 
   // Limpa conteúdos anteriores
   group.selectAll("text").remove();
@@ -256,8 +283,7 @@ function expandGroup(
       .style("fill", color)
       .attr("stroke", ChapterGroupExpandedUI.BULLET_STROKE)
       .attr("stroke-width", ChapterGroupExpandedUI.BULLET_STROKE_WIDTH)
-      .style("transition", "all 0.15s ease")
-      .style("filter", "drop-shadow(0 1px 2px rgba(0,0,0,0.15))");
+      .style("transition", "all 0.15s ease");
 
     // Texto do item
     itemGroup
@@ -315,8 +341,7 @@ function collapseGroup(
     .attr("ry", ChapterGroupExpandedUI.COLLAPSE_RY)
     .attr("fill", ChapterGroupExpandedUI.COLLAPSE_FILL)
     .attr("stroke", ChapterGroupExpandedUI.COLLAPSE_STROKE)
-    .attr("stroke-width", ChapterGroupExpandedUI.COLLAPSE_STROKE_WIDTH)
-    .style("filter", ChapterGroupExpandedUI.COLLAPSE_SHADOW_FILTER);
+    .attr("stroke-width", ChapterGroupExpandedUI.COLLAPSE_STROKE_WIDTH);
 
   group
     .append("text")
