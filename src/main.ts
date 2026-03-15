@@ -74,6 +74,10 @@ const gRoot = svgBase.append("g").attr("class", "board-root");
 // ✅ Camada do mundo (pan/zoom normal)
 const gWorld = gRoot.append("g").attr("class", "board-world");
 
+// ✅ Fix2: sub-camada de bands e grid lines — sempre abaixo dos capítulos em DOM order
+// Criado uma vez e nunca removido; renderStorylines e renderTimelines são auto-limpantes.
+const gBands = gWorld.append("g").attr("class", "board-bands");
+
 // ✅ Camada completamente fixa — sem transform (toggle sempre visível)
 const gFixed = gRoot
   .append("g")
@@ -417,6 +421,20 @@ function scheduleFrame(tx: number, ty: number, k: number) {
   });
 }
 
+// Fix1: throttled culling during zoom movement — reduces GPU load during pan/zoom
+let _cullRafPending = false;
+let _pendingCullTx = 0, _pendingCullTy = 0, _pendingCullTk = 1;
+
+function scheduleCulling(tx: number, ty: number, k: number) {
+  _pendingCullTx = tx; _pendingCullTy = ty; _pendingCullTk = k;
+  if (_cullRafPending) return;
+  _cullRafPending = true;
+  requestAnimationFrame(() => {
+    _cullRafPending = false;
+    cullAndRenderChapters(_pendingCullTx, _pendingCullTy, _pendingCullTk);
+  });
+}
+
 /** Calcula os bounds do viewport em coordenadas SVG (world space) */
 function getViewportBounds(tx: number, ty: number, k: number) {
   const svgEl = (svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>).node();
@@ -583,6 +601,8 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
 
         // RAF throttle — max 1x por frame (C2: merged single RAF)
         scheduleFrame(x, y, k);
+        // Fix1: culling throttled durante movimento — reduz load de GPU
+        scheduleCulling(x, y, k);
       })
       .on("end", (event) => {
         const { x, y, k } = event.transform;
@@ -655,9 +675,8 @@ function renderBoard(data: any) {
 
   applyThemeFromSettings(settings);
 
-  // Limpa gWorld (storyline bands + chapters) para garantir ordem de render SVG correta.
-  // gUITopPan e gFixed são gerenciados via data join (renderTimelines) e são no-ops.
-  gWorld.selectAll("*").remove();
+  // Fix2: não limpa gWorld inteiro — chapters persistem via D3 data join (C4 render key ativo).
+  // gBands (bands + grid lines) é auto-limpante via renderStorylines + renderTimelines.
   // Força rebuild dos labels da coluna esquerda (evita que fiquem em branco em re-renders)
   _lastLeftColKey = "";
   // Reset perf caches so next zoom/pan forces a full update
@@ -689,7 +708,7 @@ function renderBoard(data: any) {
     collapsedHeight,
     leftColData,
   } = renderStorylines(
-    gWorld,
+    gBands,
     storylines,
     timelines,
     chapters,
@@ -706,7 +725,7 @@ function renderBoard(data: any) {
 
   // ✅ timelines: usa o height visível atual do render
   // M5/M9: desestrutura retorno — elimina buildUIGroups (scan DOM pós-render)
-  const { positionMap: tlPos, tlUIGroups: tlGroups } = renderTimelines(gWorld, timelines, lastHeights.visibleHeight, {
+  const { positionMap: tlPos, tlUIGroups: tlGroups } = renderTimelines(gBands, timelines, lastHeights.visibleHeight, {
     collapsedAll,
     expandedBoardHeight: lastHeights.expandedHeight,
     collapsedBoardHeight: lastHeights.collapsedHeight,
@@ -769,7 +788,7 @@ function renderBoard(data: any) {
         lastHeights.visibleHeight = targetVisibleHeight;
 
         // ✅ 3) timelines/grid reagem usando a altura correta (não a antiga)
-        renderTimelines(gWorld, timelines, targetVisibleHeight, {
+        renderTimelines(gBands, timelines, targetVisibleHeight, {
           collapsedAll: checked,
           expandedBoardHeight: lastHeights.expandedHeight,
           collapsedBoardHeight: lastHeights.collapsedHeight,
@@ -932,7 +951,8 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
 // 🧪 Suporte Vite HMR
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
-    gWorld.selectAll("*").remove();
+    gBands.selectAll("*").remove();
+    gWorld.selectAll("g.chapter-solo, g.chapter-group").remove();
     gUITopPan.selectAll("*").remove();
     gFixed.selectAll("*").remove();
     boardLeftColEl.innerHTML = "";

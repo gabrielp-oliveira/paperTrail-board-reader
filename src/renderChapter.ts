@@ -175,7 +175,7 @@ export function renderChapters(
       const g = d3.select(this);
 
       // C4: só re-renderiza filhos se algo relevante mudou
-      const rk = `${ch.color}|${(ch as any).title ?? (ch as any).name ?? ""}|${ch.order}|${ch.favorite ? 1 : 0}|${ch.notes_count ?? 0}|${ch.favorited_excerpts_count ?? 0}|${ch.width}|${ch.height}`;
+      const rk = `${ch.color}|${(ch as any).title ?? (ch as any).name ?? ""}|${ch.order}|${ch.favorite ? 1 : 0}|${ch.has_notes ? 1 : 0}|${ch.notes_count ?? 0}|${ch.favorited_excerpts_count ?? 0}|${ch.width}|${ch.height}`;
       if (g.attr("data-rk") === rk) return;
       g.attr("data-rk", rk);
 
@@ -209,6 +209,7 @@ export function renderChapters(
         .attr("stroke-width", ChaptersUI.SOLO_STROKE_WIDTH)
         .style("cursor", "pointer");
 
+      // Fix3: merged into single accent rect (was 2 rects, saved 1 element per chapter)
       g.append("rect")
         .attr("x", ox)
         .attr("y", 0)
@@ -216,14 +217,6 @@ export function renderChapters(
         .attr("height", boxHeight)
         .attr("rx", ChaptersUI.SOLO_BOX_RX)
         .attr("ry", ChaptersUI.SOLO_BOX_RY)
-        .attr("fill", gradAccent)
-        .style("pointer-events", "none");
-
-      g.append("rect")
-        .attr("x", ox + accentW)
-        .attr("y", 0)
-        .attr("width", ChaptersUI.SOLO_BOX_RX)
-        .attr("height", boxHeight)
         .attr("fill", gradAccent)
         .style("pointer-events", "none");
 
@@ -257,44 +250,33 @@ export function renderChapters(
       const iconY = iconStripY + ICON_ROW_H / 2;
       let iconX = ox + accentW + 6;
 
-      /** Estrela SVG 5 pontas centrada em (cx, cy) com raio r */
-      function addStar(cx: number, cy: number, r: number, fill: string) {
-        const pts: [number, number][] = [];
-        for (let i = 0; i < 5; i++) {
-          const outerA = (Math.PI * 2 * i) / 5 - Math.PI / 2;
-          const innerA = outerA + Math.PI / 5;
-          pts.push([cx + Math.cos(outerA) * r, cy + Math.sin(outerA) * r]);
-          pts.push([cx + Math.cos(innerA) * r * 0.42, cy + Math.sin(innerA) * r * 0.42]);
-        }
-        g.append("polygon")
-          .attr("points", pts.map(p => p.join(",")).join(" "))
-          .attr("fill", fill)
-          .attr("stroke", "rgba(0,0,0,0.35)")
-          .attr("stroke-width", "0.8")
-          .attr("stroke-linejoin", "round")
-          .style("pointer-events", "none");
-      }
-
       // Base do gradiente é sempre escura — ícones sempre brancos
       const iconColor = "#ffffff";
 
+      // Fix3: star como texto unicode — 1 elemento, pintura mais simples que polygon
       if (ch.favorite) {
-        addStar(iconX + 6, iconY, 6, "#f5c542");
+        g.append("text")
+          .attr("x", iconX + 6)
+          .attr("y", iconY + 1)
+          .attr("dominant-baseline", "middle")
+          .attr("text-anchor", "middle")
+          .attr("font-size", "11px")
+          .attr("fill", "#f5c542")
+          .style("pointer-events", "none")
+          .text("★");
         iconX += 16;
       }
 
+      // Fix3: notes pill — 2 elementos (rect + text) em vez de 5 (rect + 3 lines + text)
       if (ch.has_notes || (ch.notes_count != null && ch.notes_count > 0)) {
         const countStr = ch.notes_count != null && ch.notes_count > 0
-          ? String(ch.notes_count)
-          : "";
-        // Largura do pill: ícone (8px) + gap (3px) + texto (5px × ndigitos) + padding (6px)
-        const numW = countStr.length * 5;
-        const pillW = 8 + 3 + numW + 6;
+          ? ` ${ch.notes_count}` : "";
+        const label = `✎${countStr}`;
+        const pillW = label.length * 5 + 8;
         const pillH = 11;
         const pillX = iconX;
         const pillY = iconY - pillH / 2;
 
-        // Fundo pill
         g.append("rect")
           .attr("x", pillX).attr("y", pillY)
           .attr("width", pillW).attr("height", pillH)
@@ -304,47 +286,29 @@ export function renderChapters(
           .attr("stroke-width", 0.7)
           .style("pointer-events", "none");
 
-        // Ícone de nota: 3 linhas horizontais
-        const lx = pillX + 4;
-        const ly = pillY + 3;
-        [0, 3.5, 7].forEach((dy) => {
-          g.append("line")
-            .attr("x1", lx).attr("x2", lx + 5)
-            .attr("y1", ly + dy).attr("y2", ly + dy)
-            .attr("stroke", "rgba(255,255,255,0.85)")
-            .attr("stroke-width", 1)
-            .attr("stroke-linecap", "round")
-            .style("pointer-events", "none");
-        });
-
-        // Número
-        if (countStr) {
-          g.append("text")
-            .attr("x", pillX + 8 + 3 + numW / 2)
-            .attr("y", iconY + 0.5)
-            .attr("dominant-baseline", "middle")
-            .attr("text-anchor", "middle")
-            .attr("font-size", "8px")
-            .attr("font-family", ChaptersUI.SOLO_FONT_FAMILY)
-            .attr("font-weight", "800")
-            .attr("fill", iconColor)
-            .style("pointer-events", "none")
-            .text(countStr);
-        }
+        g.append("text")
+          .attr("x", pillX + pillW / 2)
+          .attr("y", iconY + 0.5)
+          .attr("dominant-baseline", "middle")
+          .attr("text-anchor", "middle")
+          .attr("font-size", "8px")
+          .attr("font-family", ChaptersUI.SOLO_FONT_FAMILY)
+          .attr("font-weight", "700")
+          .attr("fill", iconColor)
+          .style("pointer-events", "none")
+          .text(label);
 
         iconX += pillW + 4;
       }
 
-      // Pill de trechos favoritos (bookmark icon + count)
+      // Fix3: excerpts pill — 2 elementos (rect + text) em vez de 3 (rect + path + text)
       if (ch.favorited_excerpts_count != null && ch.favorited_excerpts_count > 0) {
-        const countStr = String(ch.favorited_excerpts_count);
-        const numW = countStr.length * 5;
-        const pillW = 9 + 3 + numW + 6; // bookmark icon (9px) + gap + text + padding
+        const label = `🔖 ${ch.favorited_excerpts_count}`;
+        const pillW = label.length * 5 + 8;
         const pillH = 11;
         const pillX = iconX;
         const pillY = iconY - pillH / 2;
 
-        // Fundo pill com tint dourado/âmbar
         g.append("rect")
           .attr("x", pillX).attr("y", pillY)
           .attr("width", pillW).attr("height", pillH)
@@ -354,31 +318,17 @@ export function renderChapters(
           .attr("stroke-width", 0.7)
           .style("pointer-events", "none");
 
-        // Bookmark icon: retângulo com V-cut na base
-        const bx = pillX + 3;
-        const by = pillY + 2;
-        const bw = 5;
-        const bh = 7;
-        g.append("path")
-          .attr("d", `M${bx},${by} h${bw} v${bh} l-${bw / 2},-2 l-${bw / 2},2 z`)
-          .attr("fill", "rgba(245,197,66,0.9)")
-          .attr("stroke", "rgba(245,197,66,0.4)")
-          .attr("stroke-width", 0.5)
-          .attr("stroke-linejoin", "round")
-          .style("pointer-events", "none");
-
-        // Número
         g.append("text")
-          .attr("x", pillX + 9 + 3 + numW / 2)
+          .attr("x", pillX + pillW / 2)
           .attr("y", iconY + 0.5)
           .attr("dominant-baseline", "middle")
           .attr("text-anchor", "middle")
           .attr("font-size", "8px")
           .attr("font-family", ChaptersUI.SOLO_FONT_FAMILY)
-          .attr("font-weight", "800")
-          .attr("fill", iconColor)
+          .attr("font-weight", "700")
+          .attr("fill", "#f5c542")
           .style("pointer-events", "none")
-          .text(countStr);
+          .text(label);
 
         iconX += pillW + 4;
       }
