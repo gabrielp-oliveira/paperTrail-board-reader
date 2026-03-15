@@ -43,7 +43,7 @@ export function renderTimelines(
   gridHeight: number,
   opts: RenderTimelineOptions | boolean = false,
   topLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>
-) {
+): Map<string, { x0: number; xEnd: number; width: number }> {
   const options: RenderTimelineOptions =
     typeof opts === "boolean" ? { animate: opts } : (opts ?? {});
 
@@ -73,7 +73,7 @@ export function renderTimelines(
   // idêntico ao que renderStoryline faz — garante alinhamento header ↔ grid
   const sortedTimelines = timelines.slice().sort((a, b) => a.order - b.order);
   const positionMap = new Map<string, { x0: number; xEnd: number; width: number }>();
-  let posX = Layout.LEFT_COLUMN_WIDTH + TimelinesUI.COL_ROW_MARGIN;
+  let posX = TimelinesUI.COL_ROW_MARGIN;
   sortedTimelines.forEach((tl) => {
     const w = (tl.range ?? 0) * TimelinesUI.RANGE_GAP;
     positionMap.set(tl.id, { x0: posX, xEnd: posX + w, width: w });
@@ -115,6 +115,7 @@ export function renderTimelines(
         enter
           .append("line")
           .attr("class", "timeline-grid-line")
+          .attr("id", `timeline-gridline-${tl.id}`)
           .attr("x1", xEnd)
           .attr("x2", xEnd)
           .attr("y1", gridY1)
@@ -193,18 +194,18 @@ export function renderTimelines(
     }
   });
 
-  // ─── topLayer (gTop): headers fixos no topo ───
+  // ─── topLayer (gTop / gUITopPan): headers fixos no topo ───
+
+  if (!topLayer) {
+    return positionMap;
+  }
 
   if (topLayer) {
-    const tTop = animate
-      ? topLayer.transition().duration(TimelinesUI.ANIM_MS).ease(d3.easeCubicInOut)
-      : null;
-
     const headerGroups = topLayer
       .selectAll<SVGGElement, Timeline>("g.timeline-header-group")
       .data(sortedTimelines, (d: any) => d.id)
       .join(
-        (enter) => enter.append("g").attr("class", "timeline-header-group"),
+        (enter) => enter.append("g").attr("class", "timeline-header-group").attr("data-tl-id", (d: any) => d.id),
         (update) => update,
         (exit) => exit.remove()
       );
@@ -214,7 +215,7 @@ export function renderTimelines(
       const pos = positionMap.get(tl.id);
       if (!pos) return;
 
-      const { x0, width } = pos;
+      const { width } = pos;
 
       // Acessibilidade: cabeçalho de coluna para leitores de tela
       group
@@ -225,12 +226,13 @@ export function renderTimelines(
         .selectAll<SVGRectElement, Timeline>("rect.timeline-header")
         .data([tl]);
 
+      // x=0: posição relativa ao grupo (grupo é reposicionado por applyUIPositions em CSS px)
       rect
         .join((enter) =>
           enter
             .append("rect")
             .attr("class", "timeline-header")
-            .attr("x", x0)
+            .attr("x", 0)
             .attr("y", 0)
             .attr("width", width)
             .attr("height", TimelinesUI.HEADER_HEIGHT)
@@ -239,23 +241,20 @@ export function renderTimelines(
         )
         .call((sel) => {
           const upd = sel as d3.Selection<SVGRectElement, Timeline, any, any>;
-          if (tTop) {
-            upd.transition(tTop as any).attr("x", x0).attr("width", width);
-          } else {
-            upd.attr("x", x0).attr("width", width);
-          }
+          upd.attr("x", 0).attr("width", width);
         });
 
       const txt = group
         .selectAll<SVGTextElement, Timeline>("text.timeline-txt")
         .data([tl]);
 
+      // x relativo ao centro do grupo
       txt
         .join((enter) =>
           enter
             .append("text")
             .attr("class", "timeline-txt")
-            .attr("x", x0 + width / 2)
+            .attr("x", width / 2)
             .attr("y", TimelinesUI.HEADER_TEXT_Y)
             .attr("text-anchor", "middle")
             .attr("font-family", TimelinesUI.LABEL_FONT_FAMILY)
@@ -264,15 +263,10 @@ export function renderTimelines(
         )
         .call((sel) => {
           const upd = sel as d3.Selection<SVGTextElement, Timeline, any, any>;
-          if (tTop) {
-            upd
-              .transition(tTop as any)
-              .attr("x", x0 + width / 2)
-              .text(tl.name);
-          } else {
-            upd.attr("x", x0 + width / 2).text(tl.name);
-          }
+          upd.attr("x", width / 2).text(tl.name);
         });
     });
   }
+
+  return positionMap;
 }

@@ -1,7 +1,7 @@
 // renderStoryline.ts
 import * as d3 from "d3";
 import { Chapter, StoryLine, Timeline } from "./types";
-import { Layout, Controls, StorylinesUI, ChaptersUI } from "./globalVariables";
+import { Controls, StorylinesUI, ChaptersUI } from "./globalVariables";
 
 // ---------------------------
 // Tipos auxiliares
@@ -31,10 +31,7 @@ function computeChapterX(
   const timelineOrder = timelineOrderMap.get(ch.timeline_id || "") ?? 0;
   const timelineOffset = cumulativeRanges[timelineOrder] ?? 0;
 
-  return (
-    Layout.LEFT_COLUMN_WIDTH +
-    (timelineOffset + (ch.range ?? 0)) * StorylinesUI.PIXELS_PER_RANGE
-  );
+  return (timelineOffset + (ch.range ?? 0)) * StorylinesUI.PIXELS_PER_RANGE;
 }
 
 function clampTitleLikeRenderChapter(title: string) {
@@ -157,18 +154,18 @@ function computeChapterYFromLayers(yBase: number, layers: Record<string, number>
 // ---------------------------
 function drawCollapsedRow(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   y: number,
   boardWidthPx: number,
   height: number,
   expandedHeight: number
 ) {
-  const xStart = Layout.LEFT_COLUMN_WIDTH;
-  const xEnd = boardWidthPx + Layout.LEFT_COLUMN_WIDTH;
+  const xStart = 0;
+  const xEnd = boardWidthPx;
 
   worldLayer
     .append("rect")
     .attr("class", "storyline-band storyline-band-collapsed")
+    .attr("id", "storyline-band-__collapsed__")
     .attr("data-storyline-id", "__collapsed__")
     .attr("data-y", y)
     .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
@@ -183,51 +180,6 @@ function drawCollapsedRow(
     .attr("rx", StorylinesUI.COLLAPSED_RX)
     .attr("ry", StorylinesUI.COLLAPSED_RX)
     .attr("opacity", 0.55);
-
-  leftLayer
-    .append("rect")
-    .attr("class", "storyline-left-col storyline-left-col-collapsed")
-    .attr("data-storyline-id", "__collapsed__")
-    .attr("data-y", y)
-    .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
-    .attr("data-expanded-height", expandedHeight)
-    .attr("x", StorylinesUI.LEFT_PADDING)
-    .attr("y", y)
-    .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-    .attr("height", height)
-    .attr("fill", StorylinesUI.COLLAPSED_LEFT_FILL)
-    .attr("stroke", StorylinesUI.COLLAPSED_STROKE)
-    .attr("stroke-width", StorylinesUI.COLLAPSED_STROKE_WIDTH)
-    .attr("rx", StorylinesUI.COLLAPSED_RX)
-    .attr("ry", StorylinesUI.COLLAPSED_RX)
-    .attr("opacity", 1);
-
-  const fo = leftLayer
-    .append("foreignObject")
-    .attr("class", "storyline-left-label storyline-left-label-collapsed")
-    .attr("data-storyline-id", "__collapsed__")
-    .attr("data-y", y)
-    .attr("data-min-height", StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT)
-    .attr("data-expanded-height", expandedHeight)
-    .attr("x", StorylinesUI.LEFT_PADDING)
-    .attr("y", y)
-    .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-    .attr("height", height)
-    .attr("opacity", 1);
-
-  fo.append("xhtml:div")
-    .style("display", "flex")
-    .style("flex-wrap", "wrap")
-    .style("align-items", "center")
-    .style("justify-content", "center")
-    .style("height", `${height}px`)
-    .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
-    .style("font-size", StorylinesUI.COLLAPSED_LABEL_FONT_SIZE)
-    .style("font-weight", StorylinesUI.COLLAPSED_LABEL_FONT_WEIGHT)
-    .style("color", StorylinesUI.COLLAPSED_LABEL_COLOR)
-    .style("text-align", "center")
-    .style("user-select", "none")
-    .text("Collapsed");
 }
 
 // ---------------------------
@@ -264,7 +216,6 @@ export function getCollapsedRowCurrentHeight(): number {
 // ---------------------------
 export function setupCollapsedRowInteraction(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   onClick: () => void
 ) {
   // Clique na collapsed row foi desabilitado - apenas o checkbox toggle funciona agora
@@ -275,7 +226,6 @@ export function setupCollapsedRowInteraction(
 // ---------------------------
 export function animateCollapsedRow(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   expand: boolean
 ) {
   if (!lastLayoutCache) return;
@@ -294,37 +244,6 @@ export function animateCollapsedRow(
     .duration(dur)
     .ease(ease)
     .attr("height", targetH);
-
-  leftLayer
-    .selectAll<SVGRectElement, unknown>("rect.storyline-left-col-collapsed")
-    .interrupt()
-    .transition()
-    .duration(dur)
-    .ease(ease)
-    .attr("height", targetH);
-
-  leftLayer
-    .selectAll<SVGForeignObjectElement, unknown>(
-      "foreignObject.storyline-left-label-collapsed"
-    )
-    .interrupt()
-    .transition()
-    .duration(dur)
-    .ease(ease)
-    .attr("height", targetH)
-    .on("end", function () {
-      const fo = d3.select(this);
-      fo.select("div").style("height", `${targetH}px`);
-    })
-    .tween("innerHeight", function () {
-      const fo = d3.select(this);
-      const div = fo.select<HTMLDivElement>("div");   // cached fora do loop de frames
-      const h0 = parseFloat(fo.attr("height") || `${targetH}`) || targetH;
-      const interp = d3.interpolateNumber(h0, targetH);
-      return (t: number) => {
-        div.style("height", `${interp(t)}px`);
-      };
-    });
 }
 
 // ---------------------------
@@ -387,7 +306,6 @@ export function applyCollapsedTransition(
 // ---------------------------
 export function applyStorylinesFadeTransition(
   worldLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-  leftLayer: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   collapsedAll: boolean
 ) {
   if (!lastLayoutCache) return;
@@ -397,22 +315,6 @@ export function applyStorylinesFadeTransition(
 
   const band = worldLayer
     .selectAll<SVGRectElement, unknown>("rect.storyline-band")
-    .filter(function () {
-      const id = (this as any).getAttribute?.("data-storyline-id");
-      return id && id !== "__collapsed__";
-    });
-
-  const leftCols = leftLayer
-    .selectAll<SVGRectElement, unknown>("rect.storyline-left-col")
-    .filter(function () {
-      const id = (this as any).getAttribute?.("data-storyline-id");
-      return id && id !== "__collapsed__";
-    });
-
-  const labels = leftLayer
-    .selectAll<SVGForeignObjectElement, unknown>(
-      "foreignObject.storyline-left-label"
-    )
     .filter(function () {
       const id = (this as any).getAttribute?.("data-storyline-id");
       return id && id !== "__collapsed__";
@@ -453,38 +355,37 @@ export function applyStorylinesFadeTransition(
   };
 
   go(band as any, "data-opacity");
-  go(leftCols as any, "data-opacity");
-  go(labels as any, "data-opacity");
 }
 
 // ---------------------------
 // Render principal
 // ---------------------------
+export type LeftColItemData = {
+  id: string;
+  y: number;
+  height: number;
+  name: string;
+  isCollapsedRow?: boolean;
+  minHeight?: number;
+  expandedHeight?: number;
+};
+
 export function renderStorylines(
   svg: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   storylines: StoryLine[],
   timelines: Timeline[],
   chapters: Chapter[],
-  leftLayer?: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
   collapsedAll: boolean = false,
   collapsedStorylineIds: Set<string> = new Set()
-): { chapters: Chapter[]; height: number; expandedHeight: number; collapsedHeight: number } {
+): { chapters: Chapter[]; height: number; expandedHeight: number; collapsedHeight: number; leftColData: LeftColItemData[] } {
   lastLayoutCache = null;
 
   const worldLayer = svg;
-  const left = leftLayer ?? svg;
 
-  // ✅ limpar rows/labels antigas
+  // ✅ limpar rows antigas
   worldLayer
     .selectAll(
       "rect.storyline-band, rect.storyline-band-collapsed, rect.storyline-band-collapsed-inline"
-    )
-    .remove();
-
-  left
-    .selectAll(
-      "rect.storyline-left-col, rect.storyline-left-col-collapsed, rect.storyline-left-col-collapsed-inline," +
-        "foreignObject.storyline-left-label, foreignObject.storyline-left-label-collapsed, foreignObject.storyline-left-label-collapsed-inline"
     )
     .remove();
 
@@ -547,7 +448,6 @@ export function renderStorylines(
 
   drawCollapsedRow(
     worldLayer,
-    left,
     collapsedY,
     boardWidthPx,
     initialCollapsedRowHeight,
@@ -580,6 +480,18 @@ export function renderStorylines(
 
   const updatedChapters: Chapter[] = [];
 
+  // leftColData: collapsed row first, then per-storyline
+  const leftColDataStorylines: LeftColItemData[] = [];
+  const leftColDataCollapsed: LeftColItemData = {
+    id: "__collapsed__",
+    y: collapsedY,
+    height: initialCollapsedRowHeight,
+    name: "Collapsed",
+    isCollapsedRow: true,
+    minHeight: StorylinesUI.COLLAPSED_ROW_MIN_HEIGHT,
+    expandedHeight: collapsedExpandedHeight,
+  };
+
   groupedByStoryline.forEach(([storylineId, group]) => {
     const storyline = storylines.find((s) => s.id === storylineId);
     if (!storyline || !group || group.length === 0) return;
@@ -587,8 +499,8 @@ export function renderStorylines(
     // ✅ y "real" do layout expandido (sempre avança)
     const yExpandedRow = StorylinesUI.BASE_Y + expandedHeightAcc;
 
-    const xStart = Layout.LEFT_COLUMN_WIDTH;
-    const xEnd = boardWidthPx + Layout.LEFT_COLUMN_WIDTH;
+    const xStart = 0;
+    const xEnd = boardWidthPx;
 
     const isCollapsedThisOne = collapsedStorylineIds.has(storylineId);
 
@@ -625,6 +537,7 @@ export function renderStorylines(
       worldLayer
         .append("rect")
         .attr("class", "storyline-band")
+        .attr("id", `storyline-band-${storylineId}`)
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", StorylinesUI.BAND_OPACITY)
@@ -640,44 +553,7 @@ export function renderStorylines(
         .attr("ry", StorylinesUI.BAND_RY)
         .attr("opacity", 0);
 
-      left
-        .append("rect")
-        .attr("class", "storyline-left-col")
-        .attr("data-storyline-id", storylineId)
-        .attr("data-y", yExpandedRow)
-        .attr("data-opacity", 1)
-        .attr("x", StorylinesUI.LEFT_PADDING)
-        .attr("y", initialY)
-        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-        .attr("height", rowHeight)
-        .attr("fill", StorylinesUI.LEFT_COL_FILL)
-        .attr("stroke", StorylinesUI.LEFT_COL_STROKE)
-        .attr("stroke-dasharray", StorylinesUI.LEFT_COL_STROKE_DASHARRAY)
-        .attr("opacity", 0);
-
-      left
-        .append("foreignObject")
-        .attr("class", "storyline-left-label")
-        .attr("data-storyline-id", storylineId)
-        .attr("data-y", yExpandedRow)
-        .attr("data-opacity", 1)
-        .attr("x", StorylinesUI.LEFT_PADDING)
-        .attr("y", initialY)
-        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-        .attr("height", rowHeight)
-        .attr("opacity", 0)
-        .append("xhtml:div")
-        .style("display", "flex")
-        .style("flex-wrap", "wrap")
-        .style("align-items", "center")
-        .style("justify-content", "center")
-        .style("height", `${rowHeight}px`)
-        .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
-        .style("font-size", StorylinesUI.LABEL_FONT_SIZE)
-        .style("font-weight", StorylinesUI.LABEL_FONT_WEIGHT)
-        .style("color", StorylinesUI.LABEL_COLOR)
-        .style("text-align", "center")
-        .text(storyline.name);
+      leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
 
       const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {
@@ -727,6 +603,7 @@ export function renderStorylines(
       worldLayer
         .append("rect")
         .attr("class", "storyline-band storyline-band-collapsed-inline")
+        .attr("id", `storyline-band-${storylineId}`)
         .attr("data-storyline-id", storylineId)
         .attr("data-y", yExpandedRow)
         .attr("data-opacity", 0.6)
@@ -741,50 +618,7 @@ export function renderStorylines(
         .attr("ry", StorylinesUI.INLINE_COLLAPSED_RX)
         .attr("opacity", 0.6);
 
-      left
-        .append("rect")
-        .attr("class", "storyline-left-col storyline-left-col-collapsed-inline")
-        .attr("data-storyline-id", storylineId)
-        .attr("data-y", yExpandedRow)
-        .attr("data-opacity", 1)
-        .attr("x", StorylinesUI.LEFT_PADDING)
-        .attr("y", yExpandedRow)
-        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-        .attr("height", rowHeight)
-        .attr("fill", StorylinesUI.INLINE_COLLAPSED_LEFT_FILL)
-        .attr("stroke", StorylinesUI.INLINE_COLLAPSED_STROKE)
-        .attr("stroke-width", StorylinesUI.INLINE_COLLAPSED_STROKE_WIDTH)
-        .attr("rx", StorylinesUI.INLINE_COLLAPSED_RX)
-        .attr("ry", StorylinesUI.INLINE_COLLAPSED_RX)
-        .attr("opacity", 1);
-
-      left
-        .append("foreignObject")
-        .attr(
-          "class",
-          "storyline-left-label storyline-left-label-collapsed-inline"
-        )
-        .attr("data-storyline-id", storylineId)
-        .attr("data-y", yExpandedRow)
-        .attr("data-opacity", 1)
-        .attr("x", StorylinesUI.LEFT_PADDING)
-        .attr("y", yExpandedRow)
-        .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-        .attr("height", rowHeight)
-        .attr("opacity", 1)
-        .append("xhtml:div")
-        .style("display", "flex")
-        .style("flex-wrap", "wrap")
-        .style("align-items", "center")
-        .style("justify-content", "center")
-        .style("height", `${rowHeight}px`)
-        .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
-        .style("font-size", StorylinesUI.COLLAPSED_LABEL_FONT_SIZE)
-        .style("font-weight", StorylinesUI.COLLAPSED_LABEL_FONT_WEIGHT)
-        .style("color", StorylinesUI.COLLAPSED_LABEL_COLOR)
-        .style("text-align", "center")
-        .style("user-select", "none")
-        .text(storyline.name);
+      leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
 
       const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
       buckets.forEach(([key, bucket]) => {
@@ -832,6 +666,7 @@ export function renderStorylines(
     worldLayer
       .append("rect")
       .attr("class", "storyline-band")
+      .attr("id", `storyline-band-${storylineId}`)
       .attr("data-storyline-id", storylineId)
       .attr("data-y", yExpandedRow)
       .attr("data-opacity", StorylinesUI.BAND_OPACITY)
@@ -849,44 +684,7 @@ export function renderStorylines(
       .attr("ry", StorylinesUI.BAND_RY)
       .attr("opacity", StorylinesUI.BAND_OPACITY);
 
-    left
-      .append("rect")
-      .attr("class", "storyline-left-col")
-      .attr("data-storyline-id", storylineId)
-      .attr("data-y", yExpandedRow)
-      .attr("data-opacity", 1)
-      .attr("x", StorylinesUI.LEFT_PADDING)
-      .attr("y", yExpandedRow)
-      .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-      .attr("height", rowHeight)
-      .attr("fill", StorylinesUI.LEFT_COL_FILL)
-      .attr("stroke", StorylinesUI.LEFT_COL_STROKE)
-      .attr("stroke-dasharray", StorylinesUI.LEFT_COL_STROKE_DASHARRAY)
-      .attr("opacity", 1);
-
-    left
-      .append("foreignObject")
-      .attr("class", "storyline-left-label")
-      .attr("data-storyline-id", storylineId)
-      .attr("data-y", yExpandedRow)
-      .attr("data-opacity", 1)
-      .attr("x", StorylinesUI.LEFT_PADDING)
-      .attr("y", yExpandedRow)
-      .attr("width", StorylinesUI.LEFT_COL_WIDTH)
-      .attr("height", rowHeight)
-      .attr("opacity", 1)
-      .append("xhtml:div")
-      .style("display", "flex")
-      .style("flex-wrap", "wrap")
-      .style("align-items", "center")
-      .style("justify-content", "center")
-      .style("height", `${rowHeight}px`)
-      .style("width", `${StorylinesUI.LEFT_COL_WIDTH}px`)
-      .style("font-size", StorylinesUI.LABEL_FONT_SIZE)
-      .style("font-weight", StorylinesUI.LABEL_FONT_WEIGHT)
-      .style("color", StorylinesUI.LABEL_COLOR)
-      .style("text-align", "center")
-      .text(storyline.name);
+    leftColDataStorylines.push({ id: storylineId, y: yExpandedRow, height: rowHeight, name: storyline.name });
 
     const buckets = d3.groups(group, (ch) => `${ch.timeline_id}-${ch.range}`);
     buckets.forEach(([key, bucket]) => {
@@ -914,10 +712,13 @@ export function renderStorylines(
 
   lastLayoutCache = cache;
 
+  const leftColData: LeftColItemData[] = [leftColDataCollapsed, ...leftColDataStorylines];
+
   return {
     chapters: updatedChapters,
     height: collapsedAll ? visibleHeight : expandedHeightAcc,
     expandedHeight: expandedHeightAcc,
     collapsedHeight: visibleHeight,
+    leftColData,
   };
 }

@@ -8,6 +8,7 @@ import {
   applyStorylinesFadeTransition,
   animateCollapsedRow,
   setupCollapsedRowInteraction,
+  LeftColItemData,
 } from "./renderStoryline";
 import {
   initStorylineUIState,
@@ -16,7 +17,7 @@ import {
   triggerCollapseToggle,
 } from "./storylineControls";
 import { setupGroupInteraction } from "./expandChapterGroup";
-import { Layout, ZoomPan, LeftBg, StorylinesUI, TimelinesUI, getAdaptiveMinZoom } from "./globalVariables";
+import { Layout, ZoomPan, TimelinesUI, StorylinesUI, getAdaptiveMinZoom } from "./globalVariables";
 import { animDuration } from "./utils/motion";
 
 /** Anuncia uma mensagem para leitores de tela via aria-live */
@@ -26,6 +27,23 @@ function announceToScreenReader(message: string) {
   el.textContent = "";
   requestAnimationFrame(() => { el.textContent = message; });
 }
+
+// Create left column HTML div and its header strip
+const boardEl = document.getElementById("board")!;
+const boardLeftColEl = document.createElement("div");
+boardLeftColEl.id = "board-left-col";
+boardEl.prepend(boardLeftColEl);
+const boardLeftColHeaderEl = document.createElement("div");
+boardLeftColHeaderEl.id = "board-left-col-header";
+boardLeftColEl.appendChild(boardLeftColHeaderEl);
+
+
+// Collapse/Expand toggle button inside fixed header
+const collapseToggleBtn = document.createElement("button");
+collapseToggleBtn.id = "board-collapse-toggle-btn";
+collapseToggleBtn.textContent = "Collapse ▼";
+collapseToggleBtn.addEventListener("click", () => triggerCollapseToggle());
+boardLeftColHeaderEl.appendChild(collapseToggleBtn);
 
 // 🎯 Cria SVG base
 const svgBase = d3
@@ -50,56 +68,11 @@ document.addEventListener("wheel", (e) => {
   if (e.ctrlKey) e.preventDefault();
 }, { passive: false });
 
-// ClipPath para gTop: limita os headers à área à direita da coluna fixa esquerda
-svgBase
-  .append("defs")
-  .append("clipPath")
-  .attr("id", "board-top-clip")
-  .append("rect")
-  .attr("x", Layout.LEFT_COLUMN_WIDTH)
-  .attr("y", 0)
-  .attr("width", 9999)
-  .attr("height", TimelinesUI.HEADER_HEIGHT);
-
 // ✅ Root container (não recebe transform diretamente)
 const gRoot = svgBase.append("g").attr("class", "board-root");
 
 // ✅ Camada do mundo (pan/zoom normal)
 const gWorld = gRoot.append("g").attr("class", "board-world");
-
-// ✅ Background fixo do header das timelines (sem transform — cobre a área do header)
-const gTopBg = gRoot.append("g").attr("class", "board-top-bg-fixed");
-gTopBg
-  .append("rect")
-  .attr("class", "board-top-bg")
-  .attr("x", Layout.LEFT_COLUMN_WIDTH)
-  .attr("y", 0)
-  .attr("width", 9999)
-  .attr("height", TimelinesUI.HEADER_HEIGHT);
-
-// ✅ Camada dos headers de timeline (segue X mas não Y — fixo no topo)
-const gTop = gRoot
-  .append("g")
-  .attr("class", "board-top-fixed")
-  .attr("clip-path", "url(#board-top-clip)");
-
-// ✅ Camada fixa da esquerda (labels das storylines — segue Y)
-const gLeft = gRoot
-  .append("g")
-  .attr("class", "board-left-fixed")
-  .style("pointer-events", "all");
-
-// 🎨 Background da coluna fixa (fica atrás de tudo)
-gLeft
-  .append("rect")
-  .attr("class", "board-left-bg")
-  .attr("x", LeftBg.X)
-  .attr("y", LeftBg.Y)
-  .attr("width", Layout.LEFT_COLUMN_WIDTH)
-  .attr("height", Layout.MIN_VIEWBOX_HEIGHT)
-  .style("stroke", LeftBg.STROKE)
-  .attr("stroke-width", LeftBg.STROKE_WIDTH)
-  .attr("filter", LeftBg.SHADOW_FILTER);
 
 // ✅ Camada completamente fixa — sem transform (toggle sempre visível)
 const gFixed = gRoot
@@ -107,9 +80,32 @@ const gFixed = gRoot
   .attr("class", "board-fixed")
   .style("pointer-events", "all");
 
-// Cache de seleções usadas a cada frame no zoom handler (evita DOM query repetida)
-const _clipRect = svgBase.select<SVGRectElement>("#board-top-clip rect");
-const _topBgRect = gTopBg.select<SVGRectElement>("rect.board-top-bg");
+// ✅ SVG overlay para UI fixo (headers e labels) — mesmo viewBox que svgBase, sem zoom
+const svgUI = d3.select<HTMLDivElement, unknown>("#board")
+  .append("svg")
+  .attr("class", "board-ui")
+  .attr("preserveAspectRatio", "xMinYMin meet")
+  .style("width", "100%")
+  .style("height", "100%");
+
+const gUITopPan = svgUI.append("g").attr("class", "ui-top-pan");
+
+// Layout cache para applyUIPositions (atualizado após cada render)
+let _tlUIGroups: Array<{ tlId: string; g: any; rect: any; text: any }> = [];
+
+// Left column item state
+interface LeftColItem { el: HTMLDivElement; bandId: string; }
+let _leftColItems: LeftColItem[] = [];
+let _collapsedRowLabel: LeftColItem | null = null;
+
+
+function updateCollapseToggleBtn(collapsedAll: boolean) {
+  collapseToggleBtn.textContent = collapsedAll ? "Expand ▲" : "Collapse ▼";
+}
+
+// Dimensões atuais para converter coords de world → CSS pixels
+let _containerWidth = 0;
+
 
 /**
  * ✅ Normaliza settings para suportar:
@@ -203,11 +199,10 @@ function applyThemeFromSettings(settings: any) {
 }
 
 function computeTotalWidth(timelines: any[]): number {
-  const timelineWidth = (timelines || []).reduce(
+  return (timelines || []).reduce(
     (sum: number, t: any) => sum + (t?.range ?? 0) * Layout.PIXELS_PER_RANGE,
     0
   );
-  return Layout.LEFT_COLUMN_WIDTH + timelineWidth;
 }
 
 function emitSizeUpdate(width: number, height: number) {
@@ -217,20 +212,110 @@ function emitSizeUpdate(width: number, height: number) {
   }, "*");
 }
 
+function buildLeftColItems(
+  leftColData: LeftColItemData[],
+  collapsedAll: boolean
+) {
+  // Remove only storyline label divs (keep boardLeftColHeaderEl)
+  Array.from(boardLeftColEl.children).forEach((child) => {
+    if ((child as HTMLElement).id !== "board-left-col-header") child.remove();
+  });
+  _leftColItems = [];
+  _collapsedRowLabel = null;
+
+  for (const item of leftColData) {
+    const el = document.createElement("div");
+    const span = document.createElement("span");
+    span.className = "left-col-label";
+
+    if (item.isCollapsedRow) {
+      el.className = "left-col-item left-col-collapsed-row";
+      el.dataset.id = "__collapsed__";
+      el.style.opacity = collapsedAll ? "1" : "0";
+      el.style.pointerEvents = collapsedAll ? "auto" : "none";
+      span.textContent = "Collapsed ▲";
+      el.appendChild(span);
+      el.addEventListener("click", () => triggerCollapseToggle());
+      boardLeftColEl.appendChild(el);
+      _collapsedRowLabel = { el, bandId: "storyline-band-__collapsed__" };
+    } else {
+      el.className = "left-col-item left-col-storyline";
+      el.dataset.id = item.id;
+      el.style.opacity = collapsedAll ? "0" : "1";
+      span.textContent = item.name;
+      el.appendChild(span);
+      boardLeftColEl.appendChild(el);
+      _leftColItems.push({ el, bandId: `storyline-band-${item.id}` });
+    }
+  }
+
+  updateCollapseToggleBtn(collapsedAll);
+}
+
+
+function updateLeftCol() {
+  const boardEl = document.getElementById("board");
+  if (!boardEl) return;
+  const boardRect = boardEl.getBoundingClientRect();
+  const allItems = _collapsedRowLabel
+    ? [_collapsedRowLabel, ..._leftColItems]
+    : _leftColItems;
+  for (const item of allItems) {
+    const bandEl = document.getElementById(item.bandId);
+    if (!bandEl) continue;
+    const bandRect = bandEl.getBoundingClientRect();
+    item.el.style.top = `${bandRect.top - boardRect.top}px`;
+    item.el.style.height = `${bandRect.height}px`;
+  }
+}
+
+function applyUIPositions() {
+  const svgBaseEl = (svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>).node();
+  if (!svgBaseEl) return;
+  const svgBaseRect = svgBaseEl.getBoundingClientRect();
+
+  // Read all grid line rects first (batch reads — single reflow)
+  const lineRects = new Map<string, DOMRect>();
+  for (const { tlId } of _tlUIGroups) {
+    const lineEl = document.getElementById(`timeline-gridline-${tlId}`);
+    if (lineEl) lineRects.set(tlId, lineEl.getBoundingClientRect());
+  }
+
+  // Write header positions derived from grid line rects (batch writes)
+  let prevRight = svgBaseRect.left; // left edge of svgBase = x=0 in header space
+  for (const { tlId, g, rect, text } of _tlUIGroups) {
+    const lineRect = lineRects.get(tlId);
+    if (!lineRect) continue;
+    const x0css = prevRight - svgBaseRect.left;
+    const xEndCss = lineRect.left - svgBaseRect.left;
+    const widthCss = xEndCss - x0css;
+    g.attr("transform", `translate(${x0css}, 0)`);
+    rect.attr("width", widthCss);
+    text.attr("x", widthCss / 2);
+    prevRight = lineRect.left;
+  }
+
+  updateLeftCol();
+}
+
+function buildUIGroups() {
+  _tlUIGroups = [];
+  gUITopPan.selectAll<SVGGElement, unknown>("g.timeline-header-group[data-tl-id]")
+    .each(function () {
+      const g = d3.select(this);
+      const id = g.attr("data-tl-id");
+      if (!id) return;
+      _tlUIGroups.push({
+        tlId: id,
+        g,
+        rect: g.select<SVGRectElement>("rect.timeline-header"),
+        text: g.select<SVGTextElement>("text.timeline-txt"),
+      });
+    });
+}
+
 function applyViewBox(totalWidth: number, height: number, animate: boolean = false) {
-  // Garante que o clipPath e o fundo do header cobrem toda a largura do board
-  _clipRect.attr("width", totalWidth);
-  _topBgRect.attr("width", totalWidth);
-
   const minHeight = Math.max(Layout.MIN_VIEWBOX_HEIGHT, height);
-
-  // A coluna esquerda deve sempre cobrir a altura máxima possível do board
-  // (maior entre expanded e collapsed), para nunca ficar curta em nenhum modo.
-  const leftBgHeight = Math.max(
-    minHeight,
-    lastHeights.expandedHeight,
-    lastHeights.collapsedHeight
-  );
 
   const dur = animDuration(StorylinesUI.COLLAPSE_ANIM_MS);
 
@@ -245,21 +330,13 @@ function applyViewBox(totalWidth: number, height: number, animate: boolean = fal
     svgBase.attr("viewBox", `0 0 ${totalWidth} ${minHeight}`);
   }
 
-  // Inclui o header fixo das timelines na altura reportada ao pai
-  emitSizeUpdate(totalWidth, minHeight + TimelinesUI.HEADER_HEIGHT);
+  // svgUI não usa viewBox — opera em CSS pixels diretos
 
-  // Coluna esquerda cobre sempre a altura total máxima do board
-  if (animate && dur > 0) {
-    gLeft
-      .select<SVGRectElement>("rect.board-left-bg")
-      .interrupt()
-      .transition()
-      .duration(dur)
-      .ease(d3.easeCubicInOut)
-      .attr("height", leftBgHeight);
-  } else {
-    gLeft.select<SVGRectElement>("rect.board-left-bg").attr("height", leftBgHeight);
-  }
+  // Reporta ao pai: inclui o header e a largura efetiva com coluna esquerda
+  const effectiveWidth = _containerWidth > 0
+    ? Math.round(totalWidth * (_containerWidth + Layout.LEFT_COLUMN_WIDTH) / _containerWidth)
+    : totalWidth + Layout.LEFT_COLUMN_WIDTH;
+  emitSizeUpdate(effectiveWidth, minHeight + TimelinesUI.HEADER_HEIGHT);
 
   return minHeight;
 }
@@ -316,20 +393,10 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
           d3.zoomIdentity.translate(x, y).scale(k).toString()
         );
 
-        // ✅ coluna fixa (não depende do X, mas escala e acompanha Y)
-        gLeft.attr("transform", `translate(0,${y}) scale(${k})`);
-
-        // ✅ headers fixos (não dependem do Y, mas escalam e acompanham X)
-        gTop.attr("transform", `translate(${x},0) scale(${k})`);
-
-        // ✅ clipPath e background do header escalam junto com k,
-        // evitando que o conteúdo de gWorld "passe por cima" do header
-        const scaledHeaderH = TimelinesUI.HEADER_HEIGHT * k;
-        _clipRect.attr("height", scaledHeaderH);
-        _topBgRect.attr("height", scaledHeaderH);
-
         // ✅ toggle fixo (sem translate — apenas scale para manter o tamanho correto)
         gFixed.attr("transform", `scale(${k})`);
+
+        applyUIPositions();
 
       })
       .on("end", (event) => {
@@ -359,11 +426,6 @@ function initOrUpdateZoom(width: number, height: number, settings: any, minZoom:
   }
 
   // ✅ Atualiza apenas os limites de pan/zoom — sem re-bind e sem re-aplicar o transform.
-  // svg.call(zoomBehavior.transform, currentTransform) foi removido intencionalmente:
-  // quando translateExtent muda (ex: collapse/expand), o D3 constrangia o transform
-  // para o novo extent e disparava o evento zoom, causando um jump visual imediato.
-  // Os event listeners já estão attached do init; o constraint é aplicado
-  // naturalmente na próxima interação do usuário.
   zoomBehavior
     .scaleExtent([minZoom, ZoomPan.MAX_ZOOM_SCALE])
     .translateExtent([
@@ -408,11 +470,15 @@ function renderBoard(data: any) {
 
   // re-render completo
   gWorld.selectAll("*").remove();
-  gTop.selectAll("*").remove();
-  gLeft.selectAll(":not(rect.board-left-bg)").remove();
+  gUITopPan.selectAll("*").remove();
   gFixed.selectAll("*").remove();
+  // Remove only storyline label divs — preserves #board-left-col-header (button)
+  Array.from(boardLeftColEl.children).forEach((child) => {
+    if ((child as HTMLElement).id !== "board-left-col-header") child.remove();
+  });
 
   const totalWidth = computeTotalWidth(timelines);
+  _containerWidth = (_boardResizeEl?.clientWidth ?? 0) - Layout.LEFT_COLUMN_WIDTH;
 
   // ✅ Sempre aplica o collapsedAll mais recente (do DB ou do toggle do usuário)
   initStorylineUIState(storylines, currentCollapsedAll);
@@ -427,13 +493,14 @@ function renderBoard(data: any) {
     height,
     expandedHeight,
     collapsedHeight,
+    leftColData,
   } = renderStorylines(
     gWorld,
     storylines,
     timelines,
     chapters,
-    gLeft,
-    collapsedAll
+    collapsedAll,
+    new Set()
   );
 
   // ✅ cache atualizado SEM logs
@@ -449,9 +516,14 @@ function renderBoard(data: any) {
     expandedBoardHeight: lastHeights.expandedHeight,
     collapsedBoardHeight: lastHeights.collapsedHeight,
     animate: false,
-  }, gTop);
+  }, gUITopPan);
 
   renderChapters(gWorld, renderedChapters, setupGroupInteraction);
+
+  buildUIGroups();
+  buildLeftColItems(leftColData, collapsedAll);
+
+  applyUIPositions();
 
   // ✅ Controls por último, porque precisam do estado inicial pronto
   renderStorylineControls(
@@ -461,9 +533,26 @@ function renderBoard(data: any) {
       onCollapseToggle: (checked: boolean) => {
         currentCollapsedAll = checked;
         // 1) anima row + fades do mundo
-        animateCollapsedRow(gWorld, gLeft, checked);
+        animateCollapsedRow(gWorld, checked);
         applyCollapsedTransition(gWorld, checked);
-        applyStorylinesFadeTransition(gWorld, gLeft, checked);
+
+        updateCollapseToggleBtn(checked);
+
+
+        // Fade storyline labels + collapsed row label (inverse)
+        const animMs = animDuration(StorylinesUI.FADE_ANIM_MS);
+        for (const item of _leftColItems) {
+          item.el.style.transition = `opacity ${animMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+          item.el.style.opacity = checked ? "0" : "1";
+          item.el.style.pointerEvents = checked ? "none" : "auto";
+        }
+        if (_collapsedRowLabel) {
+          _collapsedRowLabel.el.style.transition = `opacity ${animMs}ms cubic-bezier(0.4, 0, 0.2, 1)`;
+          _collapsedRowLabel.el.style.opacity = checked ? "1" : "0";
+          _collapsedRowLabel.el.style.pointerEvents = checked ? "auto" : "none";
+        }
+
+        applyStorylinesFadeTransition(gWorld, checked);
 
         // ✅ 2) ALTURA CORRETA DO MODO ATUAL (isso estava errado antes)
         const targetVisibleHeight = getTargetVisibleHeight(checked);
@@ -475,13 +564,15 @@ function renderBoard(data: any) {
           expandedBoardHeight: lastHeights.expandedHeight,
           collapsedBoardHeight: lastHeights.collapsedHeight,
           animate: true,
-        }, gTop);
+        }, gUITopPan);
 
         // ✅ 4) viewBox anima junto com as transições (evita salto de escala)
         // e zoom extents são atualizados imediatamente (sem resetar o transform).
         const minHeight = applyViewBox(totalWidth, targetVisibleHeight, true);
         const minZoom = checked ? getAdaptiveMinZoom(true) : getAdaptiveMinZoom();
         initOrUpdateZoom(totalWidth, minHeight, settings, minZoom);
+
+        applyUIPositions();
 
         const svgEl = svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
         const node = svgEl.node();
@@ -524,10 +615,9 @@ function renderBoard(data: any) {
   );
 
   // ✅ Conecta clique na collapsed row ao mesmo toggle dos controls
-  setupCollapsedRowInteraction(gWorld, gLeft, triggerCollapseToggle);
+  setupCollapsedRowInteraction(gWorld, triggerCollapseToggle);
 
   // ✅ viewBox inicial + zoom init/update (adapta ao container)
-  // applyViewBox já atualiza o bg esquerdo internamente
   const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
   initOrUpdateZoom(totalWidth, minHeight, settings);
 }
@@ -561,9 +651,11 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
     const w = entries[0]?.contentRect.width ?? 0;
     if (Math.abs(w - _lastObservedWidth) < 1) return; // ignora mudanças de altura (loop)
     _lastObservedWidth = w;
+    _containerWidth = w - Layout.LEFT_COLUMN_WIDTH;
     const totalWidth = computeTotalWidth(lastRenderData.timelines);
     const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
     initOrUpdateZoom(totalWidth, minHeight, lastRenderData.settings);
+    applyUIPositions();
   }).observe(_boardResizeEl);
 }
 
@@ -610,8 +702,8 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
 if (import.meta.hot) {
   import.meta.hot.dispose(() => {
     gWorld.selectAll("*").remove();
-    gTop.selectAll("*").remove();
-    gLeft.selectAll(":not(rect.board-left-bg)").remove();
+    gUITopPan.selectAll("*").remove();
     gFixed.selectAll("*").remove();
+    boardLeftColEl.innerHTML = "";
   });
 }

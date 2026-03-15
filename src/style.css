@@ -24,10 +24,103 @@ html {
   height: 100%;
 }
 
-#board svg {
-  display: block;
+#board-left-col {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 260px;
+  height: 100%;
+  overflow: hidden;
+  z-index: 10;
+  user-select: none;
+}
+
+#board-left-col-header {
+  position: absolute;
+  left: 0;
+  top: 0;
   width: 100%;
+  height: 45px;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  box-sizing: border-box;
+}
+
+body.light-mode #board-left-col-header { background: var(--board-top-fill); }
+body.dark-mode  #board-left-col-header { background: var(--board-top-fill); }
+
+/* Collapsed row band overlay — always visible, tracks zoom/pan via JS */
+#board-collapsed-strip {
+  position: absolute;
+  left: 260px;
+  width: calc(100% - 260px);
+  min-height: 4px;
+  pointer-events: none;
+  border-radius: 4px;
+  z-index: 6;
+}
+body.light-mode #board-collapsed-strip {
+  background: var(--collapsed-band-fill);
+  border: 1.5px solid var(--collapsed-band-stroke);
+}
+body.dark-mode #board-collapsed-strip {
+  background: var(--collapsed-band-fill);
+  border: 1.5px solid var(--collapsed-band-stroke);
+}
+
+#board-collapse-toggle-btn {
+  width: 100%;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1.5px solid;
+  transition: filter 0.15s;
+}
+
+#board-collapse-toggle-btn:hover { filter: brightness(0.92); }
+
+body.light-mode #board-collapse-toggle-btn {
+  background: var(--controls-btn-bg);
+  color: var(--controls-btn-color);
+  border-color: var(--controls-btn-border);
+}
+
+body.dark-mode #board-collapse-toggle-btn {
+  background: var(--controls-btn-bg);
+  color: var(--controls-btn-color);
+  border-color: var(--controls-btn-border);
+}
+
+/* svgBase only — NOT svgUI */
+#board svg:not(.board-ui) {
+  display: block;
+  position: absolute;
+  left: 260px;
+  top: 45px;
+  width: calc(100% - 260px);
+  height: calc(100% - 45px);
   touch-action: none;
+}
+
+/* svgUI — fixed header strip, same row as the Collapse button */
+svg.board-ui {
+  position: absolute;
+  top: 0;
+  left: 260px;
+  width: calc(100% - 260px);
+  height: 45px;
+  pointer-events: none;
+  z-index: 8;
+}
+
+/* GPU compositing for the zoomable world layer */
+.board-world {
+  will-change: transform;
 }
 
 /* ===== VARIÁVEIS DE TEMA ===== */
@@ -417,3 +510,51 @@ g.chapter-group:focus-visible rect:first-of-type {
     stroke-width: 2px !important;
   }
 }
+
+/* ===== LEFT COLUMN LABELS ===== */
+.left-col-item {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.left-col-storyline {
+  transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0 8px;
+}
+
+.left-col-collapsed-row {
+  border-radius: 8px;
+  cursor: pointer;
+  transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body.light-mode .left-col-collapsed-row { background: var(--collapsed-band-fill); color: var(--collapsed-band-stroke); }
+body.dark-mode  .left-col-collapsed-row { background: var(--collapsed-band-fill); color: var(--collapsed-band-stroke); }
+
+.left-col-label {
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+  word-break: break-word;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+body.light-mode .left-col-storyline .left-col-label { color: #333; }
+body.dark-mode  .left-col-storyline .left-col-label { color: #ddd; }
+body.light-mode .left-col-collapsed-row { background: rgba(234, 244, 255, 0.82); border: 1.5px solid rgba(106, 166, 216, 0.6); }
+body.dark-mode  .left-col-collapsed-row { background: rgba(30, 60, 100, 0.82);   border: 1.5px solid rgba(106, 166, 216, 0.4); }
+body.light-mode .left-col-collapsed-row .left-col-label { color: #1f4f7a; font-size: 12px; font-weight: 800; }
+body.dark-mode  .left-col-collapsed-row .left-col-label { color: #90c8f0; font-size: 12px; font-weight: 800; }
+
+/* Left col background strip (per-storyline row) */
+body.light-mode .left-col-storyline { background: rgba(250,250,250,0.95); border-right: 1px solid #e0e0e0; }
+body.dark-mode  .left-col-storyline { background: rgba(30,30,30,0.95);   border-right: 1px solid #333; }

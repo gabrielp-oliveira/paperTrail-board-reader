@@ -22,7 +22,7 @@ export const Layout = {
   PIXELS_PER_RANGE: 20,
 
   /** Largura total da coluna fixa esquerda (labels + controls) */
-  LEFT_COLUMN_WIDTH: 200,
+  LEFT_COLUMN_WIDTH: 260,
 
   /** Padding interno da coluna esquerda */
   LEFT_COLUMN_PADDING_X: 15,
@@ -92,7 +92,7 @@ export function getAdaptiveMinZoom(collapsed = false): number {
 // =========================================================
 export const TimelinesUI = {
   RANGE_GAP: 20,            // mesmo que Layout.PIXELS_PER_RANGE
-  LABEL_WIDTH: 200,         // mesmo que Layout.LEFT_COLUMN_WIDTH
+  LABEL_WIDTH: 260,         // mesmo que Layout.LEFT_COLUMN_WIDTH
   COL_ROW_MARGIN: 0,        // mesmo que Layout.STORYLINE_ROW_MARGIN_X
 
   HEADER_HEIGHT: 45,
