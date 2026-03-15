@@ -91,13 +91,27 @@ const svgUI = d3.select<HTMLDivElement, unknown>("#board")
 const gUITopPan = svgUI.append("g").attr("class", "ui-top-pan");
 
 // Layout cache para applyUIPositions (atualizado após cada render)
-let _tlUIGroups: Array<{ tlId: string; g: any; rect: any; text: any }> = [];
+let _tlUIGroups: Array<{ tlId: string; tlName: string; g: any; rect: any; text: any }> = [];
 
 // Left column item state
 interface LeftColItem { el: HTMLDivElement; bandId: string; }
 let _leftColItems: LeftColItem[] = [];
 let _collapsedRowLabel: LeftColItem | null = null;
 
+// Dynamic left column width (updated per render based on longest storyline name)
+let _leftColWidth = 260;
+
+const LEFT_COL_MIN = 120;
+const LEFT_COL_MAX = 340;
+const LEFT_COL_CHAR_WIDTH = 7.5;  // estimated px per char at 13px bold
+const LEFT_COL_H_PADDING = 40;    // horizontal padding inside the label
+
+function computeLeftColWidth(storylines: any[]): number {
+  if (!storylines?.length) return 180;
+  const maxChars = Math.max(...storylines.map((s: any) => (s.name ?? "").length));
+  const estimated = Math.ceil(maxChars * LEFT_COL_CHAR_WIDTH + LEFT_COL_H_PADDING);
+  return Math.max(LEFT_COL_MIN, Math.min(LEFT_COL_MAX, estimated));
+}
 
 function updateCollapseToggleBtn(collapsedAll: boolean) {
   collapseToggleBtn.textContent = collapsedAll ? "Expand ▲" : "Collapse ▼";
@@ -269,6 +283,45 @@ function updateLeftCol() {
   }
 }
 
+/** Wraps a timeline header text into 1 or 2 tspan lines to fit within widthCss. */
+function applyTimelineTextWrap(
+  textSel: d3.Selection<SVGTextElement, unknown, HTMLElement, any>,
+  name: string,
+  widthCss: number
+) {
+  const CHAR_W = 7.5;
+  const PADDING = 8; // px each side
+  const available = widthCss - PADDING * 2;
+  const words = name.split(/\s+/).filter(Boolean);
+
+  const fitsOneLine = name.length * CHAR_W <= available;
+
+  if (words.length <= 1 || fitsOneLine) {
+    // Single line — clear tspans, set text directly
+    textSel.selectAll("tspan").remove();
+    textSel.text(name).attr("y", 25).attr("x", widthCss / 2);
+    return;
+  }
+
+  // Try all split points and pick the most balanced 2-line split
+  let bestSplit = 1;
+  let bestDiff = Infinity;
+  for (let i = 1; i < words.length; i++) {
+    const l1 = words.slice(0, i).join(" ");
+    const l2 = words.slice(i).join(" ");
+    const diff = Math.abs(l1.length - l2.length);
+    if (diff < bestDiff) { bestDiff = diff; bestSplit = i; }
+  }
+
+  const line1 = words.slice(0, bestSplit).join(" ");
+  const line2 = words.slice(bestSplit).join(" ");
+
+  textSel.text(null).attr("y", 0).attr("x", widthCss / 2);
+  textSel.selectAll("tspan").remove();
+  textSel.append("tspan").attr("x", widthCss / 2).attr("dy", "1.1em").text(line1);
+  textSel.append("tspan").attr("x", widthCss / 2).attr("dy", "1.2em").text(line2);
+}
+
 function applyUIPositions() {
   const svgBaseEl = (svgBase as unknown as d3.Selection<SVGSVGElement, unknown, HTMLElement, any>).node();
   if (!svgBaseEl) return;
@@ -283,23 +336,27 @@ function applyUIPositions() {
 
   // Write header positions derived from grid line rects (batch writes)
   let prevRight = svgBaseRect.left; // left edge of svgBase = x=0 in header space
-  for (const { tlId, g, rect, text } of _tlUIGroups) {
+  for (const { tlId, tlName, g, rect, text } of _tlUIGroups) {
     const lineRect = lineRects.get(tlId);
     if (!lineRect) continue;
     const x0css = prevRight - svgBaseRect.left;
     const xEndCss = lineRect.left - svgBaseRect.left;
     const widthCss = xEndCss - x0css;
+    const safeWidth = Math.max(0, widthCss);
     g.attr("transform", `translate(${x0css}, 0)`);
-    rect.attr("width", widthCss);
-    text.attr("x", widthCss / 2);
+    rect.attr("width", safeWidth);
+    applyTimelineTextWrap(text, tlName, safeWidth);
     prevRight = lineRect.left;
   }
 
   updateLeftCol();
 }
 
-function buildUIGroups() {
+function buildUIGroups(timelines: any[]) {
   _tlUIGroups = [];
+  const nameById = new Map<string, string>(
+    (timelines ?? []).map((tl: any) => [String(tl.id), String(tl.name ?? "")])
+  );
   gUITopPan.selectAll<SVGGElement, unknown>("g.timeline-header-group[data-tl-id]")
     .each(function () {
       const g = d3.select(this);
@@ -307,6 +364,7 @@ function buildUIGroups() {
       if (!id) return;
       _tlUIGroups.push({
         tlId: id,
+        tlName: nameById.get(id) ?? "",
         g,
         rect: g.select<SVGRectElement>("rect.timeline-header"),
         text: g.select<SVGTextElement>("text.timeline-txt"),
@@ -334,8 +392,8 @@ function applyViewBox(totalWidth: number, height: number, animate: boolean = fal
 
   // Reporta ao pai: inclui o header e a largura efetiva com coluna esquerda
   const effectiveWidth = _containerWidth > 0
-    ? Math.round(totalWidth * (_containerWidth + Layout.LEFT_COLUMN_WIDTH) / _containerWidth)
-    : totalWidth + Layout.LEFT_COLUMN_WIDTH;
+    ? Math.round(totalWidth * (_containerWidth + _leftColWidth) / _containerWidth)
+    : totalWidth + _leftColWidth;
   emitSizeUpdate(effectiveWidth, minHeight + TimelinesUI.HEADER_HEIGHT);
 
   return minHeight;
@@ -478,7 +536,10 @@ function renderBoard(data: any) {
   });
 
   const totalWidth = computeTotalWidth(timelines);
-  _containerWidth = (_boardResizeEl?.clientWidth ?? 0) - Layout.LEFT_COLUMN_WIDTH;
+  _leftColWidth = computeLeftColWidth(storylines);
+  boardLeftColEl.style.width = `${_leftColWidth}px`;
+  boardEl.style.setProperty("--left-col-width", `${_leftColWidth}px`);
+  _containerWidth = (_boardResizeEl?.clientWidth ?? 0) - _leftColWidth;
 
   // ✅ Sempre aplica o collapsedAll mais recente (do DB ou do toggle do usuário)
   initStorylineUIState(storylines, currentCollapsedAll);
@@ -520,7 +581,7 @@ function renderBoard(data: any) {
 
   renderChapters(gWorld, renderedChapters, setupGroupInteraction);
 
-  buildUIGroups();
+  buildUIGroups(timelines);
   buildLeftColItems(leftColData, collapsedAll);
 
   applyUIPositions();
@@ -651,7 +712,7 @@ if (_boardResizeEl && typeof ResizeObserver !== "undefined") {
     const w = entries[0]?.contentRect.width ?? 0;
     if (Math.abs(w - _lastObservedWidth) < 1) return; // ignora mudanças de altura (loop)
     _lastObservedWidth = w;
-    _containerWidth = w - Layout.LEFT_COLUMN_WIDTH;
+    _containerWidth = w - _leftColWidth;
     const totalWidth = computeTotalWidth(lastRenderData.timelines);
     const minHeight = applyViewBox(totalWidth, lastHeights.visibleHeight);
     initOrUpdateZoom(totalWidth, minHeight, lastRenderData.settings);
